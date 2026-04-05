@@ -510,3 +510,28 @@ export const ThemeProvider = ({ children, theme }: ThemeProviderProps) => (
 - All meaningful changes require team consensus
 - Document architectural decisions here
 - Keep history focused on work, decisions focused on direction
+### 2026-04-05T15:58:00Z: User Directive — Pip-Boy Transition Logic & Hardware Feedback
+**By:** Brady (via Copilot)
+**Status:** Proposed — Queued for Implementation
+
+**Specification:** Pip-Boy tab transitions must feel authentic to 1950s vacuum-tube CRT technology — NOT modern slides/fades.
+
+**Key Requirements:**
+1. **Navigation:** onClick on tab headers + mechanical click sound on state change
+2. **Phosphor Persistence:** Old content stays visible briefly with blur + opacity drop on tab switch
+3. **Horizontal Scanline Sweep:** Vertical refresh line sweeps new data top-to-bottom
+4. **Static Burst:** Single-frame glitch/white noise during transition to hide loading latency
+5. **RADS Needle:** Twitches/spikes on critical errors or API rate-limit warnings
+6. **Power Light:** Pulses when an agent is in "Thinking" state
+7. **Tab Content Mapping:**
+   - STAT = agent pool health (S.P.E.C.I.A.L. metrics from ConnectionStore)
+   - INV = tool/MCP inventory (tools list from store)
+   - DATA = console stream (message history with raw JSON toggle)
+   - MAP = agent topology node graph (activeAgent + relationships)
+   - RADIO = command center with override buttons (commandHistory + uplink controls)
+
+**Rationale:** Authentic Pip-Boy transition feel is "the secret sauce" — vacuum-tube technology persistence/scanning/noise creates distinctive CRT aesthetic.
+
+**Dependency Chain:** Codepen CSS port (Kare, complete ✓) → Transition logic (next sprint) → Tab content binding (existing)
+
+---
