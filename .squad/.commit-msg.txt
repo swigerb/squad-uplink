@@ -1,0 +1,8 @@
+docs(squad): log Wave 5 completion — all milestones shipped
+
+- Orchestration logs: Hertzfeld test fixes, Woz Ship It (M6)
+- Session log: Wave 5 complete, all 6 milestones, 319 tests, 163KB gzipped
+- Decision inbox: merged woz-ship-it.md → decisions.md
+- Agent history: updated Hertzfeld and Woz with Wave 5 cross-agent info
+
+Co-authored-by: Copilot <223556219+Copilot@users.noreply.github.com>
