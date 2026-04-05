@@ -1,5 +1,6 @@
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import type { ThemeId } from '@/themes';
+import { AudioBufferCache } from '@/audio/bufferCache';
 
 export type SoundType =
   | 'keystroke' | 'connect' | 'disconnect' | 'error' | 'toggle'
@@ -33,7 +34,6 @@ const SKIN_PROFILES: Record<ThemeId, Record<SoundType, SoundDef>> = {
     disconnect: { waveform: 'sine', freq: 220, duration: 200 },
     error: { waveform: 'square', freq: 160, duration: 300 },
     toggle: { waveform: 'sine', freq: 660, duration: 100 },
-    // Rising frequency sweep — floppy spin-up
     boot: { steps: [
       { waveform: 'square', freq: 200, duration: 100, delay: 0 },
       { waveform: 'square', freq: 400, duration: 100, delay: 100 },
@@ -54,7 +54,6 @@ const SKIN_PROFILES: Record<ThemeId, Record<SoundType, SoundDef>> = {
     disconnect: { waveform: 'sawtooth', freq: 200, duration: 250, detune: 15 },
     error: { waveform: 'sawtooth', freq: 140, duration: 350, detune: 20 },
     toggle: { waveform: 'sawtooth', freq: 680, duration: 110, detune: 10 },
-    // Tape loading warble
     boot: { steps: [
       { waveform: 'sawtooth', freq: 1000, duration: 80, delay: 0, detune: 25 },
       { waveform: 'sawtooth', freq: 500, duration: 80, delay: 80, detune: 25 },
@@ -62,20 +61,17 @@ const SKIN_PROFILES: Record<ThemeId, Record<SoundType, SoundDef>> = {
       { waveform: 'sawtooth', freq: 600, duration: 80, delay: 240, detune: 25 },
       { waveform: 'sawtooth', freq: 800, duration: 120, delay: 320, detune: 15 },
     ] },
-    // SID arpeggio — three quick notes
     agent_started: { steps: [
       { waveform: 'sawtooth', freq: 523, duration: 50, delay: 0, detune: 10 },
       { waveform: 'sawtooth', freq: 659, duration: 50, delay: 55, detune: 10 },
       { waveform: 'sawtooth', freq: 784, duration: 50, delay: 110, detune: 10 },
     ] },
     agent_triage: { waveform: 'sawtooth', freq: 600, duration: 100, detune: 15 },
-    // Ascending notes
     agent_success: { steps: [
       { waveform: 'sawtooth', freq: 523, duration: 80, delay: 0, detune: 8 },
       { waveform: 'sawtooth', freq: 659, duration: 80, delay: 85, detune: 8 },
       { waveform: 'sawtooth', freq: 784, duration: 120, delay: 170, detune: 8 },
     ] },
-    // Descending buzz
     agent_error: { steps: [
       { waveform: 'sawtooth', freq: 400, duration: 100, delay: 0, detune: 30 },
       { waveform: 'sawtooth', freq: 250, duration: 100, delay: 100, detune: 30 },
@@ -91,7 +87,6 @@ const SKIN_PROFILES: Record<ThemeId, Record<SoundType, SoundDef>> = {
     disconnect: { waveform: 'square', freq: 180, duration: 120 },
     error: { waveform: 'square', freq: 120, duration: 400 },
     toggle: { waveform: 'square', freq: 500, duration: 60 },
-    // Solenoid clatter — rapid clicks
     boot: { steps: [
       { waveform: 'square', freq: 300, duration: 15, delay: 0 },
       { waveform: 'square', freq: 350, duration: 15, delay: 30 },
@@ -102,9 +97,7 @@ const SKIN_PROFILES: Record<ThemeId, Record<SoundType, SoundDef>> = {
     ] },
     agent_started: { waveform: 'square', freq: 350, duration: 20 },
     agent_triage: { waveform: 'square', freq: 500, duration: 40, freq2: 600 },
-    // Terminal bell
     agent_success: { waveform: 'sine', freq: 2000, duration: 100 },
-    // Low warning tone
     agent_error: { waveform: 'square', freq: 100, duration: 500, freq2: 120 },
     crt_toggle: { waveform: 'square', freq: 400, duration: 30 },
   },
@@ -116,7 +109,6 @@ const SKIN_PROFILES: Record<ThemeId, Record<SoundType, SoundDef>> = {
     disconnect: { waveform: 'sine', freq: 440, duration: 180, freq2: 330 },
     error: { waveform: 'sine', freq: 300, duration: 350, freq2: 260 },
     toggle: { waveform: 'sine', freq: 660, duration: 80 },
-    // Iconic ascending chord — 4 notes
     boot: { steps: [
       { waveform: 'sine', freq: 523, duration: 250, delay: 0 },
       { waveform: 'sine', freq: 659, duration: 250, delay: 260 },
@@ -125,12 +117,10 @@ const SKIN_PROFILES: Record<ThemeId, Record<SoundType, SoundDef>> = {
     ] },
     agent_started: { waveform: 'sine', freq: 600, duration: 30 },
     agent_triage: { waveform: 'sine', freq: 500, duration: 60 },
-    // "Ta-da" — ascending major third
     agent_success: { steps: [
       { waveform: 'sine', freq: 523, duration: 120, delay: 0 },
       { waveform: 'sine', freq: 659, duration: 200, delay: 130 },
     ] },
-    // Error chord — minor interval
     agent_error: { steps: [
       { waveform: 'sine', freq: 440, duration: 200, delay: 0 },
       { waveform: 'sine', freq: 415, duration: 300, delay: 210 },
@@ -145,7 +135,6 @@ const SKIN_PROFILES: Record<ThemeId, Record<SoundType, SoundDef>> = {
     disconnect: { waveform: 'sine', freq: 800, duration: 120, freq2: 600 },
     error: { waveform: 'sine', freq: 400, duration: 250, freq2: 350 },
     toggle: { waveform: 'sine', freq: 1600, duration: 60 },
-    // Ascending sci-fi sweep
     boot: { steps: [
       { waveform: 'sine', freq: 400, duration: 80, delay: 0 },
       { waveform: 'sine', freq: 800, duration: 80, delay: 80 },
@@ -154,12 +143,10 @@ const SKIN_PROFILES: Record<ThemeId, Record<SoundType, SoundDef>> = {
     ] },
     agent_started: { waveform: 'sine', freq: 1500, duration: 40 },
     agent_triage: { waveform: 'sine', freq: 1000, duration: 60, freq2: 1200 },
-    // Communicator chirp — two-tone
     agent_success: { steps: [
       { waveform: 'sine', freq: 1200, duration: 60, delay: 0 },
       { waveform: 'sine', freq: 1800, duration: 80, delay: 70 },
     ] },
-    // Alert klaxon — alternating tones
     agent_error: { steps: [
       { waveform: 'sine', freq: 600, duration: 120, delay: 0 },
       { waveform: 'sine', freq: 400, duration: 120, delay: 130 },
@@ -170,6 +157,9 @@ const SKIN_PROFILES: Record<ThemeId, Record<SoundType, SoundDef>> = {
 };
 
 const AUDIO_STORAGE_KEY = 'squad-uplink-audio-muted';
+
+// Shared cache singleton — survives re-renders, shared across hook instances
+export const bufferCache = new AudioBufferCache();
 
 function loadMutePreference(): boolean {
   try {
@@ -189,6 +179,30 @@ export function useAudio(skinId: ThemeId = 'apple2e') {
     }
     return ctxRef.current;
   }, []);
+
+  // Preload audio files for the current skin when it changes
+  useEffect(() => {
+    try {
+      const ctx = getContext();
+      bufferCache.preloadSkin(ctx, skinId);
+    } catch {
+      // AudioContext not available — procedural fallback only
+    }
+  }, [skinId, getContext]);
+
+  /** Play a cached AudioBuffer sample through the Web Audio graph */
+  const playSample = useCallback(
+    (ctx: AudioContext, buffer: AudioBuffer) => {
+      const source = ctx.createBufferSource();
+      const gain = ctx.createGain();
+      source.buffer = buffer;
+      gain.gain.setValueAtTime(0.3, ctx.currentTime);
+      source.connect(gain);
+      gain.connect(ctx.destination);
+      source.start(0);
+    },
+    [],
+  );
 
   const playTone = useCallback(
     (ctx: AudioContext, profile: SoundProfile, startOffset: number = 0) => {
@@ -225,25 +239,42 @@ export function useAudio(skinId: ThemeId = 'apple2e') {
     [],
   );
 
+  /** Play procedural oscillator fallback */
+  const playProcedural = useCallback(
+    (ctx: AudioContext, sound: SoundType) => {
+      const def = SKIN_PROFILES[skinId][sound];
+      if (isSequence(def)) {
+        for (const step of def.steps) {
+          playTone(ctx, step, step.delay / 1000);
+        }
+      } else {
+        playTone(ctx, def);
+      }
+    },
+    [skinId, playTone],
+  );
+
   const play = useCallback(
     (sound: SoundType) => {
       if (muted) return;
       try {
         const ctx = getContext();
-        const def = SKIN_PROFILES[skinId][sound];
 
-        if (isSequence(def)) {
-          for (const step of def.steps) {
-            playTone(ctx, step, step.delay / 1000);
-          }
-        } else {
-          playTone(ctx, def);
+        // Try sample file first — if cached buffer exists, use it
+        const buffer = bufferCache.get(skinId, sound);
+        if (buffer) {
+          playSample(ctx, buffer);
+          return;
         }
+
+        // If a manifest entry exists but isn't loaded yet, use procedural
+        // as interim fallback (the file will be ready next time)
+        playProcedural(ctx, sound);
       } catch {
         // Audio not available — silently degrade
       }
     },
-    [getContext, skinId, muted, playTone],
+    [getContext, skinId, muted, playSample, playProcedural],
   );
 
   const toggleMute = useCallback(() => {
