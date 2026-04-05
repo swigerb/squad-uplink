@@ -77,5 +77,79 @@ All 319 tests pass. Build clean. No new warnings.
 
 ---
 
+## Pip-Boy 3000 Theme (Uplink-Gamma)
+
+**By:** Kare (Frontend Dev)  
+**Date:** 2026-04-05  
+**Status:** Implemented
+
+### Context
+
+Brady requested a 6th theme — Pip-Boy 3000 — inspired by Fallout's wrist-mounted terminal. This required a new layout mode (`'pipboy'`) since the tabbed navigation with 5 tabs (STAT/INV/DATA/MAP/RADIO) doesn't fit the existing `fullscreen`, `windowed`, or `panel` patterns.
+
+### Decisions
+
+1. **New layout mode `'pipboy'`** added to the `TerminalTheme.layout` union. This is a fourth layout alongside fullscreen/windowed/panel. The PipBoyLayout component lives in App.tsx alongside the other layouts.
+
+2. **Terminal stays mounted across tab switches** via CSS `display:none` (not conditional rendering). Only the DATA tab's panel is always in the DOM; other tabs render conditionally since they're placeholder content. This preserves xterm.js state and scroll position.
+
+3. **Pip-Boy uses its own flicker animation** (`pipboy-flicker` in pipboy.css) rather than the shared `crt-flicker`. The standard CRT flicker in crt-effects.css is explicitly disabled for `[data-theme='pipboy']` to avoid conflicts. The Pip-Boy flicker has more varied keyframe stops for a more authentic phosphor feel.
+
+4. **VT323 + Share Tech Mono font stack** — two new @font-face declarations added to fonts.css. Both are Google Fonts, need .woff2 files sourced to `public/fonts/`.
+
+5. **Audio profile** uses high sine chirps for messages, square wave clicks for state changes, and a rising sine sweep for boot — consistent with Geiger counter / relay aesthetic.
+
+6. **ThemeId union expanded to 6** — required updates to: ThemeToggle labels, MechanicalSwitch variants, useTheme map, THEME_ORDER, theme tests (cycle count), and ThemeToggle tests (click count).
+
+### Verification
+- 17 files touched
+- Build clean
+- 374 tests passing
+
+---
+
+## Pip-Boy Tab Data Components
+
+**By:** Woz (Lead Dev)  
+**Date:** 2026-04-05  
+**Status:** Implemented
+
+### Context
+
+Brady requested Pip-Boy data components to power each tab of Kare's PipBoyLayout. These components need to pull real-time data from the existing Zustand store and ConnectionManager, while adding new metrics fields for the S.P.E.C.I.A.L. display.
+
+### Decisions
+
+#### 1. Store Extensions
+Added to `TelemetryMetrics`: `tokenUsage`, `messageCount`, `successCount` — these power the S.P.E.C.I.A.L. stat calculations (Intelligence, Luck, Perception).
+
+Added to `ConnectionStore`: `messageHistory` (capped at 50 entries), `tools`, `mcpServers`, `activeAgent`, `commandHistory` (capped at 10), `uplinkOverride`.
+
+New types added to `squad-rc.ts`: `MessageHistoryEntry`, `ToolInfo`, `McpServerInfo`.
+
+#### 2. ConnectionManager Message Tracking
+Wired `onmessage` and `sendImmediate` to push `MessageHistoryEntry` records into the store. Both inbound and outbound messages are tracked with timestamps, agent attribution, content preview, and full raw payload. This feeds both the Data tab log and the S.P.E.C.I.A.L. stat calculations.
+
+#### 3. Component Architecture
+All 5 components are standalone exports from `src/components/PipBoy/tabs/`:
+- **PipBoyStat** — S.P.E.C.I.A.L. bars with scaling functions (latency→strength, throughput→perception, etc.)
+- **PipBoyInv** — Tool/MCP inventory with `>` cursor prefix styling
+- **PipBoyData** — Message history log with raw JSON toggle, auto-scroll
+- **PipBoyMap** — ASCII agent topology tree with active turn indicator
+- **PipBoyRadio** — Command console with input, quick buttons, history nav, uplink override
+
+#### 4. Graceful Disconnected States
+Every component handles the disconnected case with Pip-Boy-themed empty states: "NO ITEMS IN INVENTORY", "NO SIGNAL — AGENTS OFFLINE", "NO DATA", etc.
+
+#### 5. CSS Class Convention
+All styling uses `pipboy-` prefixed classes (Kare owns the CSS implementation). No inline styles except for dynamic status colors.
+
+### Verification
+- Build clean
+- All components handle disconnected states gracefully
+- Tests passing
+
+---
+
 ## Archive Log
-(Post-release decisions logged here)
+(Post-release decisions logged here).

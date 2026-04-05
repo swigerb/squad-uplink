@@ -1,7 +1,8 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
 import type { ReactNode } from 'react';
-import { ThemeProvider, useTheme } from '../useTheme';
+import { ThemeProvider } from '../ThemeProvider';
+import { useTheme } from '../useTheme';
 
 function wrapper({ children }: { children: ReactNode }) {
   return <ThemeProvider>{children}</ThemeProvider>;
@@ -104,10 +105,10 @@ describe('useTheme', () => {
       expect(result.current.themeId).toBe('ibm3270');
     });
 
-    it('cycles through all 5 themes back to apple2e', () => {
+    it('cycles through all 6 themes back to apple2e', () => {
       const { result } = renderHook(() => useTheme(), { wrapper });
 
-      for (let i = 0; i < 5; i++) {
+      for (let i = 0; i < 6; i++) {
         act(() => {
           result.current.toggleTheme();
         });

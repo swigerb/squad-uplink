@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { render } from '@testing-library/react';
 import type { ReactNode } from 'react';
-import { ThemeProvider } from '@/hooks/useTheme';
+import { ThemeProvider } from '@/hooks/ThemeProvider';
 import { CRTOverlay } from '@/components/CRTOverlay/CRTOverlay';
 
 function renderWithTheme(ui: ReactNode) {
