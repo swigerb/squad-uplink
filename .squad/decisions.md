@@ -535,3 +535,109 @@ export const ThemeProvider = ({ children, theme }: ThemeProviderProps) => (
 **Dependency Chain:** Codepen CSS port (Kare, complete ✓) → Transition logic (next sprint) → Tab content binding (existing)
 
 ---
+
+### 2026-04-05T15:55:00Z: Decision — Pip-Boy Codepen Exact Port
+**By:** Kare (Frontend Dev)
+**Date:** 2026-04-05
+**Status:** Implemented
+
+## Context
+
+Brady requested (twice) that the Pip-Boy implementation match the Codepen reference (https://codepen.io/stix/pen/KdJEwB) exactly. The previous implementation used a CSS grid layout with custom device chrome that didn't match the reference.
+
+## Decision
+
+Complete replacement of `src/styles/pipboy.css` and the `PipBoyLayout` component in `src/App.tsx` with a faithful port of the Codepen's CSS and HTML structure.
+
+## Key Choices
+
+1. **Fixed dimensions + transform scaling**: Kept the Codepen's 630x400px design and used `transform: scale()` with a viewport-responsive scale factor (via `usePipBoyScale` hook) instead of making everything fluid/responsive. This preserves pixel-perfect fidelity.
+
+2. **Class namespacing**: All Codepen classes prefixed with `pipboy-` (e.g., `.pip` → `.pipboy-pip`) and scoped under `[data-theme='pipboy']` to avoid conflicts with other themes.
+
+3. **Tab label strategy**: Used `pipboy-lbl-*` class names for CSS `::before` content labels (avoiding conflicts with existing `pipboy-stat`/`pipboy-inv` component classes). Nav tabs use `aria-label` for accessibility while `::before` provides visible text.
+
+4. **Content integration**: Codepen decorative elements (supplies, info-bar icons, HUD bar) rendered alongside functional tab content. The screen inner area uses absolute-fill flexbox for tab panels.
+
+5. **Three Codepen animations preserved**: `pipboy-flicker` (power button glow), `pipboy-meter` (RADS needle oscillation), `pipboy-scan` (green scan line sweep).
+
+## Impact
+
+- `src/styles/pipboy.css`: Complete replacement (~650 lines)
+- `src/App.tsx` PipBoyLayout: Complete replacement (~170 lines)
+- All 399 tests passing, build clean
+- No changes to other themes or components
+
+---
+
+### 2026-04-05T16:28:00Z: Decision — Pip-Boy Physical Dials — Hardware-to-UI Navigation
+**Date:** 2026-04-05
+**Author:** Woz
+**Status:** Implemented
+
+## Context
+
+The Pip-Boy 3000 theme has two decorative dials from the Codepen port: a spiked wheel (upper-right) and a tune wheel (bottom-right). Brady requested these be made functional with rotation animation, audio feedback, and accessibility.
+
+## Decision
+
+### Spike Wheel → Tab Navigation
+- Click/wheel/keyboard all navigate tabs via `nextTab()`/`prevTab()` from the `usePipBoyTransition` hook
+- Rotation: `10deg base + tabIndex * 15deg`, 200ms CSS ease-out transition
+- Single source of truth: `activeTab` from `usePipBoyTransition` — if user clicks nav bar or side labels, spike wheel rotation updates automatically
+
+### Tune Wheel → Content Scrolling
+- Mousewheel scrolls active tab panel ±40px per tick
+- Click-and-drag for analog feel (mousemove delta → scrollTop)
+- Rotation: `45deg base + accumulated_scroll * 0.5deg`, 100ms CSS ease-out transition
+
+### Hook Changes
+- `PIPBOY_TABS` exported from `usePipBoyTransition` (was local constant in App.tsx)
+- Added `tabIndex`, `nextTab()`, `prevTab()` to the hook return interface
+
+### Accessibility
+- Both dials: `role="slider"`, `aria-label`, `aria-valuenow/min/max`, `tabIndex={0}`
+- Spike wheel: ArrowLeft/Up = prev tab, ArrowRight/Down = next tab, Enter/Space = next
+- Tune wheel: ArrowUp/Down = scroll ±40px
+- Focus-visible outline: 2px solid `#1bff80`
+- Reduced motion: dial transitions disabled
+
+### Audio
+- Both dials play `toggle` sound type via existing `useAudio('pipboy')` hook
+
+## Files Changed
+- `src/hooks/usePipBoyTransition.ts` — exported PIPBOY_TABS, added tabIndex/nextTab/prevTab
+- `src/App.tsx` — wired dial event handlers, inline rotation styles, refs
+- `src/styles/pipboy.css` — cursor, hover, focus-visible, reduced-motion for dials
+
+## Verification
+- `npm run build` — clean (0 errors)
+- `npm test` — 399/399 passing
+
+---
+
+### 2026-04-05T16:28:00Z: User Directive — Pip-Boy Navigation Logic & Visual Fidelity
+**By:** Brady (via Copilot)
+**Status:** Implemented
+
+**What:** 
+1. Upper right spiked dial = Primary Tab Navigation (15-degree rotational snap per tab)
+2. Bottom right tune dial = Sub-Navigation/List Scrolling (onWheel → scrollTop of active content)
+3. Walking Vault Boy MUST be present on STAT page — use the Codepen's animated GIF (https://s3-us-west-2.amazonaws.com/s.cdpn.io/184191/vaultboy2.gif)
+   - Walking state = idle/polling
+   - Static/thinking state = agent processing
+   - Must inherit phosphor glow (text-shadow + drop-shadow)
+   - Must sit behind CRT scanline overlay but in front of background
+4. Fix text overlapping issues in Pip-Boy theme
+
+**Why:** User request — Pip-Boy visual fidelity is critical. The "soul" of the interface is the Vault Boy animation.
+
+**Implementation Status:** ✅ COMPLETE
+- Spike wheel functional (click/wheel/keyboard navigation)
+- Tune wheel functional (mousewheel/drag/keyboard scrolling)
+- Walking Vault Boy GIF integrated with phosphor glow
+- Text overlap completely resolved
+- Thinking pulse animation (connection-aware visual state)
+- All 399 tests passing
+
+---
