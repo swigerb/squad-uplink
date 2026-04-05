@@ -10,6 +10,17 @@ export default defineConfig({
       '@': path.resolve(__dirname, './src'),
     },
   },
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks(id: string) {
+          if (id.includes('@xterm')) return 'xterm';
+          if (id.includes('react-dom') || id.includes('react/')) return 'react-vendor';
+        },
+      },
+    },
+    chunkSizeWarningLimit: 500,
+  },
   test: {
     globals: true,
     environment: 'jsdom',

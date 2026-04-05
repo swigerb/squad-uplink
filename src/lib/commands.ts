@@ -56,9 +56,14 @@ export function handleCommand(input: string, terminal: TerminalWriter | null): v
     }
 
     case '/connect': {
-      const wsUrl = parts[1];
+      const wsUrl = parts[1] || import.meta.env.VITE_TUNNEL_URL;
       const token = parts[2];
-      if (!wsUrl || !token) {
+      if (!wsUrl) {
+        terminal.writeln('\x1b[31mUsage: /connect <wsUrl> <token>\x1b[0m');
+        terminal.writeln('\x1b[2mOr set VITE_TUNNEL_URL env var\x1b[0m');
+        break;
+      }
+      if (!token) {
         terminal.writeln('\x1b[31mUsage: /connect <wsUrl> <token>\x1b[0m');
         break;
       }

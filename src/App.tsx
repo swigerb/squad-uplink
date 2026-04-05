@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState, lazy, Suspense } from 'react';
 import { ThemeProvider, useTheme } from '@/hooks/useTheme';
 import { useAudio } from '@/hooks/useAudio';
 import { Terminal } from '@/components/Terminal';
@@ -8,7 +8,6 @@ import { CRTOverlay } from '@/components/CRTOverlay';
 import { MechanicalSwitch } from '@/components/MechanicalSwitch/MechanicalSwitch';
 import { AudioToggle } from '@/components/AudioToggle/AudioToggle';
 import { StatusBar } from '@/components/StatusBar';
-import { TelemetryDrawer } from '@/components/TelemetryDrawer';
 import { connectionManager } from '@/lib/ConnectionManager';
 import { useConnectionStore } from '@/store/connectionStore';
 import { handleCommand } from '@/lib/commands';
@@ -20,6 +19,12 @@ import '@/styles/fonts.css';
 import '@/styles/accessibility.css';
 import '@/styles/win95-chrome.css';
 import '@/styles/lcars-panels.css';
+
+const TelemetryDrawer = lazy(() =>
+  import('@/components/TelemetryDrawer/TelemetryDrawer').then((m) => ({
+    default: m.TelemetryDrawer,
+  })),
+);
 
 function FullscreenLayout({
   children,
@@ -262,7 +267,9 @@ function AppContent() {
           <div style={crtOffStyle}>{terminal}</div>
           {statusBar}
         </Win95Layout>
-        <TelemetryDrawer />
+        <Suspense fallback={null}>
+          <TelemetryDrawer />
+        </Suspense>
       </>
     );
   }
@@ -275,7 +282,9 @@ function AppContent() {
           <div style={crtOffStyle}>{terminal}</div>
           {statusBar}
         </LcarsLayout>
-        <TelemetryDrawer />
+        <Suspense fallback={null}>
+          <TelemetryDrawer />
+        </Suspense>
       </>
     );
   }
@@ -287,7 +296,9 @@ function AppContent() {
         <div style={crtOffStyle}>{terminal}</div>
         {statusBar}
       </FullscreenLayout>
-      <TelemetryDrawer />
+      <Suspense fallback={null}>
+        <TelemetryDrawer />
+      </Suspense>
     </>
   );
 }

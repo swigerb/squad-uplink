@@ -1,10 +1,10 @@
 {
   "navigationFallback": {
     "rewrite": "/index.html",
-    "exclude": ["/assets/*", "/favicon.ico", "/*.svg", "/*.png"]
+    "exclude": ["/assets/*", "/fonts/*", "/favicon.ico", "/*.svg", "/*.png"]
   },
   "globalHeaders": {
-    "Content-Security-Policy": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data:; connect-src 'self' wss: ws:; media-src 'none'; object-src 'none'; frame-ancestors 'none'",
+    "Content-Security-Policy": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data:; connect-src 'self' wss: ws: https:; media-src 'none'; object-src 'none'; frame-ancestors 'none'",
     "X-Frame-Options": "DENY",
     "X-Content-Type-Options": "nosniff",
     "X-XSS-Protection": "1; mode=block",
@@ -14,6 +14,12 @@
   "routes": [
     {
       "route": "/assets/*",
+      "headers": {
+        "Cache-Control": "public, max-age=31536000, immutable"
+      }
+    },
+    {
+      "route": "/fonts/*",
       "headers": {
         "Cache-Control": "public, max-age=31536000, immutable"
       }
