@@ -1,0 +1,27 @@
+/* @font-face declarations for retro terminal fonts.
+   Font files should be placed in src/assets/fonts/
+
+   PrintChar21 — Apple IIe style monospace bitmap font
+   C64 Pro Mono — Commodore 64 character ROM font
+
+   These fonts need to be sourced separately due to licensing.
+   See src/assets/fonts/README.md for details.
+*/
+
+@font-face {
+  font-family: 'PrintChar21';
+  src: url('../assets/fonts/PrintChar21.woff2') format('woff2'),
+       url('../assets/fonts/PrintChar21.woff') format('woff');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'C64 Pro Mono';
+  src: url('../assets/fonts/C64_Pro_Mono-STYLE.woff2') format('woff2'),
+       url('../assets/fonts/C64_Pro_Mono-STYLE.woff') format('woff');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}

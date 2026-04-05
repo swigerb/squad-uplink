@@ -1,0 +1,33 @@
+/* CRT visual effects — scanlines, phosphor glow, barrel curvature
+   These are applied via the CRTOverlay component but can also
+   be imported directly for custom layouts. */
+
+/* Flicker animation for authenticity */
+@keyframes crt-flicker {
+  0% { opacity: 0.97; }
+  5% { opacity: 1; }
+  10% { opacity: 0.98; }
+  15% { opacity: 1; }
+  100% { opacity: 1; }
+}
+
+/* Apply flicker to the whole screen */
+.crt-screen {
+  animation: crt-flicker 0.15s infinite alternate;
+}
+
+/* Phosphor persistence — slight text shadow */
+[data-theme='apple2e'] .terminal-container {
+  text-shadow: 0 0 5px rgba(51, 255, 51, 0.5);
+}
+
+[data-theme='c64'] .terminal-container {
+  text-shadow: 0 0 5px rgba(112, 108, 228, 0.5);
+}
+
+/* Barrel distortion approximation */
+.crt-barrel {
+  transform: perspective(600px) rotateX(0.5deg);
+  border-radius: 16px;
+  overflow: hidden;
+}

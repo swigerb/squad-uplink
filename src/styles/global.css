@@ -1,0 +1,51 @@
+/* Global reset and base styles for squad-uplink */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html,
+body,
+#root {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+body {
+  background: #000;
+  color: #33ff33;
+  font-family: 'PrintChar21', 'Courier New', monospace;
+  -webkit-font-smoothing: none;
+  -moz-osx-font-smoothing: unset;
+}
+
+/* Theme-aware body colors via data attribute */
+[data-theme='c64'] body {
+  background: #3528be;
+  color: #706ce4;
+  font-family: 'C64 Pro Mono', 'Courier New', monospace;
+}
+
+/* Disable text selection on CRT overlay */
+.crt-overlay {
+  user-select: none;
+}
+
+/* Scrollbar styling for retro feel */
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 3px;
+}
