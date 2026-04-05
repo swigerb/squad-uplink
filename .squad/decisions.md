@@ -177,6 +177,90 @@ Separate user-initiated connect (should reset retries) from internal reconnect (
 
 Current tests verify the actual behavior (1s reconnection delay, reconnect:false disabling). Once Woz fixes the backoff logic, exponential delay and maxRetries tests should be added.
 
+---
+
+### 2026-04-05T04:01:00Z: Integration Decision: WebSocket ↔ Terminal Wiring
+**By:** Woz (Lead Dev)
+**Date:** 2026-04-05
+**Status:** Implemented
+
+## Context
+
+Jobs specified ConnectionManager as an external singleton (Decision 4) and Zustand for connection state (Decision 1). Hertzfeld identified a backoff bug in useWebSocket. This work implements the full integration layer.
+
+## Decisions Made
+
+**1. ConnectionManager as External Singleton**
+`src/lib/ConnectionManager.ts` — Class-based singleton instantiated outside React. Owns WebSocket lifecycle, auth ticket exchange, rate limiting, and reconnection. Not a hook, not tied to component lifecycle.
+
+**2. Backoff Bug Fix**
+The critical bug: `connect()` was resetting `retriesRef.current = 0`, preventing exponential backoff from escalating. Fix: `connect()` does NOT reset retries. Only a successful `ws.onopen` resets `retries = 0`. Added `connectFresh()` for user-initiated connections that should reset the counter.
+
+**3. Zustand for Connection State Only**
+Per Jobs' recommendation, Zustand manages connection state (`status`, `tunnelUrl`, `agentCount`, `crtEnabled`, `audioEnabled`). Theme state stays in React Context (Kare's ThemeProvider). No conflict between the two systems.
+
+**4. Rate Limiting Strategy**
+Track outbound messages per 60s window. Below threshold (16/min): send immediately. Between threshold and hard limit (20/min): queue. Drain timer at 3s intervals re-checks the window and sends queued messages when safe.
+
+**5. Terminal Ref Handle (forwardRef + useImperativeHandle)**
+Terminal exposes `write()`, `writeln()`, `clear()` via `TerminalHandle` ref. This lets App.tsx (and ConnectionManager callbacks) write directly to xterm without re-rendering through React state. The old `output` prop pattern (string → useEffect → writeln) was removed.
+
+**6. Command System**
+Built-in commands (`/status`, `/agents`, `/connect`, `/disconnect`, `/help`, `/clear`) parsed in `src/lib/commands.ts`. Commands access Zustand store directly via `getState()` — no React dependency.
+
+**7. Skin-Aware Boot Messages**
+Each theme shows a period-appropriate boot sequence. Apple IIe shows `]CALL -151`, C64 shows `**** COMMODORE 64 BASIC V2 ****`, etc. Implemented in `src/lib/bootMessages.ts`.
+
+**8. StatusBar Component**
+Bottom bar using Zustand for connection state and ThemeContext for theme info. Shows connection indicator, tunnel URL, theme name, CRT toggle, and audio toggle.
+
+**9. CRT Toggle Migration**
+CRT toggle state moved from `useState` + localStorage in App.tsx to Zustand `connectionStore`. This lets the StatusBar and MechanicalSwitch both read/write the same state without prop drilling.
+
+---
+
+### 2026-04-05T04:01:00Z: HITL Mechanical Switch, Audio Lifecycle, and Toggles
+**By:** Kare (Frontend Dev)
+**Date:** 2026-04-05
+**Status:** Implemented
+
+**Context**
+
+Brady requested HITL (Human-in-the-Loop) readability features and expanded audio system to map Squad agent lifecycle events to skin-specific sounds.
+
+**Decisions Made**
+
+**1. Audio System Expansion (12 Sound Types)**
+`SoundType` expanded from 5 to 12: added `agent_started`, `agent_triage`, `agent_success`, `agent_error`, `boot`, and `crt_toggle`. Each skin has distinct sound character:
+- **apple2e**: Sine/square — floppy spin-up boot, mechanical clicks
+- **c64**: Sawtooth with SID-style detune — tape warble boot, arpeggios
+- **ibm3270**: Square wave solenoid — clatter boot, terminal bell
+- **win95**: Sine chords — iconic 4-note boot, "ta-da" success
+- **lcars**: High sine chirps — sci-fi sweep boot, communicator chirps
+
+**2. Sound Sequences**
+New `SoundSequence` type enables multi-step sound events (boot chords, arpeggios, klaxons) using timed oscillator scheduling. Single `SoundProfile` still used for simple sounds.
+
+**3. Mute State in useAudio**
+`useAudio` now returns `{ play, muted, toggleMute }`. Mute preference persists in localStorage (`squad-uplink-audio-muted`). When muted, `play()` is a no-op.
+
+**4. MechanicalSwitch Component**
+Three visual variants based on theme:
+- **Lever/Rocker** (apple2e, c64, ibm3270): Chunky toggle with sliding knob
+- **Checkbox** (win95): Native Windows-style checkbox
+- **Pill** (lcars): LCARS-style pill button that changes color
+
+Shows "CRT" when effects on, "CLEAR" when off. Plays `crt_toggle` sound.
+
+**5. CRT Toggle State**
+CRT enabled/disabled state lives in `AppContent` (React state + localStorage). Propagated to `CRTOverlay` via `crtEnabled` prop and to `FullscreenLayout` which conditionally applies `.crt-screen` class. When CRT is off, phosphor text-shadow is stripped via inline style override.
+
+**6. AudioToggle Component**
+Simple 🔊/🔇 button that delegates to `useAudio.toggleMute()`. Styled to match current theme.
+
+**7. CRTOverlay Prop Extension**
+`CRTOverlay` now accepts optional `crtEnabled` prop. Returns `null` when theme doesn't support CRT OR when HITL switch disables it.
+
 ## Governance
 
 - All meaningful changes require team consensus
