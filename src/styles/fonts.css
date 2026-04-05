@@ -60,6 +60,26 @@
   font-display: swap;
 }
 
+/* Pip-Boy 3000: VT323 (Google Fonts hosted) */
+@font-face {
+  font-family: 'VT323';
+  src: url('/fonts/VT323-Regular.woff2') format('woff2'),
+       url('/fonts/VT323-Regular.woff') format('woff');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* Pip-Boy 3000 fallback: Share Tech Mono (Google Fonts hosted) */
+@font-face {
+  font-family: 'Share Tech Mono';
+  src: url('/fonts/ShareTechMono-Regular.woff2') format('woff2'),
+       url('/fonts/ShareTechMono-Regular.woff') format('woff');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
 /* LCARS: Trek font */
 @font-face {
   font-family: 'Trek';

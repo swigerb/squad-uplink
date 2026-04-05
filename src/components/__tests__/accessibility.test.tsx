@@ -5,10 +5,10 @@
  * across all interactive components. Covers the a11y requirements from spec.
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, act } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import type { ReactNode } from 'react';
-import { ThemeProvider } from '@/hooks/useTheme';
+import { ThemeProvider } from '@/hooks/ThemeProvider';
 import { ThemeToggle } from '@/components/ThemeToggle/ThemeToggle';
 import { MechanicalSwitch } from '@/components/MechanicalSwitch/MechanicalSwitch';
 import { AudioToggle } from '@/components/AudioToggle/AudioToggle';
@@ -299,14 +299,15 @@ describe('Accessibility — ARIA Attributes', () => {
 
     it('status indicator updates when connection state changes', () => {
       useConnectionStore.setState({ status: 'disconnected' });
-      const { rerender } = render(
+      render(
         <ThemeProvider><StatusBar /></ThemeProvider>,
       );
 
       expect(screen.getByText(/disconnected/i)).toBeInTheDocument();
 
-      useConnectionStore.setState({ status: 'connecting' });
-      rerender(<ThemeProvider><StatusBar /></ThemeProvider>);
+      act(() => {
+        useConnectionStore.setState({ status: 'connecting' });
+      });
       expect(screen.getByText(/connecting/i)).toBeInTheDocument();
     });
   });

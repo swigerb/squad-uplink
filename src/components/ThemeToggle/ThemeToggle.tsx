@@ -7,6 +7,7 @@ const labels: Record<ThemeId, { emoji: string; name: string; swatch: string }> =
   ibm3270: { emoji: '🖥️', name: 'IBM 3270', swatch: '#ffb000' },
   win95: { emoji: '🪟', name: 'Win 95', swatch: '#008080' },
   lcars: { emoji: '🚀', name: 'LCARS', swatch: '#ff9900' },
+  pipboy: { emoji: '☢️', name: 'Pip-Boy', swatch: '#1bff80' },
 };
 
 export function ThemeToggle() {

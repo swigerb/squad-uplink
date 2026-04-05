@@ -1,5 +1,15 @@
 import { create } from 'zustand';
-import type { ConnectionState, TelemetryMetrics, StatusResponse } from '@/types/squad-rc';
+import type {
+  ConnectionState,
+  TelemetryMetrics,
+  StatusResponse,
+  MessageHistoryEntry,
+  ToolInfo,
+  McpServerInfo,
+} from '@/types/squad-rc';
+
+const MAX_MESSAGE_HISTORY = 50;
+const MAX_COMMAND_HISTORY = 10;
 
 export interface ConnectionStore {
   status: ConnectionState;
@@ -12,6 +22,14 @@ export interface ConnectionStore {
   drawerOpen: boolean;
   telemetry: TelemetryMetrics;
 
+  // Pip-Boy state
+  messageHistory: MessageHistoryEntry[];
+  tools: ToolInfo[];
+  mcpServers: McpServerInfo[];
+  activeAgent: string | null;
+  commandHistory: string[];
+  uplinkOverride: boolean;
+
   setStatus: (status: ConnectionState) => void;
   setTunnelUrl: (url: string | null) => void;
   setAgentCount: (count: number) => void;
@@ -23,6 +41,14 @@ export interface ConnectionStore {
   setDrawerOpen: (open: boolean) => void;
   updateTelemetry: (partial: Partial<TelemetryMetrics>) => void;
   setStatusResponse: (response: StatusResponse) => void;
+
+  // Pip-Boy actions
+  addMessageHistory: (entry: MessageHistoryEntry) => void;
+  setTools: (tools: ToolInfo[]) => void;
+  setMcpServers: (servers: McpServerInfo[]) => void;
+  setActiveAgent: (agent: string | null) => void;
+  addCommand: (cmd: string) => void;
+  toggleUplinkOverride: () => void;
 }
 
 const initialTelemetry: TelemetryMetrics = {
@@ -34,6 +60,9 @@ const initialTelemetry: TelemetryMetrics = {
   lastDisconnectAt: null,
   statusResponse: null,
   statusFetchedAt: null,
+  tokenUsage: 0,
+  messageCount: 0,
+  successCount: 0,
 };
 
 export const useConnectionStore = create<ConnectionStore>((set) => ({
@@ -45,6 +74,14 @@ export const useConnectionStore = create<ConnectionStore>((set) => ({
 
   drawerOpen: false,
   telemetry: { ...initialTelemetry },
+
+  // Pip-Boy initial state
+  messageHistory: [],
+  tools: [],
+  mcpServers: [],
+  activeAgent: null,
+  commandHistory: [],
+  uplinkOverride: false,
 
   setStatus: (status) => set({ status }),
   setTunnelUrl: (url) => set({ tunnelUrl: url }),
@@ -64,4 +101,19 @@ export const useConnectionStore = create<ConnectionStore>((set) => ({
         statusFetchedAt: Date.now(),
       },
     })),
+
+  // Pip-Boy actions
+  addMessageHistory: (entry) =>
+    set((s) => ({
+      messageHistory: [...s.messageHistory, entry].slice(-MAX_MESSAGE_HISTORY),
+    })),
+  setTools: (tools) => set({ tools }),
+  setMcpServers: (servers) => set({ mcpServers: servers }),
+  setActiveAgent: (agent) => set({ activeAgent: agent }),
+  addCommand: (cmd) =>
+    set((s) => ({
+      commandHistory: [...s.commandHistory, cmd].slice(-MAX_COMMAND_HISTORY),
+    })),
+  toggleUplinkOverride: () =>
+    set((s) => ({ uplinkOverride: !s.uplinkOverride })),
 }));

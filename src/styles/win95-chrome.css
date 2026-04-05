@@ -1,6 +1,46 @@
 /* Windows 95 window chrome — 98.css-inspired semantic approach
    Applied when [data-theme='win95'] is active */
 
+/* ========================================
+   Part 1: Text Contrast Overrides
+   Force black text on gray chrome for all controls
+   !important needed to beat inline style={{ color: theme.fg }}
+   ======================================== */
+
+[data-theme='win95'] .theme-toggle,
+[data-theme='win95'] .audio-toggle {
+  color: #000000 !important;
+  border-color: #808080 !important;
+}
+
+[data-theme='win95'] .mech-switch--checkbox {
+  color: #000000 !important;
+}
+
+[data-theme='win95'] .win95-menubar .mech-switch__label,
+[data-theme='win95'] .win95-menubar button,
+[data-theme='win95'] .win95-menubar label {
+  color: #000000 !important;
+}
+
+/* StatusBar overrides when rendered inside win95 terminal area */
+[data-theme='win95'] .statusbar {
+  background: #c0c0c0;
+  color: #000000;
+  border-top: 1px solid #ffffff;
+  border-color: #808080 #ffffff #ffffff #808080;
+}
+
+[data-theme='win95'] .statusbar-toggle {
+  color: #000000 !important;
+  border-color: #808080;
+}
+
+[data-theme='win95'] .statusbar-label {
+  color: #000000;
+  opacity: 1;
+}
+
 /* Teal desktop fills the viewport */
 .win95-desktop {
   width: 100%;
@@ -10,6 +50,8 @@
   align-items: center;
   justify-content: center;
   padding: 32px;
+  padding-bottom: 32px;
+  position: relative;
 }
 
 /* Window frame with the classic beveled 3D border */
@@ -192,4 +234,115 @@
 [data-theme='win95'] ::-webkit-scrollbar-track {
   background: repeating-comb(#c0c0c0 0 1px, #808080 1px 2px);
   background: #bfbfbf;
+}
+
+/* ========================================
+   Part 2: Maximized Window State
+   ======================================== */
+
+.win95-window--maximized {
+  max-width: none !important;
+  width: 100% !important;
+  height: calc(100vh - 28px) !important;
+  min-height: 0 !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+
+/* ========================================
+   Part 3: Desktop Icon
+   ======================================== */
+
+.win95-desktop-icon {
+  position: absolute;
+  top: 24px;
+  left: 24px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  cursor: default;
+  padding: 4px;
+  user-select: none;
+  width: 72px;
+  text-align: center;
+}
+
+.win95-desktop-icon-img {
+  font-size: 32px;
+  line-height: 1;
+  padding: 2px;
+}
+
+.win95-desktop-icon-label {
+  font-family: 'W95FA', 'MS Sans Serif', 'Tahoma', sans-serif;
+  font-size: 11px;
+  color: #ffffff;
+  padding: 1px 3px;
+  word-break: break-word;
+  line-height: 1.3;
+}
+
+/* Single-click selection highlight — classic Win95 blue highlight */
+.win95-desktop-icon--selected .win95-desktop-icon-img {
+  background: rgba(0, 0, 128, 0.4);
+}
+
+.win95-desktop-icon--selected .win95-desktop-icon-label {
+  background: #000080;
+  color: #ffffff;
+}
+
+/* ========================================
+   Part 4: Taskbar Enhancements
+   ======================================== */
+
+.win95-taskbar-spacer {
+  flex: 1;
+}
+
+.win95-taskbar-btn {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  padding: 2px 8px;
+  margin-left: 3px;
+  font-family: 'W95FA', 'MS Sans Serif', 'Tahoma', sans-serif;
+  font-size: 11px;
+  background: #c0c0c0;
+  border: 2px solid;
+  border-color: #ffffff #808080 #808080 #ffffff;
+  cursor: default;
+  color: #000000;
+  white-space: nowrap;
+  max-width: 160px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Pressed/active state — sunken border for currently visible window */
+.win95-taskbar-btn--active {
+  border-color: #808080 #ffffff #ffffff #808080;
+  background: repeating-comb(#c0c0c0 0 1px, #ffffff 1px 2px);
+  background: #d4d0c8;
+  padding-top: 3px;
+  padding-left: 9px;
+}
+
+.win95-taskbar-btn:active {
+  border-color: #808080 #ffffff #ffffff #808080;
+}
+
+/* Clock in the system tray area */
+.win95-taskbar-clock {
+  display: flex;
+  align-items: center;
+  padding: 2px 8px;
+  font-family: 'W95FA', 'MS Sans Serif', 'Tahoma', sans-serif;
+  font-size: 11px;
+  color: #000000;
+  border: 1px solid;
+  border-color: #808080 #ffffff #ffffff #808080;
+  margin-left: 4px;
+  white-space: nowrap;
 }

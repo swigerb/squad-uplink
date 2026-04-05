@@ -4,7 +4,7 @@ export interface TerminalTheme {
   /** Display name */
   name: string;
   /** Machine-readable id */
-  id: 'apple2e' | 'c64' | 'ibm3270' | 'win95' | 'lcars';
+  id: 'apple2e' | 'c64' | 'ibm3270' | 'win95' | 'lcars' | 'pipboy';
 
   /** Foreground color */
   fg: string;
@@ -33,8 +33,8 @@ export interface TerminalTheme {
   borderSize?: string;
   /** Border color */
   borderColor?: string;
-  /** Layout mode: fullscreen CRT, windowed GUI, or panel-based */
-  layout?: 'fullscreen' | 'windowed' | 'panel';
+  /** Layout mode: fullscreen CRT, windowed GUI, panel-based, or pip-boy tabbed */
+  layout?: 'fullscreen' | 'windowed' | 'panel' | 'pipboy';
   /** Whether CRT scanline/glow effects are enabled */
   crtEnabled?: boolean;
   /** Skin-specific CSS class name applied to the root */
@@ -57,6 +57,7 @@ export const THEME_ORDER: readonly ThemeId[] = [
   'ibm3270',
   'win95',
   'lcars',
+  'pipboy',
 ] as const;
 
 export { apple2eTheme } from './apple2e';
@@ -64,3 +65,4 @@ export { c64Theme } from './c64';
 export { ibm3270Theme } from './ibm3270';
 export { win95Theme } from './win95';
 export { lcarsTheme } from './lcars';
+export { pipboyTheme } from './pipboy';

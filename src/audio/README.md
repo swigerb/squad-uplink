@@ -1,17 +1,29 @@
-# Audio Assets
+# Audio System
 
-Retro sound effects for squad-uplink. These are generated at runtime using the Web Audio API (`useAudio` hook) — no static audio files are needed for the initial version.
+Retro sound effects for squad-uplink using a **hybrid audio model**:
 
-## Planned Sounds
+1. **Primary:** Real audio sample files loaded from `public/audio/{skinId}/` via Web Audio API's `AudioBuffer` (fetch + decodeAudioData)
+2. **Fallback:** Procedural Web Audio API oscillators when files are missing or fail to load
 
-| Sound       | Trigger               | Implementation    |
-|-------------|-----------------------|-------------------|
-| keystroke   | Each key press        | Square wave 440Hz |
-| connect     | WebSocket connected   | Square wave 880Hz |
-| disconnect  | WebSocket closed      | Square wave 220Hz |
-| error       | Error message         | Square wave 160Hz |
-| toggle      | Theme switch          | Square wave 660Hz |
+## Architecture
 
-## Future
+| File | Purpose |
+|------|---------|
+| `manifest.ts` | Maps each skin + sound type → file path in `public/audio/` |
+| `bufferCache.ts` | `AudioBufferCache` class — fetches, decodes, and caches `AudioBuffer` instances per skin |
+| `../hooks/useAudio.ts` | React hook — tries sample files first, falls back to procedural oscillators |
 
-If we want richer sounds (SID chip emulation for C64, etc.), add `.wav` or `.mp3` files here and update `useAudio` to use `Audio()` elements.
+## How It Works
+
+1. When a skin is active, `useAudio` calls `bufferCache.preloadSkin()` to fetch all audio files for that skin
+2. On `play(sound)`, the hook checks the cache for a decoded `AudioBuffer`
+3. If found → plays the sample via `createBufferSource()`
+4. If not found → plays the procedural oscillator (same as before)
+
+## Sound Types (11 total)
+
+`keystroke` · `connect` · `disconnect` · `error` · `toggle` · `boot` · `agent_started` · `agent_triage` · `agent_success` · `agent_error` · `crt_toggle`
+
+## Adding Audio Files
+
+Drop `.mp3`, `.wav`, or `.ogg` files into `public/audio/{skinId}/`. See `public/audio/README.md` for full instructions.

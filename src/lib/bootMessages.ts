@@ -54,6 +54,19 @@ export function getBootMessage(themeId: ThemeId): string[] {
         'Type /help for commands.',
       ];
 
+    case 'pipboy':
+      return [
+        'VAULT-TEC INDUSTRIES (TM) UPLINK TERMINAL',
+        'MODEL: PIP-BOY 3000',
+        'BIOS v1.0 ... OK',
+        'SCANNING FREQUENCIES... SQUAD UPLINK DETECTED',
+        'ESTABLISHING SECURE CHANNEL...',
+        '',
+        '> UPLINK ACTIVE. WELCOME, OVERSEER.',
+        '',
+        'Type /help for commands.',
+      ];
+
     case 'lcars':
       return [
         `LCARS TERMINAL ONLINE — STARDATE ${getLcarsStardate()}`,

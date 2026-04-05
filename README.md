@@ -9,7 +9,7 @@
 - **React 19** + **TypeScript 5.9** + **Vite 8**
 - **xterm.js** — terminal emulation with canvas renderer
 - **Zustand** — connection/telemetry state (works outside React)
-- **Web Audio API** — procedural retro sound effects (no audio files)
+- **Web Audio API** — hybrid audio: sample files with procedural fallback
 - **Azure Static Web Apps** — hosting + CI/CD
 
 ## Prerequisites
@@ -105,8 +105,22 @@ src/
 - Zustand store for connection state; React Context for theme
 - CRT effects are pure CSS overlays (never touch xterm rendering)
 - TelemetryDrawer is lazy-loaded (hidden panel, not needed at boot)
-- Audio is 100% procedural Web Audio API oscillators — zero asset weight
+- Audio uses hybrid model: sample files from `public/audio/{skinId}/` with procedural Web Audio fallback
 
 ## Fonts
 
 Retro fonts are not bundled (licensing). See `public/fonts/README.md` for download instructions. All declarations use `font-display: swap` with web-safe fallbacks.
+
+## Audio Customization
+
+Squad Uplink uses a **hybrid audio system**: real audio sample files are preferred, with procedural Web Audio oscillators as fallback.
+
+### Adding Custom Sound Files
+
+1. Drop `.mp3`, `.wav`, or `.ogg` files into `public/audio/{skinId}/` (e.g., `public/audio/c64/boot.mp3`)
+2. File names must match the sound type: `boot.mp3`, `connect.mp3`, `disconnect.mp3`, `error.mp3`, `keystroke.mp3`, `toggle.mp3`, `agent_started.mp3`, `agent_triage.mp3`, `agent_success.mp3`, `agent_error.mp3`, `crt_toggle.mp3`
+3. The manifest at `src/audio/manifest.ts` maps each skin + sound to its file path
+4. If a file is missing or fails to load, the procedural oscillator fallback plays instead
+5. Files are preloaded per-skin (only the active skin's files are fetched)
+
+See `public/audio/README.md` for sourcing instructions and recommended search terms per skin.

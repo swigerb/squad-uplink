@@ -53,6 +53,14 @@ body {
   -moz-osx-font-smoothing: auto;
 }
 
+[data-theme='pipboy'] body {
+  background: #000500;
+  color: #1bff80;
+  font-family: 'VT323', 'Share Tech Mono', monospace;
+  -webkit-font-smoothing: none;
+  -moz-osx-font-smoothing: unset;
+}
+
 /* Disable text selection on CRT overlay */
 .crt-overlay {
   user-select: none;

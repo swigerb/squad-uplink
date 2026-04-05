@@ -1,0 +1,219 @@
+/* ═══════════════════════════════════════════════
+   Pip-Boy 3000 Theme — VAULT-TEC INDUSTRIES (TM)
+   Full-screen CRT terminal with tabbed navigation
+   All rules scoped to [data-theme='pipboy']
+   ═══════════════════════════════════════════════ */
+
+/* === Phosphor flicker === */
+@keyframes pipboy-flicker {
+  0%   { opacity: 0.98; }
+  8%   { opacity: 1.0; }
+  18%  { opacity: 0.985; }
+  26%  { opacity: 1.0; }
+  37%  { opacity: 0.99; }
+  45%  { opacity: 1.0; }
+  52%  { opacity: 0.98; }
+  60%  { opacity: 1.0; }
+  73%  { opacity: 0.99; }
+  80%  { opacity: 1.0; }
+  91%  { opacity: 0.985; }
+  100% { opacity: 1.0; }
+}
+
+/* === Boot warm-up glow === */
+@keyframes pipboy-boot-glow {
+  0%   { filter: brightness(0) blur(4px); opacity: 0; }
+  30%  { filter: brightness(0.5) blur(2px); opacity: 0.6; }
+  60%  { filter: brightness(0.9) blur(1px); opacity: 0.9; }
+  100% { filter: brightness(1) blur(0); opacity: 1; }
+}
+
+/* === Boot text reveal === */
+@keyframes pipboy-boot-text {
+  0%   { clip-path: inset(0 0 100% 0); }
+  100% { clip-path: inset(0 0 0% 0); }
+}
+
+/* === Device frame === */
+[data-theme='pipboy'] .pipboy-frame {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  background: #000500;
+  border: 3px solid #1bff80;
+  border-radius: 18px;
+  box-shadow:
+    0 0 20px rgba(27, 255, 128, 0.3),
+    0 0 60px rgba(27, 255, 128, 0.08),
+    inset 0 0 30px rgba(27, 255, 128, 0.05);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  animation: pipboy-flicker 4s infinite, pipboy-boot-glow 1.2s ease-out;
+}
+
+/* === Scanline overlay === */
+[data-theme='pipboy'] .pipboy-scanlines {
+  pointer-events: none;
+  position: absolute;
+  inset: 0;
+  z-index: 10;
+  background: repeating-linear-gradient(
+    to bottom,
+    transparent,
+    transparent 1px,
+    rgba(20, 91, 50, 0.15) 1px,
+    rgba(20, 91, 50, 0.15) 2px
+  );
+}
+
+/* === Phosphor blur on container === */
+[data-theme='pipboy'] .pipboy-frame::after {
+  content: '';
+  pointer-events: none;
+  position: absolute;
+  inset: 0;
+  z-index: 11;
+  backdrop-filter: blur(0.5px);
+}
+
+/* === Tab bar === */
+[data-theme='pipboy'] .pipboy-tabs {
+  display: flex;
+  gap: 0;
+  border-bottom: 2px solid #145b32;
+  background: #000500;
+  flex-shrink: 0;
+  z-index: 5;
+  padding: 6px 12px 0;
+}
+
+[data-theme='pipboy'] .pipboy-tab {
+  font-family: 'VT323', 'Share Tech Mono', monospace;
+  font-size: 18px;
+  letter-spacing: 2px;
+  color: #145b32;
+  background: transparent;
+  border: 2px solid #145b32;
+  border-bottom: none;
+  border-radius: 8px 8px 0 0;
+  padding: 8px 24px;
+  cursor: pointer;
+  text-shadow: none;
+  transition: color 0.15s, background 0.15s, border-color 0.15s, text-shadow 0.15s;
+  position: relative;
+}
+
+[data-theme='pipboy'] .pipboy-tab:hover {
+  color: #1bff80;
+  border-color: #1bff80;
+  text-shadow: 0 0 8px rgba(27, 255, 128, 0.5);
+}
+
+[data-theme='pipboy'] .pipboy-tab--active {
+  color: #1bff80;
+  background: rgba(27, 255, 128, 0.06);
+  border-color: #1bff80;
+  text-shadow: 0 0 8px rgba(27, 255, 128, 0.7);
+}
+
+[data-theme='pipboy'] .pipboy-tab--active::after {
+  content: '';
+  position: absolute;
+  bottom: -2px;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: #000500;
+}
+
+/* === Tab content area === */
+[data-theme='pipboy'] .pipboy-content {
+  flex: 1;
+  position: relative;
+  overflow: hidden;
+  min-height: 0;
+}
+
+[data-theme='pipboy'] .pipboy-tab-panel {
+  width: 100%;
+  height: 100%;
+  position: absolute;
+  inset: 0;
+}
+
+[data-theme='pipboy'] .pipboy-tab-panel--hidden {
+  display: none;
+}
+
+/* === Placeholder tab content === */
+[data-theme='pipboy'] .pipboy-tab-content {
+  padding: 24px;
+  font-family: 'VT323', 'Share Tech Mono', monospace;
+  font-size: 18px;
+  color: #1bff80;
+  text-shadow: 0 0 8px rgba(27, 255, 128, 0.7);
+  line-height: 1.6;
+}
+
+[data-theme='pipboy'] .pipboy-tab-content h2 {
+  font-size: 24px;
+  margin-bottom: 16px;
+  letter-spacing: 3px;
+  border-bottom: 1px solid #145b32;
+  padding-bottom: 8px;
+}
+
+[data-theme='pipboy'] .pipboy-tab-content .pipboy-stat-item {
+  display: flex;
+  justify-content: space-between;
+  padding: 4px 0;
+  border-bottom: 1px dotted #145b32;
+}
+
+/* === Status bar at bottom === */
+[data-theme='pipboy'] .pipboy-statusbar {
+  flex-shrink: 0;
+  z-index: 5;
+  border-top: 2px solid #145b32;
+  background: rgba(0, 5, 0, 0.9);
+}
+
+/* === Typography glow for all text === */
+[data-theme='pipboy'] {
+  text-shadow: 0 0 8px rgba(27, 255, 128, 0.7);
+}
+
+/* === Terminal container within Pip-Boy === */
+[data-theme='pipboy'] .pipboy-terminal-wrap {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+/* === Controls bar === */
+[data-theme='pipboy'] .pipboy-controls {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  padding: 4px 12px;
+  gap: 8px;
+  flex-shrink: 0;
+  z-index: 5;
+}
+
+/* === Phosphor persistence effect === */
+[data-theme='pipboy'] .pipboy-content * {
+  transition: opacity 0.08s ease-out;
+}
+
+/* === Reduced motion support === */
+@media (prefers-reduced-motion: reduce) {
+  [data-theme='pipboy'] .pipboy-frame {
+    animation: none;
+  }
+  [data-theme='pipboy'] .pipboy-content * {
+    transition: none;
+  }
+}

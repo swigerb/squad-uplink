@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState, lazy, Suspense } from 'react';
-import { ThemeProvider, useTheme } from '@/hooks/useTheme';
+import { ThemeProvider } from '@/hooks/ThemeProvider';
+import { useTheme } from '@/hooks/useTheme';
 import { useAudio } from '@/hooks/useAudio';
 import { Terminal } from '@/components/Terminal';
 import type { TerminalHandle } from '@/components/Terminal';
@@ -19,6 +20,8 @@ import '@/styles/fonts.css';
 import '@/styles/accessibility.css';
 import '@/styles/win95-chrome.css';
 import '@/styles/lcars-panels.css';
+import { PipBoyStat, PipBoyInv, PipBoyMap, PipBoyRadio } from '@/components/PipBoy/tabs';
+import '@/styles/pipboy.css';
 
 const TelemetryDrawer = lazy(() =>
   import('@/components/TelemetryDrawer/TelemetryDrawer').then((m) => ({
@@ -66,17 +69,99 @@ function Win95Layout({
   children: React.ReactNode;
   header: React.ReactNode;
 }) {
+  const [windowState, setWindowState] = useState<'normal' | 'minimized' | 'maximized' | 'closed'>('normal');
+  const [iconSelected, setIconSelected] = useState(false);
+  const status = useConnectionStore((s) => s.status);
+
+  // Taskbar clock — updates every minute
+  const [clock, setClock] = useState(() => {
+    const now = new Date();
+    return `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+  });
+
+  useEffect(() => {
+    const updateClock = () => {
+      const now = new Date();
+      setClock(`${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`);
+    };
+    const id = setInterval(updateClock, 60000);
+    return () => clearInterval(id);
+  }, []);
+
+  const isWindowVisible = windowState === 'normal' || windowState === 'maximized';
+  const isRunning = windowState !== 'closed';
+
+  const handleMinimize = useCallback(() => setWindowState('minimized'), []);
+  const handleMaximize = useCallback(
+    () => setWindowState((s) => (s === 'maximized' ? 'normal' : 'maximized')),
+    [],
+  );
+  const handleClose = useCallback(() => {
+    setWindowState('closed');
+    setIconSelected(false);
+  }, []);
+  const handleTaskbarClick = useCallback(() => {
+    setWindowState((s) => (s === 'minimized' ? 'normal' : 'minimized'));
+  }, []);
+  const handleDesktopClick = useCallback(() => setIconSelected(false), []);
+  const handleIconClick = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation();
+    setIconSelected(true);
+  }, []);
+  const handleIconDoubleClick = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation();
+    setWindowState('normal');
+    setIconSelected(false);
+  }, []);
+
+  const WIN95_STATUS: Record<string, string> = {
+    connected: 'Connected',
+    connecting: 'Connecting…',
+    reconnecting: 'Reconnecting…',
+    disconnected: 'Disconnected',
+    error: 'Error',
+  };
+  const statusText = WIN95_STATUS[status] ?? status;
+
   return (
-    <div className="win95-desktop">
-      <div className="win95-window">
+    <div className="win95-desktop" onClick={handleDesktopClick}>
+      {/* Desktop icon — visible only when window is closed */}
+      {windowState === 'closed' && (
+        <div
+          className={`win95-desktop-icon ${iconSelected ? 'win95-desktop-icon--selected' : ''}`}
+          onClick={handleIconClick}
+          onDoubleClick={handleIconDoubleClick}
+          role="button"
+          aria-label="SQUAD UPLINK — double-click to open"
+          tabIndex={0}
+          data-testid="win95-desktop-icon"
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') {
+              setWindowState('normal');
+              setIconSelected(false);
+            }
+          }}
+        >
+          <div className="win95-desktop-icon-img" aria-hidden="true">📟</div>
+          <div className="win95-desktop-icon-label">SQUAD UPLINK</div>
+        </div>
+      )}
+
+      {/* Window — hidden via display:none when minimized/closed to keep terminal mounted */}
+      <div
+        className={`win95-window ${windowState === 'maximized' ? 'win95-window--maximized' : ''}`}
+        style={{ display: isWindowVisible ? undefined : 'none' }}
+      >
         <div className="win95-titlebar">
           <span className="win95-titlebar-text">
             📟 SQUAD UPLINK — Remote Agent Terminal
           </span>
           <div className="win95-titlebar-buttons">
-            <button className="win95-titlebar-btn" aria-label="Minimize">_</button>
-            <button className="win95-titlebar-btn" aria-label="Maximize">□</button>
-            <button className="win95-titlebar-btn" aria-label="Close">×</button>
+            <button className="win95-titlebar-btn" aria-label="Minimize" onClick={handleMinimize}>_</button>
+            <button className="win95-titlebar-btn" aria-label="Maximize" onClick={handleMaximize}>
+              {windowState === 'maximized' ? '❐' : '□'}
+            </button>
+            <button className="win95-titlebar-btn" aria-label="Close" onClick={handleClose}>×</button>
           </div>
         </div>
         <div className="win95-menubar">
@@ -89,15 +174,117 @@ function Win95Layout({
         </div>
         <div className="win95-terminal-area">{children}</div>
         <div className="win95-statusbar">
-          <span className="win95-statusbar-section">Ready</span>
-          <span className="win95-statusbar-section">Connected</span>
+          <span className="win95-statusbar-section">{statusText}</span>
+          <span className="win95-statusbar-section">Windows 95</span>
         </div>
       </div>
+
+      {/* Taskbar — always visible */}
       <div className="win95-taskbar">
         <button className="win95-start-btn">
           🪟 Start
         </button>
+        {isRunning && (
+          <button
+            className={`win95-taskbar-btn ${isWindowVisible ? 'win95-taskbar-btn--active' : ''}`}
+            onClick={handleTaskbarClick}
+            aria-label="SQUAD UPLINK"
+            data-testid="win95-taskbar-app-btn"
+          >
+            📟 SQUAD UPLINK
+          </button>
+        )}
+        <span className="win95-taskbar-spacer" />
+        <div className="win95-taskbar-clock" aria-label={`Time: ${clock}`} data-testid="win95-taskbar-clock">
+          {clock}
+        </div>
       </div>
+    </div>
+  );
+}
+
+const PIPBOY_TABS = ['STAT', 'INV', 'DATA', 'MAP', 'RADIO'] as const;
+type PipBoyTab = (typeof PIPBOY_TABS)[number];
+
+function PipBoyLayout({
+  children,
+  header,
+  statusBar,
+  crtEnabled,
+}: {
+  children: React.ReactNode;
+  header: React.ReactNode;
+  statusBar: React.ReactNode;
+  crtEnabled: boolean;
+}) {
+  const [activeTab, setActiveTab] = useState<PipBoyTab>('DATA');
+
+  return (
+    <div
+      className={crtEnabled ? 'crt-screen' : undefined}
+      style={{ width: '100%', height: '100%' }}
+    >
+      <div className="pipboy-frame">
+        <div className="pipboy-controls">{header}</div>
+
+        <nav className="pipboy-tabs" role="tablist" aria-label="Pip-Boy navigation">
+          {PIPBOY_TABS.map((tab) => (
+            <button
+              key={tab}
+              role="tab"
+              aria-selected={activeTab === tab}
+              aria-controls={`pipboy-panel-${tab}`}
+              className={`pipboy-tab ${activeTab === tab ? 'pipboy-tab--active' : ''}`}
+              onClick={() => setActiveTab(tab)}
+            >
+              {tab}
+            </button>
+          ))}
+        </nav>
+
+        <div className="pipboy-content">
+          {/* DATA tab — terminal always mounted, hidden via inline style for jsdom compat */}
+          <div
+            id="pipboy-panel-DATA"
+            role="tabpanel"
+            aria-label="DATA"
+            className={`pipboy-tab-panel ${activeTab !== 'DATA' ? 'pipboy-tab-panel--hidden' : ''}`}
+            style={{ display: activeTab !== 'DATA' ? 'none' : undefined }}
+          >
+            <div className="pipboy-terminal-wrap">{children}</div>
+          </div>
+
+          {activeTab === 'STAT' && (
+            <div id="pipboy-panel-STAT" role="tabpanel" aria-label="STAT" className="pipboy-tab-panel">
+              <PipBoyStat />
+            </div>
+          )}
+
+          {activeTab === 'INV' && (
+            <div id="pipboy-panel-INV" role="tabpanel" aria-label="INV" className="pipboy-tab-panel">
+              <PipBoyInv />
+            </div>
+          )}
+
+          {activeTab === 'MAP' && (
+            <div id="pipboy-panel-MAP" role="tabpanel" aria-label="MAP" className="pipboy-tab-panel">
+              <PipBoyMap />
+            </div>
+          )}
+
+          {activeTab === 'RADIO' && (
+            <div id="pipboy-panel-RADIO" role="tabpanel" aria-label="RADIO" className="pipboy-tab-panel">
+              <PipBoyRadio />
+            </div>
+          )}
+
+          <div className="pipboy-scanlines" aria-hidden="true" />
+        </div>
+
+        <div className="pipboy-statusbar">{statusBar}</div>
+      </div>
+
+      <CRTOverlay crtEnabled={crtEnabled} />
     </div>
   );
 }
@@ -265,8 +452,21 @@ function AppContent() {
         <div aria-live="polite" aria-atomic="true" className="sr-only">{themeAnnouncement}</div>
         <Win95Layout header={controls}>
           <div style={crtOffStyle}>{terminal}</div>
-          {statusBar}
         </Win95Layout>
+        <Suspense fallback={null}>
+          <TelemetryDrawer />
+        </Suspense>
+      </>
+    );
+  }
+
+  if (layout === 'pipboy') {
+    return (
+      <>
+        <div aria-live="polite" aria-atomic="true" className="sr-only">{themeAnnouncement}</div>
+        <PipBoyLayout header={controls} statusBar={statusBar} crtEnabled={crtEnabled}>
+          <div style={crtOffStyle}>{terminal}</div>
+        </PipBoyLayout>
         <Suspense fallback={null}>
           <TelemetryDrawer />
         </Suspense>

@@ -113,4 +113,36 @@ export interface TelemetryMetrics {
   statusResponse: StatusResponse | null;
   /** Epoch ms of last /status fetch */
   statusFetchedAt: number | null;
+  /** Tokens consumed this session (Pip-Boy Intelligence stat) */
+  tokenUsage: number;
+  /** Total messages sent + received this session */
+  messageCount: number;
+  /** Successfully delivered messages this session */
+  successCount: number;
+}
+
+/** Entry in the Pip-Boy message history buffer */
+export interface MessageHistoryEntry {
+  id: string;
+  timestamp: number;
+  direction: 'inbound' | 'outbound';
+  agent?: string;
+  type: string;
+  content: string;
+  raw: unknown;
+}
+
+/** Tool info for Pip-Boy Inventory tab */
+export interface ToolInfo {
+  name: string;
+  type: string;
+  status: 'active' | 'inactive';
+  description?: string;
+}
+
+/** MCP server connection info for Pip-Boy Inventory tab */
+export interface McpServerInfo {
+  name: string;
+  status: 'connected' | 'disconnected';
+  url?: string;
 }

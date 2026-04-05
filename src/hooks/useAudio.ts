@@ -128,6 +128,33 @@ const SKIN_PROFILES: Record<ThemeId, Record<SoundType, SoundDef>> = {
     crt_toggle: { waveform: 'sine', freq: 700, duration: 50 },
   },
 
+  // Pip-Boy 3000: Nuclear Age terminal — Geiger ticks, relay clicks, sine sweeps
+  pipboy: {
+    keystroke: { waveform: 'sine', freq: 1800, duration: 15 },
+    connect: { waveform: 'sine', freq: 600, duration: 120, freq2: 1200 },
+    disconnect: { waveform: 'sine', freq: 400, duration: 200, freq2: 200 },
+    error: { waveform: 'square', freq: 180, duration: 400 },
+    toggle: { waveform: 'square', freq: 900, duration: 40 },
+    boot: { steps: [
+      { waveform: 'sine', freq: 200, duration: 120, delay: 0 },
+      { waveform: 'sine', freq: 400, duration: 120, delay: 120 },
+      { waveform: 'sine', freq: 800, duration: 120, delay: 240 },
+      { waveform: 'sine', freq: 1600, duration: 200, delay: 360 },
+      { waveform: 'sine', freq: 2400, duration: 300, delay: 560 },
+    ] },
+    agent_started: { waveform: 'square', freq: 2000, duration: 10 },
+    agent_triage: { waveform: 'sine', freq: 700, duration: 60 },
+    agent_success: { steps: [
+      { waveform: 'sine', freq: 800, duration: 60, delay: 0 },
+      { waveform: 'sine', freq: 1200, duration: 80, delay: 70 },
+    ] },
+    agent_error: { steps: [
+      { waveform: 'square', freq: 300, duration: 150, delay: 0 },
+      { waveform: 'square', freq: 200, duration: 200, delay: 160 },
+    ] },
+    crt_toggle: { waveform: 'square', freq: 1400, duration: 25 },
+  },
+
   // LCARS: Clean sci-fi chirps
   lcars: {
     keystroke: { waveform: 'sine', freq: 1200, duration: 20 },

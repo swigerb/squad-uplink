@@ -5,6 +5,7 @@ import type {
   InboundMessage,
   TicketResponse,
   StatusResponse,
+  MessageHistoryEntry,
 } from '@/types/squad-rc';
 import { useConnectionStore } from '@/store/connectionStore';
 
@@ -83,8 +84,14 @@ export class ConnectionManager {
 
       ws.onmessage = (event) => {
         this.inboundTimestamps.push(Date.now());
+        const store = useConnectionStore.getState();
+        store.updateTelemetry({
+          messageCount: store.telemetry.messageCount + 1,
+          successCount: store.telemetry.successCount + 1,
+        });
         try {
           const msg: InboundMessage = JSON.parse(event.data as string);
+          this.trackMessageHistory(msg, 'inbound');
           this.onMessage?.(msg);
         } catch {
           console.error('[squad-uplink] Failed to parse message:', event.data);
@@ -223,6 +230,11 @@ export class ConnectionManager {
       this.ws.send(JSON.stringify(message));
       this.rateLimiter.count++;
       this.outboundTimestamps.push(Date.now());
+      const store = useConnectionStore.getState();
+      store.updateTelemetry({
+        messageCount: store.telemetry.messageCount + 1,
+      });
+      this.trackMessageHistory(message, 'outbound');
     } else {
       console.warn('[squad-uplink] WebSocket not connected, queueing message');
       this.messageQueue.push(message);
@@ -333,6 +345,30 @@ export class ConnectionManager {
       clearInterval(this.metricsTimer);
       this.metricsTimer = null;
     }
+  }
+
+  /** Track a message in the Pip-Boy history buffer */
+  private trackMessageHistory(
+    msg: InboundMessage | OutboundMessage,
+    direction: 'inbound' | 'outbound',
+  ): void {
+    const entry: MessageHistoryEntry = {
+      id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+      timestamp: Date.now(),
+      direction,
+      agent: 'agent' in msg ? (msg.agent ?? undefined) : undefined,
+      type: msg.type,
+      content:
+        'content' in msg
+          ? String(msg.content)
+          : 'text' in msg
+            ? String(msg.text)
+            : 'message' in msg
+              ? String(msg.message)
+              : JSON.stringify(msg),
+      raw: msg,
+    };
+    useConnectionStore.getState().addMessageHistory(entry);
   }
 
   private cleanup(): void {

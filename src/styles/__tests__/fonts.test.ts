@@ -5,8 +5,7 @@
  * Tests the CSS file statically and the theme config font stacks programmatically.
  */
 import { describe, it, expect } from 'vitest';
-import { readFileSync } from 'node:fs';
-import { resolve } from 'node:path';
+import fontsCSS from '../fonts.css?raw';
 import { apple2eTheme } from '@/themes/apple2e';
 import { c64Theme } from '@/themes/c64';
 import { ibm3270Theme } from '@/themes/ibm3270';
@@ -14,15 +13,10 @@ import { win95Theme } from '@/themes/win95';
 import { lcarsTheme } from '@/themes/lcars';
 import type { TerminalTheme } from '@/themes/index';
 
-const fontsCSS = readFileSync(
-  resolve(__dirname, '../../styles/fonts.css'),
-  'utf-8',
-);
-
 // Extract actual @font-face blocks (between { and }) from the CSS
 const fontFaceBlocks = Array.from(
   fontsCSS.matchAll(/@font-face\s*\{([^}]+)\}/g),
-).map(([, body]) => body);
+).map((match) => match[1]);
 
 const allThemes: [string, TerminalTheme][] = [
   ['apple2e', apple2eTheme],
@@ -200,7 +194,7 @@ describe('Font loading — Graceful degradation', () => {
     // Extract font-family names from @font-face blocks
     const declaredFonts = Array.from(
       fontsCSS.matchAll(/font-family:\s*'([^']+)'/g),
-    ).map(([, name]) => name.toLowerCase());
+    ).map((match) => match[1].toLowerCase());
 
     // Each theme's primary font (first in stack) should be declared in CSS
     // Exception: system fonts like Consolas, Menlo (not custom, don't need @font-face)

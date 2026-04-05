@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import type { ReactNode } from 'react';
-import { ThemeProvider } from '@/hooks/useTheme';
+import { ThemeProvider } from '@/hooks/ThemeProvider';
 import { ThemeToggle } from '@/components/ThemeToggle/ThemeToggle';
 
 function renderWithTheme(ui: ReactNode) {
@@ -42,11 +42,12 @@ describe('ThemeToggle', () => {
     expect(button).toHaveTextContent('C64');
   });
 
-  it('clicking five times returns to Apple IIe', async () => {
+  it('clicking six times returns to Apple IIe', async () => {
     const user = userEvent.setup();
     renderWithTheme(<ThemeToggle />);
 
     const button = screen.getByTestId('theme-toggle');
+    await user.click(button);
     await user.click(button);
     await user.click(button);
     await user.click(button);

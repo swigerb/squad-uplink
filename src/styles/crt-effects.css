@@ -18,9 +18,10 @@
   animation: crt-flicker 0.15s infinite alternate;
 }
 
-/* Win95 and LCARS skip CRT flicker */
+/* Pip-Boy uses its own flicker in pipboy.css — no standard CRT here */
 [data-theme='win95'] .crt-screen,
-[data-theme='lcars'] .crt-screen {
+[data-theme='lcars'] .crt-screen,
+[data-theme='pipboy'] .crt-screen {
   animation: none;
 }
 
@@ -45,6 +46,11 @@
 /* LCARS: no CRT, clean futuristic interface */
 [data-theme='lcars'] .terminal-container {
   text-shadow: none;
+}
+
+/* Pip-Boy: green phosphor glow */
+[data-theme='pipboy'] .terminal-container {
+  text-shadow: 0 0 8px rgba(27, 255, 128, 0.7);
 }
 
 /* Barrel distortion approximation */
