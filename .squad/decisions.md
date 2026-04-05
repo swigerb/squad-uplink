@@ -84,7 +84,7 @@
 
 ### 2026-04-05T03:25:00Z: User Directive — Multi-Skin Theme Extension
 **By:** Brady (via Copilot)
-**Status:** Pending Implementation (Wave 2: Kare)
+**Status:** Implemented (Wave 2: Kare)
 
 **Expansion:** From 2 skins to 5 distinct hardware skins with unique CSS, audio, and grid layouts.
 
@@ -98,6 +98,84 @@
 | SKIN_LCARS | The Bridge | Pastel Geometric/No Border | "Chirp"/Warp Core Hum | Multi-Agent Squad |
 
 **Implementation:** ThemeContext swapping CSS variables. `useSquadAudio()` hook mapping lifecycle events to skin-specific SFX. SVG filters for curvature. Typography resources linked (oldschool PC fonts, CSS frameworks, royalty-free audio).
+
+---
+
+### 2026-04-05T03:47:00Z: 5-Skin Theme Engine Expansion
+**By:** Kare (Frontend Dev)
+**Date:** 2026-04-05
+**Status:** Implemented
+
+**Context**
+
+Brady directed expanding the theme system from 2 skins (Apple IIe, C64) to 5 skins, adding IBM 3270, Windows 95, and LCARS. Each skin has a distinct visual identity, layout mode, and audio profile.
+
+**Decisions Made**
+
+**1. TerminalTheme Interface Extensions**
+Added optional fields to `TerminalTheme`: `borderSize`, `borderColor`, `layout` (fullscreen | windowed | panel), `crtEnabled`, `customCss`, `chromeFontFamily`, and `accentColors`. Existing themes default to `layout: 'fullscreen'` and `crtEnabled: true`.
+
+**2. Layout Architecture**
+Three distinct layout modes render in App.tsx:
+- **Fullscreen** (apple2e, c64, ibm3270): Terminal fills viewport with CRT overlay
+- **Windowed** (win95): Teal desktop with a 98.css-style window frame containing the terminal
+- **Panel** (lcars): Grid layout with geometric pill-shaped sidebar panels flanking the terminal
+
+**3. Win95 Terminal Background ≠ Desktop Background**
+Win95 intentionally has `bg: '#008080'` (teal desktop) but `xtermTheme.background: '#000080'` (command prompt blue). The cross-theme test was updated to only assert bg match for non-windowed themes.
+
+**4. CRT Effects are Conditional**
+CRTOverlay returns `null` when `theme.crtEnabled === false` (win95, lcars). Flicker animation in CSS is scoped to CRT-enabled theme selectors only.
+
+**5. Audio Profiles per Skin**
+`useAudio` now accepts a `skinId` parameter (defaults to `'apple2e'`). Each skin has distinct waveform types, frequencies, and optional dual-tone/detune parameters. The signature is backward-compatible.
+
+**6. Font Strategy**
+All new fonts (IBM 3270, W95FA, Trek) use web-safe fallback chains. @font-face declarations are in place; actual font files will be sourced separately.
+
+**7. Theme Cycling Order**
+`THEME_ORDER` constant defines the cycle: apple2e → c64 → ibm3270 → win95 → lcars → apple2e. ThemeToggle shows a color swatch dot next to the current skin name.
+
+**Files Changed**
+- `src/themes/index.ts` — Expanded ThemeId union, new interface fields, THEME_ORDER
+- `src/themes/ibm3270.ts` — New: Amber mainframe theme
+- `src/themes/win95.ts` — New: Windows 95 windowed theme
+- `src/themes/lcars.ts` — New: LCARS panel theme
+- `src/themes/apple2e.ts`, `c64.ts` — Added new optional fields
+- `src/hooks/useTheme.tsx` — 5-theme cycling, map-based lookup
+- `src/hooks/useAudio.ts` — Skin-specific audio profiles
+- `src/components/ThemeToggle/ThemeToggle.tsx` — Color swatch, 5 labels
+- `src/components/CRTOverlay/CRTOverlay.tsx` — Conditional rendering
+- `src/App.tsx` — Layout switching (fullscreen, windowed, panel)
+- `src/styles/crt-effects.css` — Theme-scoped CRT effects
+- `src/styles/global.css` — Body styles for all 5 themes
+- `src/styles/fonts.css` — 4 new @font-face declarations
+- `src/styles/win95-chrome.css` — New: Win95 window chrome CSS
+- `src/styles/lcars-panels.css` — New: LCARS geometric panels CSS
+
+---
+
+### 2026-04-05T03:47:00Z: WebSocket Reconnect Backoff Bug
+**By:** Hertzfeld (Tester)
+**Date:** 2026-04-05
+**Status:** Identified, Assigned to Woz
+
+**Issue**
+
+The `useWebSocket` hook's `connect()` function unconditionally resets `retriesRef.current = 0`. Since the reconnect timer calls `connect()` on each retry, the retry counter never accumulates. This means:
+
+1. **Exponential backoff never escalates** — delay is always `2^0 * 1000ms = 1s`
+2. **`maxRetries` is never reached** — retries resets to 0 before each check
+
+**Recommendation**
+
+Separate user-initiated connect (should reset retries) from internal reconnect (should preserve retry count). Either:
+- Add an internal `_reconnect()` that skips the retry reset
+- Add a parameter `connect(config, { isReconnect: boolean })`
+
+**Test Impact**
+
+Current tests verify the actual behavior (1s reconnection delay, reconnect:false disabling). Once Woz fixes the backoff logic, exponential delay and maxRetries tests should be added.
 
 ## Governance
 
