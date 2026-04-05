@@ -17,6 +17,12 @@ export const c64Theme: TerminalTheme = {
   glowColor: 'rgba(112, 108, 228, 0.4)',
   scanlineOpacity: 0.08,
 
+  borderSize: '48px',
+  borderColor: '#3528be',
+  layout: 'fullscreen',
+  crtEnabled: true,
+  customCss: 'skin-c64',
+
   xtermTheme: {
     foreground: '#706ce4',
     background: '#3528be',

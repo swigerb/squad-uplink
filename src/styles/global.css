@@ -31,6 +31,28 @@ body {
   font-family: 'C64 Pro Mono', 'Courier New', monospace;
 }
 
+[data-theme='ibm3270'] body {
+  background: #000000;
+  color: #ffb000;
+  font-family: 'IBM 3270', 'Mx437_IBM_3270', 'Consolas', monospace;
+}
+
+[data-theme='win95'] body {
+  background: #008080;
+  color: #000000;
+  font-family: 'W95FA', 'MS Sans Serif', 'Tahoma', sans-serif;
+  -webkit-font-smoothing: auto;
+  -moz-osx-font-smoothing: auto;
+}
+
+[data-theme='lcars'] body {
+  background: #000000;
+  color: #ccccff;
+  font-family: 'Trek', 'Helvetica Neue', sans-serif;
+  -webkit-font-smoothing: auto;
+  -moz-osx-font-smoothing: auto;
+}
+
 /* Disable text selection on CRT overlay */
 .crt-overlay {
   user-select: none;

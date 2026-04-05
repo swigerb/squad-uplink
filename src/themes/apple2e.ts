@@ -17,6 +17,10 @@ export const apple2eTheme: TerminalTheme = {
   glowColor: 'rgba(51, 255, 51, 0.4)',
   scanlineOpacity: 0.12,
 
+  layout: 'fullscreen',
+  crtEnabled: true,
+  customCss: 'skin-apple2e',
+
   xtermTheme: {
     foreground: '#33ff33',
     background: '#000000',

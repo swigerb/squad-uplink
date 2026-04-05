@@ -11,9 +11,17 @@
   100% { opacity: 1; }
 }
 
-/* Apply flicker to the whole screen */
-.crt-screen {
+/* Apply flicker to CRT-enabled skins only */
+[data-theme='apple2e'] .crt-screen,
+[data-theme='c64'] .crt-screen,
+[data-theme='ibm3270'] .crt-screen {
   animation: crt-flicker 0.15s infinite alternate;
+}
+
+/* Win95 and LCARS skip CRT flicker */
+[data-theme='win95'] .crt-screen,
+[data-theme='lcars'] .crt-screen {
+  animation: none;
 }
 
 /* Phosphor persistence — slight text shadow */
@@ -23,6 +31,20 @@
 
 [data-theme='c64'] .terminal-container {
   text-shadow: 0 0 5px rgba(112, 108, 228, 0.5);
+}
+
+[data-theme='ibm3270'] .terminal-container {
+  text-shadow: 0 0 6px rgba(255, 176, 0, 0.5);
+}
+
+/* Win95: no CRT phosphor, clean digital look */
+[data-theme='win95'] .terminal-container {
+  text-shadow: none;
+}
+
+/* LCARS: no CRT, clean futuristic interface */
+[data-theme='lcars'] .terminal-container {
+  text-shadow: none;
 }
 
 /* Barrel distortion approximation */

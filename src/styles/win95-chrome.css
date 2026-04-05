@@ -1,0 +1,195 @@
+/* Windows 95 window chrome — 98.css-inspired semantic approach
+   Applied when [data-theme='win95'] is active */
+
+/* Teal desktop fills the viewport */
+.win95-desktop {
+  width: 100%;
+  height: 100%;
+  background: #008080;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 32px;
+}
+
+/* Window frame with the classic beveled 3D border */
+.win95-window {
+  display: flex;
+  flex-direction: column;
+  background: #c0c0c0;
+  border: 2px solid;
+  border-color: #ffffff #808080 #808080 #ffffff;
+  box-shadow: inset 1px 1px 0 #dfdfdf, inset -1px -1px 0 #0a0a0a;
+  width: 100%;
+  max-width: 900px;
+  height: 80vh;
+  min-height: 400px;
+}
+
+/* Title bar */
+.win95-titlebar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: linear-gradient(90deg, #000080, #1084d0);
+  padding: 2px 3px;
+  flex-shrink: 0;
+  user-select: none;
+}
+
+.win95-titlebar-text {
+  color: #ffffff;
+  font-family: 'W95FA', 'MS Sans Serif', 'Tahoma', sans-serif;
+  font-size: 12px;
+  font-weight: bold;
+  padding-left: 4px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.win95-titlebar-icon {
+  width: 14px;
+  height: 14px;
+  image-rendering: pixelated;
+}
+
+/* Title bar buttons (min, max, close) */
+.win95-titlebar-buttons {
+  display: flex;
+  gap: 2px;
+}
+
+.win95-titlebar-btn {
+  width: 16px;
+  height: 14px;
+  background: #c0c0c0;
+  border: 1px solid;
+  border-color: #ffffff #808080 #808080 #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 8px;
+  font-family: 'Marlett', sans-serif;
+  padding: 0;
+  cursor: default;
+  line-height: 1;
+  color: #000000;
+}
+
+.win95-titlebar-btn:active {
+  border-color: #808080 #ffffff #ffffff #808080;
+}
+
+/* Menu bar */
+.win95-menubar {
+  display: flex;
+  gap: 0;
+  padding: 1px 2px;
+  background: #c0c0c0;
+  border-bottom: 1px solid #808080;
+  flex-shrink: 0;
+}
+
+.win95-menu-item {
+  padding: 2px 8px;
+  font-family: 'W95FA', 'MS Sans Serif', 'Tahoma', sans-serif;
+  font-size: 11px;
+  color: #000000;
+  cursor: default;
+  user-select: none;
+}
+
+.win95-menu-item:hover {
+  background: #000080;
+  color: #ffffff;
+}
+
+/* Terminal area inside the window */
+.win95-terminal-area {
+  flex: 1;
+  margin: 2px;
+  border: 2px solid;
+  border-color: #808080 #ffffff #ffffff #808080;
+  box-shadow: inset 1px 1px 0 #0a0a0a;
+  overflow: hidden;
+  background: #000080;
+}
+
+/* Status bar at bottom of window */
+.win95-statusbar {
+  display: flex;
+  align-items: center;
+  background: #c0c0c0;
+  padding: 2px 4px;
+  border-top: 1px solid #ffffff;
+  flex-shrink: 0;
+}
+
+.win95-statusbar-section {
+  padding: 1px 6px;
+  font-family: 'W95FA', 'MS Sans Serif', 'Tahoma', sans-serif;
+  font-size: 11px;
+  color: #000000;
+  border: 1px solid;
+  border-color: #808080 #ffffff #ffffff #808080;
+  flex: 1;
+}
+
+.win95-statusbar-section + .win95-statusbar-section {
+  flex: none;
+  margin-left: 2px;
+  min-width: 80px;
+}
+
+/* Taskbar at the bottom of the desktop */
+.win95-taskbar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 28px;
+  background: #c0c0c0;
+  border-top: 2px solid #ffffff;
+  display: flex;
+  align-items: center;
+  padding: 2px 4px;
+  z-index: 1002;
+}
+
+.win95-start-btn {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  padding: 2px 6px;
+  font-family: 'W95FA', 'MS Sans Serif', 'Tahoma', sans-serif;
+  font-size: 11px;
+  font-weight: bold;
+  background: #c0c0c0;
+  border: 2px solid;
+  border-color: #ffffff #808080 #808080 #ffffff;
+  cursor: default;
+  color: #000000;
+}
+
+.win95-start-btn:active {
+  border-color: #808080 #ffffff #ffffff #808080;
+}
+
+/* Win95 scrollbar overrides */
+[data-theme='win95'] ::-webkit-scrollbar {
+  width: 16px;
+  background: #c0c0c0;
+}
+
+[data-theme='win95'] ::-webkit-scrollbar-thumb {
+  background: #c0c0c0;
+  border: 1px solid;
+  border-color: #ffffff #808080 #808080 #ffffff;
+  border-radius: 0;
+}
+
+[data-theme='win95'] ::-webkit-scrollbar-track {
+  background: repeating-comb(#c0c0c0 0 1px, #808080 1px 2px);
+  background: #bfbfbf;
+}

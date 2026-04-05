@@ -9,6 +9,10 @@ import {
 import {
   apple2eTheme,
   c64Theme,
+  ibm3270Theme,
+  win95Theme,
+  lcarsTheme,
+  THEME_ORDER,
   type TerminalTheme,
   type ThemeId,
 } from '@/themes';
@@ -24,14 +28,24 @@ interface ThemeContextValue {
 
 const ThemeContext = createContext<ThemeContextValue | null>(null);
 
+const THEME_MAP: Record<ThemeId, TerminalTheme> = {
+  apple2e: apple2eTheme,
+  c64: c64Theme,
+  ibm3270: ibm3270Theme,
+  win95: win95Theme,
+  lcars: lcarsTheme,
+};
+
 function getThemeById(id: ThemeId): TerminalTheme {
-  return id === 'c64' ? c64Theme : apple2eTheme;
+  return THEME_MAP[id] ?? apple2eTheme;
 }
+
+const VALID_IDS = new Set<string>(THEME_ORDER);
 
 function loadSavedTheme(): ThemeId {
   try {
     const saved = localStorage.getItem(STORAGE_KEY);
-    if (saved === 'c64' || saved === 'apple2e') return saved;
+    if (saved && VALID_IDS.has(saved)) return saved as ThemeId;
   } catch {
     // localStorage unavailable (SSR, private mode, etc.)
   }
@@ -58,7 +72,10 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const toggleTheme = useCallback(() => {
-    setThemeIdState((prev) => (prev === 'apple2e' ? 'c64' : 'apple2e'));
+    setThemeIdState((prev) => {
+      const idx = THEME_ORDER.indexOf(prev);
+      return THEME_ORDER[(idx + 1) % THEME_ORDER.length];
+    });
   }, []);
 
   return (

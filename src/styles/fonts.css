@@ -3,9 +3,13 @@
 
    PrintChar21 — Apple IIe style monospace bitmap font
    C64 Pro Mono — Commodore 64 character ROM font
+   IBM 3270 — IBM mainframe terminal font
+   W95FA — Pixel-accurate MS Sans Serif recreation
+   Trek — LCARS-style panel font
 
    These fonts need to be sourced separately due to licensing.
    See src/assets/fonts/README.md for details.
+   IBM-3270 / Mx437: https://int10h.org/oldschool-pc-fonts/
 */
 
 @font-face {
@@ -21,6 +25,42 @@
   font-family: 'C64 Pro Mono';
   src: url('../assets/fonts/C64_Pro_Mono-STYLE.woff2') format('woff2'),
        url('../assets/fonts/C64_Pro_Mono-STYLE.woff') format('woff');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'IBM 3270';
+  src: url('../assets/fonts/3270-Regular.woff2') format('woff2'),
+       url('../assets/fonts/3270-Regular.woff') format('woff');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Mx437_IBM_3270';
+  src: url('../assets/fonts/Mx437_IBM_3270pc.woff2') format('woff2'),
+       url('../assets/fonts/Mx437_IBM_3270pc.woff') format('woff');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'W95FA';
+  src: url('../assets/fonts/W95FA.woff2') format('woff2'),
+       url('../assets/fonts/W95FA.woff') format('woff');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Trek';
+  src: url('../assets/fonts/Trek.woff2') format('woff2'),
+       url('../assets/fonts/Trek.woff') format('woff');
   font-weight: normal;
   font-style: normal;
   font-display: swap;

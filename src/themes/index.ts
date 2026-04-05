@@ -4,7 +4,7 @@ export interface TerminalTheme {
   /** Display name */
   name: string;
   /** Machine-readable id */
-  id: 'apple2e' | 'c64';
+  id: 'apple2e' | 'c64' | 'ibm3270' | 'win95' | 'lcars';
 
   /** Foreground color */
   fg: string;
@@ -29,11 +29,38 @@ export interface TerminalTheme {
   /** Scanline opacity (0–1) */
   scanlineOpacity: number;
 
+  /** Border size for themes with decorative borders (C64, Win95) */
+  borderSize?: string;
+  /** Border color */
+  borderColor?: string;
+  /** Layout mode: fullscreen CRT, windowed GUI, or panel-based */
+  layout?: 'fullscreen' | 'windowed' | 'panel';
+  /** Whether CRT scanline/glow effects are enabled */
+  crtEnabled?: boolean;
+  /** Skin-specific CSS class name applied to the root */
+  customCss?: string;
+  /** Font family for non-terminal UI chrome (Win95 title bar, LCARS panels) */
+  chromeFontFamily?: string;
+  /** Accent colors for multi-color themes (LCARS) */
+  accentColors?: string[];
+
   /** xterm.js ITheme override */
   xtermTheme: ITheme;
 }
 
 export type ThemeId = TerminalTheme['id'];
 
+/** Ordered list of all theme IDs for cycling */
+export const THEME_ORDER: readonly ThemeId[] = [
+  'apple2e',
+  'c64',
+  'ibm3270',
+  'win95',
+  'lcars',
+] as const;
+
 export { apple2eTheme } from './apple2e';
 export { c64Theme } from './c64';
+export { ibm3270Theme } from './ibm3270';
+export { win95Theme } from './win95';
+export { lcarsTheme } from './lcars';
