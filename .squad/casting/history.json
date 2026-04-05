@@ -1,0 +1,22 @@
+{
+  "universe_usage_history": [
+    {
+      "universe": "Apple Legends",
+      "used_at": "2026-04-05T03:19:17Z",
+      "project": "squad-uplink",
+      "reason": "User-requested — retro Apple/Commodore themed project"
+    }
+  ],
+  "assignment_cast_snapshots": {
+    "2026-04-05T03:19:17Z": {
+      "assignment_id": "squad-uplink-apple-legends-001",
+      "universe": "Apple Legends",
+      "agents": {
+        "jobs": "Jobs (Steve Jobs) — Lead",
+        "woz": "Woz (Steve Wozniak) — Lead Dev",
+        "kare": "Kare (Susan Kare) — Frontend Dev",
+        "hertzfeld": "Hertzfeld (Andy Hertzfeld) — Tester"
+      }
+    }
+  }
+}
