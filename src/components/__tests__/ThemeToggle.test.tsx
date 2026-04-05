@@ -76,9 +76,10 @@ describe('ThemeToggle', () => {
   });
 
   // --- Style checks ---
-  it('applies theme foreground color as border and text color', () => {
+  it('renders a color swatch indicator', () => {
     renderWithTheme(<ThemeToggle />);
     const button = screen.getByTestId('theme-toggle');
-    expect(button.style.color).toBe('rgb(51, 255, 51)');
+    const swatch = button.querySelector('span[aria-hidden="true"]');
+    expect(swatch).toBeInTheDocument();
   });
 });

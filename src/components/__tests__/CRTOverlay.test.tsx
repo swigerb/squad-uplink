@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, beforeEach } from 'vitest';
 import { render } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { ThemeProvider } from '@/hooks/useTheme';
@@ -9,6 +9,10 @@ function renderWithTheme(ui: ReactNode) {
 }
 
 describe('CRTOverlay', () => {
+  beforeEach(() => {
+    localStorage.clear();
+    document.documentElement.removeAttribute('data-theme');
+  });
   // --- CRT-01: Renders ---
   it('renders without crashing', () => {
     renderWithTheme(<CRTOverlay />);
