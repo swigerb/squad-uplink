@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
-import { AudioToggle } from '../../AudioToggle/AudioToggle';
+import { AudioToggle } from '../AudioToggle/AudioToggle';
 import { ThemeProvider } from '@/hooks/useTheme';
 
 function renderWithProvider(muted: boolean, onToggle = vi.fn()) {

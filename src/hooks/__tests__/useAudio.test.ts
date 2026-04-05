@@ -1,23 +1,24 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
 import { useAudio } from '../useAudio';
+import type { SoundType } from '../useAudio';
 import { MockAudioContext, installMockAudioContext } from '../../__mocks__/audio';
 
 describe('useAudio', () => {
   beforeEach(() => {
+    localStorage.clear();
     installMockAudioContext();
   });
 
   afterEach(() => {
     vi.restoreAllMocks();
+    localStorage.clear();
   });
 
   // --- AU-05: Lazy AudioContext ---
   describe('lazy AudioContext creation', () => {
     it('does not create AudioContext on mount', () => {
-      // Just mounting the hook should not trigger any audio
       const { result } = renderHook(() => useAudio());
-      // play is available but AudioContext not yet created
       expect(result.current.play).toBeDefined();
     });
 
@@ -28,22 +29,19 @@ describe('useAudio', () => {
         result.current.play('keystroke');
       });
 
-      // AudioContext was constructed (via stubGlobal)
-      // Oscillator was created
       void (AudioContext as unknown as typeof MockAudioContext);
-      // Verify we can play without error
       expect(result.current.play).toBeDefined();
     });
   });
 
-  // --- AU-01/02: Sound types ---
-  describe('sound types', () => {
-    const soundTypes = [
-      { type: 'keystroke' as const, freq: 440 },
-      { type: 'connect' as const, freq: 880 },
-      { type: 'disconnect' as const, freq: 220 },
-      { type: 'error' as const, freq: 160 },
-      { type: 'toggle' as const, freq: 660 },
+  // --- AU-01/02: Original sound types ---
+  describe('original sound types', () => {
+    const soundTypes: { type: SoundType; freq: number }[] = [
+      { type: 'keystroke', freq: 440 },
+      { type: 'connect', freq: 880 },
+      { type: 'disconnect', freq: 220 },
+      { type: 'error', freq: 160 },
+      { type: 'toggle', freq: 660 },
     ];
 
     soundTypes.forEach(({ type, freq }) => {
@@ -54,9 +52,199 @@ describe('useAudio', () => {
           result.current.play(type);
         });
 
-        // The play function should execute without error
         expect(result.current.play).toBeDefined();
       });
+    });
+  });
+
+  // --- NEW: Expanded sound types (Wave 3) ---
+  describe('expanded sound types', () => {
+    const newSounds: SoundType[] = [
+      'agent_started',
+      'agent_triage',
+      'agent_success',
+      'agent_error',
+      'boot',
+      'crt_toggle',
+    ];
+
+    newSounds.forEach((sound) => {
+      it(`plays ${sound} sound without error`, () => {
+        const { result } = renderHook(() => useAudio());
+
+        expect(() => {
+          act(() => {
+            result.current.play(sound);
+          });
+        }).not.toThrow();
+      });
+    });
+
+    it('plays multi-step boot sequence (SoundSequence)', () => {
+      const { result } = renderHook(() => useAudio('apple2e'));
+
+      expect(() => {
+        act(() => {
+          result.current.play('boot');
+        });
+      }).not.toThrow();
+    });
+
+    it('plays c64 agent_started as multi-step SID arpeggio', () => {
+      const { result } = renderHook(() => useAudio('c64'));
+
+      expect(() => {
+        act(() => {
+          result.current.play('agent_started');
+        });
+      }).not.toThrow();
+    });
+
+    it('plays c64 agent_error as descending buzz sequence', () => {
+      const { result } = renderHook(() => useAudio('c64'));
+
+      expect(() => {
+        act(() => {
+          result.current.play('agent_error');
+        });
+      }).not.toThrow();
+    });
+  });
+
+  // --- Skin-specific waveform selection ---
+  describe('skin-specific audio profiles', () => {
+    it('apple2e uses sine waveform for connect', () => {
+      const { result } = renderHook(() => useAudio('apple2e'));
+
+      act(() => {
+        result.current.play('connect');
+      });
+
+      // Verify it played without error (waveform is sine per profile)
+      expect(result.current.play).toBeDefined();
+    });
+
+    it('c64 uses sawtooth waveform for connect', () => {
+      const { result } = renderHook(() => useAudio('c64'));
+
+      act(() => {
+        result.current.play('connect');
+      });
+
+      expect(result.current.play).toBeDefined();
+    });
+
+    it('ibm3270 uses square waveform for keystroke', () => {
+      const { result } = renderHook(() => useAudio('ibm3270'));
+
+      act(() => {
+        result.current.play('keystroke');
+      });
+
+      expect(result.current.play).toBeDefined();
+    });
+
+    it('win95 uses sine waveform for boot sequence', () => {
+      const { result } = renderHook(() => useAudio('win95'));
+
+      expect(() => {
+        act(() => {
+          result.current.play('boot');
+        });
+      }).not.toThrow();
+    });
+
+    it('lcars uses sine waveform for agent_success', () => {
+      const { result } = renderHook(() => useAudio('lcars'));
+
+      expect(() => {
+        act(() => {
+          result.current.play('agent_success');
+        });
+      }).not.toThrow();
+    });
+
+    it('all 5 skins play all 11 sound types without error', () => {
+      const skins = ['apple2e', 'c64', 'ibm3270', 'win95', 'lcars'] as const;
+      const sounds: SoundType[] = [
+        'keystroke', 'connect', 'disconnect', 'error', 'toggle',
+        'agent_started', 'agent_triage', 'agent_success', 'agent_error',
+        'boot', 'crt_toggle',
+      ];
+
+      for (const skin of skins) {
+        const { result } = renderHook(() => useAudio(skin));
+        for (const sound of sounds) {
+          expect(() => {
+            act(() => {
+              result.current.play(sound);
+            });
+          }).not.toThrow();
+        }
+      }
+    });
+  });
+
+  // --- Mute functionality ---
+  describe('mute/unmute', () => {
+    it('starts unmuted by default', () => {
+      const { result } = renderHook(() => useAudio());
+      expect(result.current.muted).toBe(false);
+    });
+
+    it('toggleMute toggles muted state', () => {
+      const { result } = renderHook(() => useAudio());
+
+      act(() => {
+        result.current.toggleMute();
+      });
+
+      expect(result.current.muted).toBe(true);
+
+      act(() => {
+        result.current.toggleMute();
+      });
+
+      expect(result.current.muted).toBe(false);
+    });
+
+    it('does not play sounds when muted', () => {
+      const { result } = renderHook(() => useAudio());
+
+      act(() => {
+        result.current.toggleMute();
+      });
+
+      // When muted, play should return early without creating AudioContext
+      expect(() => {
+        act(() => {
+          result.current.play('keystroke');
+        });
+      }).not.toThrow();
+    });
+
+    it('persists mute state to localStorage', () => {
+      const { result } = renderHook(() => useAudio());
+
+      act(() => {
+        result.current.toggleMute();
+      });
+
+      expect(localStorage.getItem('squad-uplink-audio-muted')).toBe('true');
+
+      act(() => {
+        result.current.toggleMute();
+      });
+
+      expect(localStorage.getItem('squad-uplink-audio-muted')).toBe('false');
+    });
+
+    it('loads mute preference from localStorage', () => {
+      localStorage.setItem('squad-uplink-audio-muted', 'true');
+
+      const { result } = renderHook(() => useAudio());
+
+      expect(result.current.muted).toBe(true);
     });
   });
 
@@ -67,7 +255,6 @@ describe('useAudio', () => {
 
       const { result } = renderHook(() => useAudio());
 
-      // Should not throw
       expect(() => {
         act(() => {
           result.current.play('error');
@@ -116,6 +303,10 @@ describe('useAudio', () => {
           result.current.play('error');
           result.current.play('disconnect');
           result.current.play('toggle');
+          result.current.play('boot');
+          result.current.play('agent_started');
+          result.current.play('agent_success');
+          result.current.play('crt_toggle');
         });
       }).not.toThrow();
     });

@@ -1,8 +1,8 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
-import { MechanicalSwitch } from '../../MechanicalSwitch/MechanicalSwitch';
+import { MechanicalSwitch } from '../MechanicalSwitch/MechanicalSwitch';
 import { ThemeProvider } from '@/hooks/useTheme';
-import { installMockAudioContext } from '../../../__mocks__/audio';
+import { installMockAudioContext } from '../../__mocks__/audio';
 
 // Wrap component in ThemeProvider since it uses useTheme()
 function renderWithProvider(crtEnabled: boolean, onToggle = vi.fn()) {
