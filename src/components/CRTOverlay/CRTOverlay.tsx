@@ -1,11 +1,17 @@
 import { useTheme } from '@/hooks/useTheme';
 import './CRTOverlay.css';
 
-export function CRTOverlay() {
+interface CRTOverlayProps {
+  /** HITL override — when false, disables CRT effects even on CRT-capable themes */
+  crtEnabled?: boolean;
+}
+
+export function CRTOverlay({ crtEnabled }: CRTOverlayProps) {
   const { theme } = useTheme();
 
-  // Some skins (win95, lcars) don't use CRT effects
+  // Theme doesn't support CRT, or HITL switch turned it off
   if (theme.crtEnabled === false) return null;
+  if (crtEnabled === false) return null;
 
   return (
     <div

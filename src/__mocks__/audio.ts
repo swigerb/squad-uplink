@@ -3,6 +3,7 @@ import { vi } from 'vitest';
 export class MockOscillatorNode {
   type = 'square';
   frequency = { value: 440, setValueAtTime: vi.fn() };
+  detune = { value: 0, setValueAtTime: vi.fn() };
   connect = vi.fn().mockReturnThis();
   start = vi.fn();
   stop = vi.fn();

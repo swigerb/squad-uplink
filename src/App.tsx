@@ -1,8 +1,18 @@
-import { useState, useCallback } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 import { ThemeProvider, useTheme } from '@/hooks/useTheme';
+import { useAudio } from '@/hooks/useAudio';
 import { Terminal } from '@/components/Terminal';
+import type { TerminalHandle } from '@/components/Terminal';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { CRTOverlay } from '@/components/CRTOverlay';
+import { MechanicalSwitch } from '@/components/MechanicalSwitch/MechanicalSwitch';
+import { AudioToggle } from '@/components/AudioToggle/AudioToggle';
+import { StatusBar } from '@/components/StatusBar';
+import { connectionManager } from '@/lib/ConnectionManager';
+import { useConnectionStore } from '@/store/connectionStore';
+import { handleCommand } from '@/lib/commands';
+import { formatAgentList, formatStatus } from '@/lib/formatters';
+import type { OutboundMessage } from '@/types/squad-rc';
 import '@/styles/global.css';
 import '@/styles/crt-effects.css';
 import '@/styles/fonts.css';
@@ -12,12 +22,17 @@ import '@/styles/lcars-panels.css';
 function FullscreenLayout({
   children,
   header,
+  crtEnabled,
 }: {
   children: React.ReactNode;
   header: React.ReactNode;
+  crtEnabled: boolean;
 }) {
   return (
-    <div className="crt-screen" style={{ width: '100%', height: '100%' }}>
+    <div
+      className={crtEnabled ? 'crt-screen' : undefined}
+      style={{ width: '100%', height: '100%' }}
+    >
       <header
         style={{
           display: 'flex',
@@ -32,7 +47,7 @@ function FullscreenLayout({
         {header}
       </header>
       {children}
-      <CRTOverlay />
+      <CRTOverlay crtEnabled={crtEnabled} />
     </div>
   );
 }
@@ -140,38 +155,103 @@ function LcarsLayout({
 }
 
 function AppContent() {
-  const [output, setOutput] = useState<string | undefined>();
-  const { theme } = useTheme();
+  const { theme, themeId } = useTheme();
+  const { muted, toggleMute } = useAudio(themeId);
+  const terminalRef = useRef<TerminalHandle>(null);
+  const crtEnabled = useConnectionStore((s) => s.crtEnabled);
+  const toggleCRT = useConnectionStore((s) => s.toggleCRT);
 
-  const handleInput = useCallback((data: string) => {
-    // For now, echo input back — will be wired to WebSocket
-    setOutput(`[echo] ${data}`);
+  // Wire ConnectionManager → terminal + store
+  useEffect(() => {
+    connectionManager.onMessage = (msg) => {
+      if (!terminalRef.current) return;
+      if (msg.type === 'text') {
+        const prefix = msg.agent ? `\x1b[36m[${msg.agent}]\x1b[0m ` : '';
+        terminalRef.current.write(`${prefix}${msg.content}\r\n> `);
+      } else if (msg.type === 'agents') {
+        useConnectionStore.getState().setAgentCount(msg.agents.length);
+        terminalRef.current.write(formatAgentList(msg.agents));
+        terminalRef.current.write('> ');
+      } else if (msg.type === 'status') {
+        if (msg.tunnel) {
+          useConnectionStore.getState().setTunnelUrl(msg.tunnel);
+        }
+        terminalRef.current.write(formatStatus(msg));
+        terminalRef.current.write('> ');
+      } else if (msg.type === 'error') {
+        terminalRef.current.write(`\x1b[31mERROR: ${msg.message}\x1b[0m\r\n> `);
+      }
+    };
+
+    connectionManager.onStateChange = (state) => {
+      useConnectionStore.getState().setStatus(state);
+    };
+
+    return () => {
+      connectionManager.onMessage = null;
+      connectionManager.onStateChange = null;
+    };
   }, []);
 
-  const terminal = <Terminal onInput={handleInput} output={output} />;
-  const themeToggle = <ThemeToggle />;
+  const handleInput = useCallback((data: string) => {
+    if (data.startsWith('/')) {
+      handleCommand(data, terminalRef.current);
+      return;
+    }
+
+    const msg: OutboundMessage = { type: 'prompt', text: data };
+
+    if (data.startsWith('@')) {
+      const spaceIdx = data.indexOf(' ');
+      msg.agent = data.substring(1, spaceIdx > 0 ? spaceIdx : undefined);
+      msg.text = spaceIdx > 0 ? data.substring(spaceIdx + 1) : '';
+    }
+
+    if (!connectionManager.isConnected) {
+      terminalRef.current?.write('\x1b[31mNot connected. Use /connect <url> <token>\x1b[0m\r\n> ');
+      return;
+    }
+
+    connectionManager.send(msg);
+  }, []);
+
+  const terminal = <Terminal ref={terminalRef} onInput={handleInput} />;
+  const controls = (
+    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+      <MechanicalSwitch crtEnabled={crtEnabled} onToggle={toggleCRT} />
+      <AudioToggle muted={muted} onToggle={toggleMute} />
+      <ThemeToggle />
+    </div>
+  );
+
+  const crtOffStyle = !crtEnabled ? { textShadow: 'none' } as React.CSSProperties : undefined;
 
   const layout = theme.layout ?? 'fullscreen';
 
+  const statusBar = <StatusBar />;
+
   if (layout === 'windowed') {
     return (
-      <Win95Layout header={themeToggle}>
-        {terminal}
+      <Win95Layout header={controls}>
+        <div style={crtOffStyle}>{terminal}</div>
+        {statusBar}
       </Win95Layout>
     );
   }
 
   if (layout === 'panel') {
     return (
-      <LcarsLayout header={themeToggle}>
-        {terminal}
+      <LcarsLayout header={controls}>
+        <div style={crtOffStyle}>{terminal}</div>
+        {statusBar}
       </LcarsLayout>
     );
   }
 
   return (
-    <FullscreenLayout header={themeToggle}>
-      {terminal}
+    <FullscreenLayout header={controls} crtEnabled={crtEnabled}>
+      <div style={crtOffStyle}>{terminal}</div>
+      {statusBar}
     </FullscreenLayout>
   );
 }
