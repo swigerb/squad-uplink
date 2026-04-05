@@ -206,6 +206,29 @@ function Win95Layout({
 const PIPBOY_TABS = ['STAT', 'INV', 'DATA', 'MAP', 'RADIO'] as const;
 type PipBoyTab = (typeof PIPBOY_TABS)[number];
 
+const PIPBOY_TAB_LABELS: Record<PipBoyTab, string> = {
+  STAT: 'pipboy-lbl-stat',
+  INV: 'pipboy-lbl-inv',
+  DATA: 'pipboy-lbl-data',
+  MAP: 'pipboy-lbl-map',
+  RADIO: 'pipboy-lbl-radio',
+};
+
+function usePipBoyScale() {
+  const [scale, setScale] = useState(1);
+  useEffect(() => {
+    const update = () => {
+      const sx = window.innerWidth / 660;
+      const sy = window.innerHeight / 520;
+      setScale(Math.min(sx, sy, 2.5));
+    };
+    update();
+    window.addEventListener('resize', update);
+    return () => window.removeEventListener('resize', update);
+  }, []);
+  return scale;
+}
+
 function PipBoyLayout({
   children,
   header,
@@ -218,70 +241,179 @@ function PipBoyLayout({
   crtEnabled: boolean;
 }) {
   const [activeTab, setActiveTab] = useState<PipBoyTab>('DATA');
+  const scale = usePipBoyScale();
+
+  const handleTabClick = useCallback((tab: PipBoyTab) => {
+    setActiveTab(tab);
+  }, []);
+
+  const handleTabKey = useCallback((e: React.KeyboardEvent, tab: PipBoyTab) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      setActiveTab(tab);
+    }
+  }, []);
 
   return (
     <div
       className={crtEnabled ? 'crt-screen' : undefined}
       style={{ width: '100%', height: '100%' }}
     >
-      <div className="pipboy-frame">
-        <div className="pipboy-controls">{header}</div>
+      <div className="pipboy-viewport">
+        {/* Exact Codepen Pip-Boy 3000 structure */}
+        <div className="pipboy-pip" style={{ transform: `scale(${scale})` }}>
+          <div className="pipboy-pipfront">
+            <div className="pipboy-dtop">
+              <div className="pipboy-top-panel" />
+            </div>
+            <div className="pipboy-top-button" />
+            <div className="pipboy-screw1" /><div className="pipboy-screw2" />
+            <div className="pipboy-screen-border">
+              <div className="pipboy-screen">
+                <div className="pipboy-screen-reflection" />
+                <div className="pipboy-scan" />
+                <nav className="pipboy-nav" role="tablist" aria-label="Pip-Boy navigation">
+                  {PIPBOY_TABS.map((tab) => (
+                    <span
+                      key={tab}
+                      className={`${PIPBOY_TAB_LABELS[tab]} ${activeTab === tab ? 'pipboy-active' : ''}`}
+                      role="tab"
+                      aria-selected={activeTab === tab}
+                      aria-label={tab}
+                      tabIndex={0}
+                      onClick={() => handleTabClick(tab)}
+                      onKeyDown={(e) => handleTabKey(e, tab)}
+                    />
+                  ))}
+                  <p>
+                    <span className="pipboy-lbl-status" />
+                    <span className="pipboy-off pipboy-lbl-special" />
+                  </p>
+                </nav>
 
-        <nav className="pipboy-tabs" role="tablist" aria-label="Pip-Boy navigation">
-          {PIPBOY_TABS.map((tab) => (
-            <button
-              key={tab}
-              role="tab"
-              aria-selected={activeTab === tab}
-              aria-controls={`pipboy-panel-${tab}`}
-              className={`pipboy-tab ${activeTab === tab ? 'pipboy-tab--active' : ''}`}
-              onClick={() => setActiveTab(tab)}
-            >
-              {tab}
-            </button>
-          ))}
-        </nav>
+                {/* Controls overlay */}
+                <div className="pipboy-controls">{header}</div>
 
-        <div className="pipboy-content">
-          {/* DATA tab — terminal always mounted, hidden via inline style for jsdom compat */}
-          <div
-            id="pipboy-panel-DATA"
-            role="tabpanel"
-            aria-label="DATA"
-            className={`pipboy-tab-panel ${activeTab !== 'DATA' ? 'pipboy-tab-panel--hidden' : ''}`}
-            style={{ display: activeTab !== 'DATA' ? 'none' : undefined }}
-          >
-            <div className="pipboy-terminal-wrap">{children}</div>
+                {/* Functional content area */}
+                <div className="pipboy-screen-inner">
+                  <div className="pipboy-content">
+                    {/* DATA tab — terminal always mounted */}
+                    <div
+                      id="pipboy-panel-DATA"
+                      role="tabpanel"
+                      aria-label="DATA"
+                      className={`pipboy-tab-panel ${activeTab !== 'DATA' ? 'pipboy-tab-panel--hidden' : ''}`}
+                      style={{ display: activeTab !== 'DATA' ? 'none' : undefined }}
+                    >
+                      <div className="pipboy-terminal-wrap">{children}</div>
+                    </div>
+
+                    {activeTab === 'STAT' && (
+                      <div id="pipboy-panel-STAT" role="tabpanel" aria-label="STAT" className="pipboy-tab-panel">
+                        <PipBoyStat />
+                      </div>
+                    )}
+
+                    {activeTab === 'INV' && (
+                      <div id="pipboy-panel-INV" role="tabpanel" aria-label="INV" className="pipboy-tab-panel">
+                        <PipBoyInv />
+                      </div>
+                    )}
+
+                    {activeTab === 'MAP' && (
+                      <div id="pipboy-panel-MAP" role="tabpanel" aria-label="MAP" className="pipboy-tab-panel">
+                        <PipBoyMap />
+                      </div>
+                    )}
+
+                    {activeTab === 'RADIO' && (
+                      <div id="pipboy-panel-RADIO" role="tabpanel" aria-label="RADIO" className="pipboy-tab-panel">
+                        <PipBoyRadio />
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Codepen decorative bottom elements */}
+                <div className="pipboy-supplies">
+                  <span>Stimpak (0)</span><span>Radaway (0)</span><span>UPLINK</span>
+                </div>
+                <div className="pipboy-info-bar">
+                  <span className="pipboy-weapon" />
+                  <span className="pipboy-aim"><p>21</p></span>
+                  <span className="pipboy-helmet" />
+                  <span className="pipboy-shield"><p>110</p></span>
+                  <span className="pipboy-voltage"><p>126</p></span>
+                  <span className="pipboy-nuclear"><p>35</p></span>
+                </div>
+                <div className="pipboy-hud-bar">
+                  <div className="pipboy-hp" />
+                  <div className="pipboy-exp" />
+                  <div className="pipboy-ap" />
+                </div>
+                <div className="pipboy-statusbar">{statusBar}</div>
+              </div>
+            </div>
+            <div className="pipboy-power" /><div className="pipboy-screw4" /><div className="pipboy-screw5" />
           </div>
 
-          {activeTab === 'STAT' && (
-            <div id="pipboy-panel-STAT" role="tabpanel" aria-label="STAT" className="pipboy-tab-panel">
-              <PipBoyStat />
-            </div>
-          )}
+          {/* Left wheel */}
+          <div className="pipboy-left-wheel">
+            <div className="pipboy-left-wheel-shadow" /><div className="pipboy-left-wheel-shadow" />
+            <div className="pipboy-left-wheel-shadow" /><div className="pipboy-left-wheel-shadow" />
+          </div>
 
-          {activeTab === 'INV' && (
-            <div id="pipboy-panel-INV" role="tabpanel" aria-label="INV" className="pipboy-tab-panel">
-              <PipBoyInv />
+          {/* Right wheel with tab names */}
+          <div className="pipboy-wheel">
+            <div className="pipboy-tab-names">
+              {PIPBOY_TABS.map((tab) => (
+                <li
+                  key={tab}
+                  className={PIPBOY_TAB_LABELS[tab]}
+                  onClick={() => handleTabClick(tab)}
+                />
+              ))}
             </div>
-          )}
+            <div className="pipboy-wheel-shadow" /><div className="pipboy-wheel-shadow" /><div className="pipboy-wheel-shadow" />
+            <div className="pipboy-wheel-shadow" /><div className="pipboy-wheel-shadow" />
+            <div className="pipboy-wheel-plug" /><div className="pipboy-wheel-wire" />
+          </div>
 
-          {activeTab === 'MAP' && (
-            <div id="pipboy-panel-MAP" role="tabpanel" aria-label="MAP" className="pipboy-tab-panel">
-              <PipBoyMap />
+          {/* RADS meter */}
+          <div className="pipboy-rads">
+            <div className="pipboy-rads-meter"><div className="pipboy-rads-value" /><div className="pipboy-bump1" /></div>
+          </div>
+
+          {/* Speakers */}
+          <div className="pipboy-speakers">
+            <div className="pipboy-speaker" /><div className="pipboy-speaker" /><div className="pipboy-speaker" /><div className="pipboy-speaker" />
+          </div>
+          <div className="pipboy-left-speakers">
+            <div className="pipboy-left-speaker" /><div className="pipboy-left-speaker" />
+            <div className="pipboy-left-speaker" /><div className="pipboy-left-speaker" /><div className="pipboy-screw3" />
+          </div>
+
+          {/* Decorative bumps */}
+          <div className="pipboy-bump2" /><div className="pipboy-bump3" />
+
+          {/* Tune meter & wheel */}
+          <div className="pipboy-tune-meter" />
+          <div className="pipboy-tune-wheel"><div className="pipboy-analog" /></div>
+
+          {/* Bottom panel */}
+          <div className="pipboy-bottom">
+            <div className="pipboy-bottom-clips">
+              <div className="pipboy-bottom-clip"><span /></div><div className="pipboy-bottom-clip"><span /></div>
+              <div className="pipboy-bottom-clip"><span /></div><div className="pipboy-bottom-clip"><span /></div>
             </div>
-          )}
+            <div className="pipboy-bottom-switch" /><div className="pipboy-bump4" /><div className="pipboy-bump5" />
+          </div>
 
-          {activeTab === 'RADIO' && (
-            <div id="pipboy-panel-RADIO" role="tabpanel" aria-label="RADIO" className="pipboy-tab-panel">
-              <PipBoyRadio />
-            </div>
-          )}
-
-          <div className="pipboy-scanlines" aria-hidden="true" />
+          {/* Remaining decorative elements */}
+          <div className="pipboy-roulette" />
+          <div className="pipboy-top-right" />
+          <div className="pipboy-spike-wheel" />
         </div>
-
-        <div className="pipboy-statusbar">{statusBar}</div>
       </div>
 
       <CRTOverlay crtEnabled={crtEnabled} />
