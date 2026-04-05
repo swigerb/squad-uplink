@@ -12,3 +12,4 @@ Frontend Dev for squad-uplink. Responsible for React UI components, retro Apple 
 ## Learnings
 
 <!-- Append new learnings below. Each entry is something lasting about the project. -->
+- **2026-04-05 (Cross-Agent):** Jobs locked 6 architecture decisions + 6 milestones. Key patterns: Zustand for state (works outside React), flat component tree, CSS-only CRT overlays, ConnectionManager outside React, theme engine with paired CSS props + xterm ITheme swap. MVP criteria: 5 things (xterm + CRT + WebSocket + theme toggle + HITL). Kare's 5-skin expansion (Apple, C64, IBM 3270, Win95, LCARS) will extend theme engine — foundation: CSS custom properties + ThemeContext + xterm ITheme swap. Resource links provided (typography, CSS frameworks, audio assets).

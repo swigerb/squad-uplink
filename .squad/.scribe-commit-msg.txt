@@ -1,0 +1,27 @@
+Wave 1 Complete: Merge decisions, lock architecture, log orchestration
+
+Scribe tasks:
+1. Merged all inbox decisions into decisions.md:
+   - Jobs architecture v1 (6 decisions: Zustand, flat tree, CSS overlays, ConnectionManager, theme engine, audio)
+   - Woz scaffold decisions (7 decisions: xterm v5, Context+localStorage theme, path alias, CRT CSS, procedural audio, reconnect, React 19)
+   - Hertzfeld test strategy (7 decisions: Vitest+jsdom, co-located tests, behavior testing, custom WebSocket mock, 80/95 coverage, edge cases, audio mocking)
+   - Brady multi-skin directive (5 new skins: IBM 3270, Win95, LCARS, resource links)
+
+2. Wrote orchestration logs:
+   - 2026-04-05T03-25-jobs-architecture.md (milestone roadmap, MVP criteria)
+   - 2026-04-05T03-25-woz-scaffold.md (74 files, clean build/lint)
+   - 2026-04-05T03-25-hertzfeld-test-plan.md (60+ test cases)
+
+3. Wrote session completion log:
+   - 2026-04-05T03-25-wave1-complete.md (all agents complete, Wave 2 launched)
+
+4. Updated agent history.md:
+   - Woz: noted Jobs' 6 architecture decisions and scaffold alignment
+   - Hertzfeld: noted scaffold ready for test implementation
+   - Kare: noted theme expansion foundation (CSS custom props + ThemeContext + xterm ITheme)
+
+5. Deleted decision inbox files (all merged)
+
+Status: Wave 1 delivery complete. Architecture locked. Scaffold ready for M1.
+
+Co-authored-by: Copilot <223556219+Copilot@users.noreply.github.com>
