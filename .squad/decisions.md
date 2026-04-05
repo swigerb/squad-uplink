@@ -261,6 +261,138 @@ Simple 🔊/🔇 button that delegates to `useAudio.toggleMute()`. Styled to mat
 **7. CRTOverlay Prop Extension**
 `CRTOverlay` now accepts optional `crtEnabled` prop. Returns `null` when theme doesn't support CRT OR when HITL switch disables it.
 
+### 2026-04-05T14:35:00Z: TelemetryDrawer Architecture (Wave 4)
+**By:** Woz (Lead Dev)
+**Status:** Implemented
+
+## Context
+
+Brady's M5 spec calls for a hidden telemetry panel that intentionally breaks the retro aesthetic — the "mask slips" moment revealing the modern system underneath.
+
+## Decisions
+
+### 1. TelemetryMetrics in connectionStore (not separate store)
+Extended the existing Zustand `connectionStore` with a nested `telemetry: TelemetryMetrics` object rather than creating a separate store. Rationale: telemetry data is tightly coupled to connection state, and Zustand selectors let consumers subscribe to just what they need.
+
+### 2. fetchStatus() on ConnectionManager
+Added `fetchStatus()` as a public method on the ConnectionManager singleton. It derives the HTTP base URL from the configured `wsUrl`, calls `/status`, measures round-trip latency via `performance.now()`, and pushes results directly to the Zustand store. This keeps the data flow consistent: ConnectionManager → Zustand → React.
+
+### 3. Rolling Message Rate via Timestamp Arrays
+Inbound/outbound message rates are tracked by pushing `Date.now()` into arrays on each send/receive, then computing rates over a 10s rolling window every 2s. This avoids the complexity of a circular buffer while staying lightweight for typical message volumes.
+
+### 4. CSS Overlay Pattern (z-index 9999)
+The drawer is a fixed-position overlay with backdrop, completely independent of the layout system. Renders as a React sibling *outside* all three layout components (Fullscreen, Win95, LCARS). This means it works in all 5 skins without any layout-specific code.
+
+### 5. Modern Design System Isolation
+The drawer uses `-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Inter', sans-serif` font stack and its own CSS namespace (`telemetry-*`). No CSS custom properties from the theme system. This is intentional — the panel should look jarring next to the retro terminal.
+
+## Files Changed
+- `src/types/squad-rc.ts` — Added `StatusResponse`, `TelemetryMetrics` interfaces
+- `src/store/connectionStore.ts` — Extended with `drawerOpen`, `telemetry`, and actions
+- `src/lib/ConnectionManager.ts` — Added `fetchStatus()`, metrics tracking, reconnect counting
+- `src/components/TelemetryDrawer/TelemetryDrawer.tsx` — New component
+- `src/components/TelemetryDrawer/TelemetryDrawer.css` — Modern dark glass styling
+- `src/components/TelemetryDrawer/index.ts` — Barrel export
+- `src/App.tsx` — TelemetryDrawer integration, Ctrl+Shift+T keyboard shortcut
+
+---
+
+### 2026-04-05T14:35:00Z: Wave 6 Font Optimization & Accessibility
+**By:** Kare (Frontend Dev)
+**Status:** Implemented
+
+## Font Optimization
+
+### Font file location: `public/fonts/` (not `src/assets/fonts/`)
+Moved @font-face URL paths from `src/assets/fonts/` to `public/fonts/`. Vite serves `public/` as static root, so URLs are `/fonts/filename.woff2`. This avoids Vite's asset pipeline processing (hashing, bundling) for fonts that may not exist yet — missing files in `public/` produce a 404 at runtime instead of a build error.
+
+### Theme-specific fallback chains
+Each theme now has a retro-accurate fallback chain before the generic family:
+- **apple2e:** `'PrintChar21', 'Apple II', monospace`
+- **c64:** `'C64 Pro Mono', 'PetMe', monospace`
+- **ibm3270:** `'IBM 3270', 'IBM Plex Mono', monospace`
+- **win95:** `'W95FA', 'Fixedsys', 'Courier New', monospace`
+- **lcars:** `'Trek', 'Antonio', sans-serif` (chrome), `'Trek', 'Antonio', monospace` (terminal)
+
+Previous chains used generic web-safe fonts (Courier New, Consolas). New chains use era-appropriate intermediate fallbacks that better match each theme's character before falling to monospace/sans-serif.
+
+### Font preloading
+`<link rel="preload">` added to `index.html` for `PrintChar21.woff2` (default apple2e theme). Other fonts are not preloaded to avoid wasted bandwidth on unused themes.
+
+## Accessibility
+
+### Focus indicators
+Theme-specific `:focus-visible` styles in `src/styles/accessibility.css`. CRT themes get phosphor-colored glow rings. Win95 gets classic dotted outline. LCARS gets orange ring. All use outline + box-shadow double-ring pattern for contrast against any background.
+
+### Reduced motion
+`@media (prefers-reduced-motion: reduce)` disables: CRT flicker animation, phosphor glow transitions, switch slide transitions, pill hover brightness changes. Static visual styling (colors, borders, glow) is preserved — only movement is removed.
+
+### Screen reader support
+- All icon-only buttons have `aria-label`
+- StatusBar has `role="status"` with `aria-live="polite"` on connection indicator
+- Terminal has `role="application"` and `aria-label="Squad terminal"`
+- Theme changes announced via hidden `aria-live` region
+- Toggle buttons use `aria-pressed`
+- Decorative emoji hidden with `aria-hidden="true"`
+
+### Keyboard navigation
+- Controls grouped in `role="toolbar"` for logical tab stops
+- Escape key returns focus to terminal
+- All interactive elements are natively keyboard-focusable (buttons, inputs)
+
+## Files Changed
+- `src/styles/fonts.css` — Updated paths and comment
+- `src/styles/global.css` — Updated fallback chains
+- `src/styles/accessibility.css` — New: focus, reduced motion, sr-only
+- `src/themes/*.ts` — Updated fontFamily strings
+- `src/App.tsx` — Accessibility CSS import, aria-live region, Escape handler, toolbar role
+- `src/components/Terminal/Terminal.tsx` — role, aria-label, focus() method
+- `src/components/StatusBar/StatusBar.tsx` — role, aria-live, aria-pressed, aria-label
+- `src/components/ThemeToggle/ThemeToggle.tsx` — aria-label
+- `src/components/MechanicalSwitch/MechanicalSwitch.tsx` — aria-label on all variants
+- `index.html` — Font preload link
+- `public/fonts/README.md` — New: font download instructions
+- `src/styles/__tests__/fonts.test.ts` — Updated expectations for new chains
+
+---
+
+### 2026-04-05T14:35:00Z: Wave 4+6 Test Architecture
+**By:** Hertzfeld (Tester)
+**Status:** Implemented
+
+## Context
+
+Wrote tests proactively against spec for TelemetryDrawer (Wave 4) and fonts/accessibility (Wave 6) before implementations land.
+
+## Decisions
+
+### 1. TelemetryDrawer Tests — describe.skip Pattern
+21 tests in `src/components/__tests__/TelemetryDrawer.test.tsx` wrapped in `describe.skip` blocks. Once Woz delivers the component, remove `.skip` and uncomment the render calls. Tests expect:
+- `data-testid="telemetry-drawer"` on the drawer element
+- `data-testid="session-token"` for masked token display
+- Keyboard shortcut: Ctrl+Shift+T to open, Escape to close
+- Store will need: `latency`, `messagesPerSec`, `uptimeMs`, `sessionToken` fields
+- Auto-refresh: `fetch()` to `/status` every 30s when open, cleanup on close
+
+### 2. Font Tests Use Static CSS Parsing
+`src/styles/__tests__/fonts.test.ts` reads `fonts.css` via `readFileSync` and validates @font-face blocks with regex extraction. This avoids jsdom CSS limitations and tests the actual source of truth.
+
+### 3. Zustand Store Updates Need act()
+When updating Zustand store state mid-test for re-render assertions, wrap in `act()` to avoid React 19 warnings. Pattern:
+```ts
+act(() => { useConnectionStore.setState({ status: 'connecting' }); });
+```
+
+### 4. Font Stack Divergence from Original Spec
+Theme font stacks have changed from the original architecture spec. Tests now assert actual values (e.g., Apple IIe uses "Apple II" fallback, not "Courier New"). Future font changes should update tests accordingly.
+
+## Files Created
+- `src/components/__tests__/TelemetryDrawer.test.tsx` (21 tests, all skipped)
+- `src/styles/__tests__/fonts.test.ts` (32 tests, all passing)
+- `src/components/__tests__/accessibility.test.tsx` (28 tests, all passing)
+
+---
+
 ## Governance
 
 - All meaningful changes require team consensus
