@@ -1,9 +1,9 @@
 ---
-updated_at: 2026-04-05T03:10:34.362Z
-focus_area: Initial setup
+updated_at: 2026-04-05T14:34:00.000Z
+focus_area: Waves 4-6 completion
 active_issues: []
 ---
 
 # What We're Focused On
 
-Getting started. Updated by coordinator at session start.
+Completing remaining waves: Wave 4 (TelemetryDrawer panel — M5), Wave 5 (SWA deployment/CI — M6), Wave 6 (font optimization, accessibility, docs). Waves 1-3 shipped — 233 tests passing, build clean.

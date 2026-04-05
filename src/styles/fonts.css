@@ -1,66 +1,70 @@
-/* @font-face declarations for retro terminal fonts.
-   Font files should be placed in src/assets/fonts/
+/* Font-face declarations for retro terminal fonts.
+   Font files should be placed in public/fonts/
+   See public/fonts/README.md for download instructions.
 
    PrintChar21 — Apple IIe style monospace bitmap font
    C64 Pro Mono — Commodore 64 character ROM font
-   IBM 3270 — IBM mainframe terminal font
-   W95FA — Pixel-accurate MS Sans Serif recreation
+   IBM 3270 — IBM mainframe terminal font (open source)
+   Mx437 IBM 3270 — bitmap-accurate IBM 3270 from int10h.org
+   W95FA — Pixel-accurate Fixedsys recreation
    Trek — LCARS-style panel font
-
-   These fonts need to be sourced separately due to licensing.
-   See src/assets/fonts/README.md for details.
-   IBM-3270 / Mx437: https://int10h.org/oldschool-pc-fonts/
 */
 
+/* Apple IIe: PrintChar21 */
 @font-face {
   font-family: 'PrintChar21';
-  src: url('../assets/fonts/PrintChar21.woff2') format('woff2'),
-       url('../assets/fonts/PrintChar21.woff') format('woff');
+  src: url('/fonts/PrintChar21.woff2') format('woff2'),
+       url('/fonts/PrintChar21.woff') format('woff');
   font-weight: normal;
   font-style: normal;
   font-display: swap;
 }
 
+/* Commodore 64: C64 Pro Mono */
 @font-face {
   font-family: 'C64 Pro Mono';
-  src: url('../assets/fonts/C64_Pro_Mono-STYLE.woff2') format('woff2'),
-       url('../assets/fonts/C64_Pro_Mono-STYLE.woff') format('woff');
+  src: url('/fonts/C64_Pro_Mono-STYLE.woff2') format('woff2'),
+       url('/fonts/C64_Pro_Mono-STYLE.woff') format('woff');
   font-weight: normal;
   font-style: normal;
   font-display: swap;
 }
 
+/* IBM 3270: rbanffy/3270font (BSD licensed) */
 @font-face {
   font-family: 'IBM 3270';
-  src: url('../assets/fonts/3270-Regular.woff2') format('woff2'),
-       url('../assets/fonts/3270-Regular.woff') format('woff');
+  src: url('/fonts/3270-Regular.woff2') format('woff2'),
+       url('/fonts/3270-Regular.woff') format('woff');
   font-weight: normal;
   font-style: normal;
   font-display: swap;
 }
 
+/* IBM 3270 bitmap: int10h.org oldschool PC fonts (CC BY-SA 4.0) */
 @font-face {
   font-family: 'Mx437_IBM_3270';
-  src: url('../assets/fonts/Mx437_IBM_3270pc.woff2') format('woff2'),
-       url('../assets/fonts/Mx437_IBM_3270pc.woff') format('woff');
+  src: url('/fonts/Mx437_IBM_3270pc.woff2') format('woff2'),
+       url('/fonts/Mx437_IBM_3270pc.woff') format('woff');
   font-weight: normal;
   font-style: normal;
   font-display: swap;
 }
 
+/* Windows 95: W95FA Fixedsys */
 @font-face {
   font-family: 'W95FA';
-  src: url('../assets/fonts/W95FA.woff2') format('woff2'),
-       url('../assets/fonts/W95FA.woff') format('woff');
+  src: url('/fonts/W95FA.woff2') format('woff2'),
+       url('/fonts/W95FA.woff') format('woff');
   font-weight: normal;
   font-style: normal;
   font-display: swap;
 }
 
+/* LCARS: Trek font */
 @font-face {
   font-family: 'Trek';
-  src: url('../assets/fonts/Trek.woff2') format('woff2'),
-       url('../assets/fonts/Trek.woff') format('woff');
+  src: url('/fonts/Trek.woff2') format('woff2'),
+       url('/fonts/Trek.woff') format('woff');
   font-weight: normal;
   font-style: normal;
   font-display: swap;

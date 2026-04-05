@@ -83,3 +83,34 @@ export interface SquadRcConfig {
   /** Max reconnect attempts */
   maxRetries?: number;
 }
+
+/** Response from the squad-rc /status endpoint */
+export interface StatusResponse {
+  uptime: number;
+  connections: number;
+  agents: AgentInfo[];
+  tunnel?: string;
+  version?: string;
+  /** Raw JSON fields we don't explicitly type */
+  [key: string]: unknown;
+}
+
+/** Telemetry metrics tracked by ConnectionManager */
+export interface TelemetryMetrics {
+  /** Round-trip latency to squad-rc in ms */
+  latencyMs: number | null;
+  /** Messages received per second (rolling average) */
+  inboundMps: number;
+  /** Messages sent per second (rolling average) */
+  outboundMps: number;
+  /** Epoch ms when connection was established */
+  connectedAt: number | null;
+  /** Number of reconnection attempts since initial connect */
+  reconnectCount: number;
+  /** ISO timestamp of last disconnect event */
+  lastDisconnectAt: string | null;
+  /** Latest /status response from squad-rc */
+  statusResponse: StatusResponse | null;
+  /** Epoch ms of last /status fetch */
+  statusFetchedAt: number | null;
+}

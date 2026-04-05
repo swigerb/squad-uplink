@@ -9,7 +9,7 @@ export const lcarsTheme: TerminalTheme = {
   cursor: '#ff9900',
   selection: 'rgba(153, 153, 255, 0.3)',
 
-  fontFamily: '"Menlo", monospace',
+  fontFamily: '"Trek", "Antonio", monospace',
   fontSize: 14,
   cols: 80,
   rows: 24,
@@ -20,7 +20,7 @@ export const lcarsTheme: TerminalTheme = {
   layout: 'panel',
   crtEnabled: false,
   customCss: 'skin-lcars',
-  chromeFontFamily: '"Trek", "Helvetica Neue", sans-serif',
+  chromeFontFamily: '"Trek", "Antonio", sans-serif',
   accentColors: [
     '#ff9900', // orange
     '#cc99cc', // lavender

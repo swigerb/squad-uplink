@@ -9,7 +9,7 @@ export const apple2eTheme: TerminalTheme = {
   cursor: '#33ff33',
   selection: 'rgba(51, 255, 51, 0.25)',
 
-  fontFamily: '"PrintChar21", "Courier New", monospace',
+  fontFamily: '"PrintChar21", "Apple II", monospace',
   fontSize: 16,
   cols: 80,
   rows: 24,

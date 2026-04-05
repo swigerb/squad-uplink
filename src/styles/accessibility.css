@@ -1,0 +1,128 @@
+/* Accessibility — focus indicators, reduced motion, screen reader utilities */
+
+/* ===== Focus indicators (visible across all 5 themes) ===== */
+
+/*
+ * Use a double-ring outline that works on both light and dark backgrounds:
+ * inner white ring + outer dark ring = visible on any theme.
+ */
+:focus-visible {
+  outline: 2px solid #ffffff;
+  outline-offset: 2px;
+  box-shadow: 0 0 0 4px rgba(0, 0, 0, 0.6);
+}
+
+/* Theme-specific focus rings that match the aesthetic */
+[data-theme='apple2e'] :focus-visible {
+  outline-color: #33ff33;
+  box-shadow: 0 0 0 4px rgba(0, 0, 0, 0.8), 0 0 8px rgba(51, 255, 51, 0.4);
+}
+
+[data-theme='c64'] :focus-visible {
+  outline-color: #a09cf0;
+  box-shadow: 0 0 0 4px rgba(53, 40, 190, 0.8), 0 0 8px rgba(112, 108, 228, 0.4);
+}
+
+[data-theme='ibm3270'] :focus-visible {
+  outline-color: #ffb000;
+  box-shadow: 0 0 0 4px rgba(0, 0, 0, 0.8), 0 0 8px rgba(255, 176, 0, 0.4);
+}
+
+[data-theme='win95'] :focus-visible {
+  outline: 1px dotted #000000;
+  outline-offset: 1px;
+  box-shadow: none;
+}
+
+[data-theme='lcars'] :focus-visible {
+  outline-color: #ff9900;
+  box-shadow: 0 0 0 4px rgba(0, 0, 0, 0.8), 0 0 8px rgba(255, 153, 0, 0.4);
+}
+
+/* ===== Reduced motion ===== */
+
+@media (prefers-reduced-motion: reduce) {
+  /* Disable CRT flicker animation */
+  [data-theme='apple2e'] .crt-screen,
+  [data-theme='c64'] .crt-screen,
+  [data-theme='ibm3270'] .crt-screen {
+    animation: none !important;
+  }
+
+  /* Disable phosphor glow animation/pulsing */
+  .crt-glow {
+    animation: none !important;
+    transition: none !important;
+  }
+
+  /* Remove text-shadow glow animations but keep static glow */
+  [data-theme='apple2e'] .terminal-container,
+  [data-theme='c64'] .terminal-container,
+  [data-theme='ibm3270'] .terminal-container {
+    animation: none !important;
+    transition: none !important;
+  }
+
+  /* Disable mechanical switch slide transition */
+  .mech-switch__knob {
+    transition: none !important;
+  }
+
+  .mech-switch--lever,
+  .mech-switch--pill {
+    transition: none !important;
+  }
+
+  /* Disable any hover brightness transitions */
+  .mech-switch--pill:hover,
+  .mech-switch--pill:active {
+    filter: none !important;
+  }
+
+  /* Keep static visual styling intact — only remove movement */
+  .statusbar-toggle {
+    transition: none !important;
+  }
+
+  /* Disable all other transitions/animations globally */
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* ===== Screen reader only utility ===== */
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
+
+/* ===== Skip link ===== */
+
+.skip-link {
+  position: absolute;
+  top: -40px;
+  left: 0;
+  background: #000;
+  color: #fff;
+  padding: 8px 16px;
+  z-index: 10000;
+  font-size: 14px;
+  text-decoration: none;
+  font-family: monospace;
+}
+
+.skip-link:focus {
+  top: 0;
+}

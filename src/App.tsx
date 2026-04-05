@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { ThemeProvider, useTheme } from '@/hooks/useTheme';
 import { useAudio } from '@/hooks/useAudio';
 import { Terminal } from '@/components/Terminal';
@@ -8,6 +8,7 @@ import { CRTOverlay } from '@/components/CRTOverlay';
 import { MechanicalSwitch } from '@/components/MechanicalSwitch/MechanicalSwitch';
 import { AudioToggle } from '@/components/AudioToggle/AudioToggle';
 import { StatusBar } from '@/components/StatusBar';
+import { TelemetryDrawer } from '@/components/TelemetryDrawer';
 import { connectionManager } from '@/lib/ConnectionManager';
 import { useConnectionStore } from '@/store/connectionStore';
 import { handleCommand } from '@/lib/commands';
@@ -16,6 +17,7 @@ import type { OutboundMessage } from '@/types/squad-rc';
 import '@/styles/global.css';
 import '@/styles/crt-effects.css';
 import '@/styles/fonts.css';
+import '@/styles/accessibility.css';
 import '@/styles/win95-chrome.css';
 import '@/styles/lcars-panels.css';
 
@@ -160,6 +162,13 @@ function AppContent() {
   const terminalRef = useRef<TerminalHandle>(null);
   const crtEnabled = useConnectionStore((s) => s.crtEnabled);
   const toggleCRT = useConnectionStore((s) => s.toggleCRT);
+  const toggleDrawer = useConnectionStore((s) => s.toggleDrawer);
+  const [themeAnnouncement, setThemeAnnouncement] = useState('');
+
+  // Announce theme changes to screen readers
+  useEffect(() => {
+    setThemeAnnouncement(`Theme changed to ${theme.name}`);
+  }, [theme.name]);
 
   // Wire ConnectionManager → terminal + store
   useEffect(() => {
@@ -215,9 +224,24 @@ function AppContent() {
     connectionManager.send(msg);
   }, []);
 
+  // Close overlays on Escape, toggle TelemetryDrawer on Ctrl+Shift+T
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        terminalRef.current?.focus?.();
+      }
+      if (e.ctrlKey && e.shiftKey && e.key === 'T') {
+        e.preventDefault();
+        toggleDrawer();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [toggleDrawer]);
+
   const terminal = <Terminal ref={terminalRef} onInput={handleInput} />;
   const controls = (
-    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }} role="toolbar" aria-label="Terminal controls">
       <MechanicalSwitch crtEnabled={crtEnabled} onToggle={toggleCRT} />
       <AudioToggle muted={muted} onToggle={toggleMute} />
       <ThemeToggle />
@@ -232,27 +256,39 @@ function AppContent() {
 
   if (layout === 'windowed') {
     return (
-      <Win95Layout header={controls}>
-        <div style={crtOffStyle}>{terminal}</div>
-        {statusBar}
-      </Win95Layout>
+      <>
+        <div aria-live="polite" aria-atomic="true" className="sr-only">{themeAnnouncement}</div>
+        <Win95Layout header={controls}>
+          <div style={crtOffStyle}>{terminal}</div>
+          {statusBar}
+        </Win95Layout>
+        <TelemetryDrawer />
+      </>
     );
   }
 
   if (layout === 'panel') {
     return (
-      <LcarsLayout header={controls}>
-        <div style={crtOffStyle}>{terminal}</div>
-        {statusBar}
-      </LcarsLayout>
+      <>
+        <div aria-live="polite" aria-atomic="true" className="sr-only">{themeAnnouncement}</div>
+        <LcarsLayout header={controls}>
+          <div style={crtOffStyle}>{terminal}</div>
+          {statusBar}
+        </LcarsLayout>
+        <TelemetryDrawer />
+      </>
     );
   }
 
   return (
-    <FullscreenLayout header={controls} crtEnabled={crtEnabled}>
-      <div style={crtOffStyle}>{terminal}</div>
-      {statusBar}
-    </FullscreenLayout>
+    <>
+      <div aria-live="polite" aria-atomic="true" className="sr-only">{themeAnnouncement}</div>
+      <FullscreenLayout header={controls} crtEnabled={crtEnabled}>
+        <div style={crtOffStyle}>{terminal}</div>
+        {statusBar}
+      </FullscreenLayout>
+      <TelemetryDrawer />
+    </>
   );
 }
 

@@ -40,6 +40,7 @@ export function MechanicalSwitch({ crtEnabled, onToggle }: MechanicalSwitchProps
           checked={crtEnabled}
           onChange={handleClick}
           className="mech-switch__input"
+          aria-label={`CRT effects: ${label}`}
         />
         <span className="mech-switch__label">{label}</span>
       </label>
@@ -58,6 +59,7 @@ export function MechanicalSwitch({ crtEnabled, onToggle }: MechanicalSwitchProps
         }}
         data-testid="mechanical-switch"
         aria-pressed={crtEnabled}
+        aria-label={`CRT effects: ${label}`}
       >
         {label}
       </button>
@@ -76,6 +78,7 @@ export function MechanicalSwitch({ crtEnabled, onToggle }: MechanicalSwitchProps
       }}
       data-testid="mechanical-switch"
       aria-pressed={crtEnabled}
+      aria-label={`CRT effects: ${label}`}
     >
       <span className="mech-switch__track">
         <span className="mech-switch__knob" />

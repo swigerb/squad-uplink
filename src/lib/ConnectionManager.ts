@@ -4,7 +4,9 @@ import type {
   OutboundMessage,
   InboundMessage,
   TicketResponse,
+  StatusResponse,
 } from '@/types/squad-rc';
+import { useConnectionStore } from '@/store/connectionStore';
 
 const RECONNECT_BASE_DELAY = 1000;
 const RECONNECT_MAX_DELAY = 30000;
@@ -16,6 +18,9 @@ const RATE_LIMIT_MAX = 20;
 const RATE_LIMIT_THRESHOLD = 16;
 const DRAIN_INTERVAL = 3000; // drain timer interval in ms
 
+// Metrics tracking
+const METRICS_WINDOW = 10_000; // 10s rolling window for message rates
+
 export class ConnectionManager {
   private ws: WebSocket | null = null;
   private retries = 0;
@@ -24,6 +29,12 @@ export class ConnectionManager {
   private rateLimiter = { count: 0, resetAt: 0 };
   private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
   private drainTimer: ReturnType<typeof setInterval> | null = null;
+
+  // Metrics tracking
+  private inboundTimestamps: number[] = [];
+  private outboundTimestamps: number[] = [];
+  private metricsTimer: ReturnType<typeof setInterval> | null = null;
+  private reconnectCount = 0;
 
   /** Set by consumers to receive inbound messages */
   onMessage: ((msg: InboundMessage) => void) | null = null;
@@ -64,9 +75,14 @@ export class ConnectionManager {
         // Only a successful open resets the retry counter (fixes backoff bug)
         this.retries = 0;
         this.emitState('connected');
+        useConnectionStore.getState().updateTelemetry({
+          connectedAt: Date.now(),
+        });
+        this.startMetricsTimer();
       };
 
       ws.onmessage = (event) => {
+        this.inboundTimestamps.push(Date.now());
         try {
           const msg: InboundMessage = JSON.parse(event.data as string);
           this.onMessage?.(msg);
@@ -81,6 +97,10 @@ export class ConnectionManager {
 
       ws.onclose = () => {
         this.ws = null;
+        useConnectionStore.getState().updateTelemetry({
+          lastDisconnectAt: new Date().toISOString(),
+        });
+        this.stopMetricsTimer();
         this.scheduleReconnect();
       };
     } catch (err) {
@@ -93,6 +113,12 @@ export class ConnectionManager {
   /** User-initiated connect — resets retry counter */
   async connectFresh(config: SquadRcConfig): Promise<void> {
     this.retries = 0;
+    this.reconnectCount = 0;
+    useConnectionStore.getState().updateTelemetry({
+      reconnectCount: 0,
+      connectedAt: null,
+      lastDisconnectAt: null,
+    });
     return this.connect(config);
   }
 
@@ -100,6 +126,7 @@ export class ConnectionManager {
   disconnect(): void {
     this.config = null;
     this.cleanup();
+    this.stopMetricsTimer();
     this.emitState('disconnected');
   }
 
@@ -139,12 +166,63 @@ export class ConnectionManager {
     return this.ws?.readyState === WebSocket.OPEN;
   }
 
+  /**
+   * Fetch the /status endpoint from squad-rc.
+   * Measures round-trip latency and pushes results to the telemetry store.
+   */
+  async fetchStatus(): Promise<StatusResponse | null> {
+    const cfg = this.config;
+    if (!cfg) return null;
+
+    // Derive HTTP base URL from wsUrl
+    let baseUrl = cfg.wsUrl;
+    if (baseUrl.startsWith('ws')) {
+      baseUrl = baseUrl.replace(/^ws/, 'http');
+    }
+    // Strip path segments after the host (we want just the origin)
+    const urlObj = new URL(baseUrl);
+    const origin = urlObj.origin;
+
+    const start = performance.now();
+    try {
+      const resp = await fetch(`${origin}/status`, {
+        headers: {
+          Authorization: `Bearer ${cfg.token}`,
+        },
+      });
+      const latencyMs = Math.round(performance.now() - start);
+
+      if (!resp.ok) {
+        console.error(`[squad-uplink] /status returned ${resp.status}`);
+        return null;
+      }
+
+      const data = (await resp.json()) as StatusResponse;
+      const store = useConnectionStore.getState();
+      store.updateTelemetry({ latencyMs });
+      store.setStatusResponse(data);
+
+      if (data.agents) {
+        store.setAgentCount(data.agents.length);
+      }
+      if (data.tunnel) {
+        store.setTunnelUrl(data.tunnel);
+      }
+
+      return data;
+    } catch (err) {
+      console.error('[squad-uplink] /status fetch failed:', err);
+      return null;
+    }
+  }
+
   // --- Private ---
 
   private sendImmediate(message: OutboundMessage): void {
     if (this.ws?.readyState === WebSocket.OPEN) {
       this.ws.send(JSON.stringify(message));
       this.rateLimiter.count++;
+      this.outboundTimestamps.push(Date.now());
     } else {
       console.warn('[squad-uplink] WebSocket not connected, queueing message');
       this.messageQueue.push(message);
@@ -210,6 +288,11 @@ export class ConnectionManager {
     }
 
     this.emitState('reconnecting');
+    this.reconnectCount++;
+    useConnectionStore.getState().updateTelemetry({
+      reconnectCount: this.reconnectCount,
+    });
+
     const delay = Math.min(
       RECONNECT_BASE_DELAY * 2 ** this.retries,
       RECONNECT_MAX_DELAY,
@@ -225,6 +308,31 @@ export class ConnectionManager {
 
   private emitState(state: ConnectionState): void {
     this.onStateChange?.(state);
+  }
+
+  /** Push rolling message-rate metrics to the store every 2s */
+  private startMetricsTimer(): void {
+    this.stopMetricsTimer();
+    this.metricsTimer = setInterval(() => {
+      const now = Date.now();
+      const cutoff = now - METRICS_WINDOW;
+
+      this.inboundTimestamps = this.inboundTimestamps.filter((t) => t > cutoff);
+      this.outboundTimestamps = this.outboundTimestamps.filter((t) => t > cutoff);
+
+      const windowSec = METRICS_WINDOW / 1000;
+      useConnectionStore.getState().updateTelemetry({
+        inboundMps: Math.round((this.inboundTimestamps.length / windowSec) * 10) / 10,
+        outboundMps: Math.round((this.outboundTimestamps.length / windowSec) * 10) / 10,
+      });
+    }, 2000);
+  }
+
+  private stopMetricsTimer(): void {
+    if (this.metricsTimer) {
+      clearInterval(this.metricsTimer);
+      this.metricsTimer = null;
+    }
   }
 
   private cleanup(): void {

@@ -9,7 +9,7 @@ export const ibm3270Theme: TerminalTheme = {
   cursor: '#ffb000',
   selection: 'rgba(255, 176, 0, 0.25)',
 
-  fontFamily: '"IBM 3270", "Mx437_IBM_3270", "Consolas", monospace',
+  fontFamily: '"IBM 3270", "IBM Plex Mono", monospace',
   fontSize: 16,
   cols: 80,
   rows: 24,

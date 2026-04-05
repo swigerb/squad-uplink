@@ -9,7 +9,7 @@ export const win95Theme: TerminalTheme = {
   cursor: '#ffffff',
   selection: 'rgba(0, 0, 128, 0.5)',
 
-  fontFamily: '"Consolas", monospace',
+  fontFamily: '"W95FA", "Fixedsys", "Courier New", monospace',
   fontSize: 14,
   cols: 80,
   rows: 25,
@@ -22,7 +22,7 @@ export const win95Theme: TerminalTheme = {
   layout: 'windowed',
   crtEnabled: false,
   customCss: 'skin-win95',
-  chromeFontFamily: '"W95FA", "MS Sans Serif", "Tahoma", sans-serif',
+  chromeFontFamily: '"W95FA", "Fixedsys", "Courier New", monospace',
 
   xtermTheme: {
     foreground: '#c0c0c0',

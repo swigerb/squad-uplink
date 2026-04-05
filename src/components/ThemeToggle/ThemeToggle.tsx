@@ -20,6 +20,7 @@ export function ThemeToggle() {
       onClick={toggleTheme}
       className="theme-toggle"
       title={`Switch to ${next.name}`}
+      aria-label={`Current theme: ${current.name}. Switch to ${next.name}`}
       style={{
         display: 'inline-flex',
         alignItems: 'center',

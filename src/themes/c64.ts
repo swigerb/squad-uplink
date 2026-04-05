@@ -9,7 +9,7 @@ export const c64Theme: TerminalTheme = {
   cursor: '#706ce4',
   selection: 'rgba(112, 108, 228, 0.3)',
 
-  fontFamily: '"C64 Pro Mono", "Courier New", monospace',
+  fontFamily: '"C64 Pro Mono", "PetMe", monospace',
   fontSize: 16,
   cols: 40,
   rows: 25,

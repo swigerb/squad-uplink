@@ -12,6 +12,7 @@ export interface TerminalHandle {
   write: (data: string) => void;
   writeln: (data: string) => void;
   clear: () => void;
+  focus?: () => void;
 }
 
 export interface TerminalProps {
@@ -38,6 +39,9 @@ export const Terminal = forwardRef<TerminalHandle, TerminalProps>(
       clear: () => {
         xtermRef.current?.clear();
         xtermRef.current?.write('> ');
+      },
+      focus: () => {
+        xtermRef.current?.focus();
       },
     }));
 
@@ -118,6 +122,9 @@ export const Terminal = forwardRef<TerminalHandle, TerminalProps>(
         ref={containerRef}
         className="terminal-container"
         data-testid="terminal"
+        role="application"
+        aria-label="Squad terminal"
+        aria-roledescription="terminal"
       />
     );
   }
