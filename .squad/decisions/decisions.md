@@ -1,5 +1,44 @@
 # Decisions
 
+## Hybrid Audio — Sample Files with Procedural Fallback
+
+**By:** Kare (Frontend Dev) — Brady (via Copilot directive)  
+**Date:** 2026-04-05  
+**Status:** Implemented
+
+### Context
+
+Jobs' original architecture decision (#6) specified "Procedural Web Audio API oscillators. No sample files." Brady explicitly provided audio resource URLs for each of the 5 skins and requested real audio files for sound effects. The procedural-only constraint was overly restrictive — real audio files deliver dramatically better retro authenticity.
+
+### Decision
+
+Rework audio system to **hybrid model**:
+
+1. **Primary:** Load real `.mp3`/`.wav`/`.ogg` files from `public/audio/{skinId}/` using Web Audio API `fetch` + `decodeAudioData`
+2. **Fallback:** Keep all existing procedural oscillator profiles intact — used when files are missing, still loading, or fail to decode
+
+### Implementation Details
+
+- `src/audio/manifest.ts` — Maps each skin + sound type to a file path
+- `src/audio/bufferCache.ts` — `AudioBufferCache` class fetches, decodes, and caches `AudioBuffer` per skin
+- `useAudio` hook API is **unchanged** (`{ play, muted, toggleMute }`)
+- Preloads only current skin's files (not all 5) via `useEffect` on skin change
+- Non-blocking: if a file isn't loaded yet, procedural plays as interim
+- If zero audio files exist, app works exactly as before
+
+### Supersedes
+
+Partially supersedes Jobs' ADR v1 decision #6 ("No sample files") — procedural is retained as fallback, but sample files are now the preferred audio source. Backward compatibility maintained.
+
+### Verification
+
+- `npm run build` — clean
+- `npm test` — 323 tests pass, 15 skipped (pending audio files)
+- Zero breaking changes to public API
+- All 5 skin directories created in `public/audio/`
+
+---
+
 ## Wave 5 Ship It — Production Readiness
 
 **By:** Woz (Lead Dev)  
