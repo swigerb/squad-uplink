@@ -393,6 +393,118 @@ Theme font stacks have changed from the original architecture spec. Tests now as
 
 ---
 
+### 2026-04-05T15:44:00Z: Pip-Boy Full Device Chrome
+**By:** Kare (Frontend Dev)
+**Date:** 2026-04-05
+**Status:** Implemented
+
+## Context
+
+Brady directed building the Pip-Boy 3000 theme as 6th skin with full hardware device chrome. Previous work (Wave 6) created the bare theme with tabs and data components. This work adds the physical device aesthetics.
+
+## Decisions
+
+### 1. CSS Grid 3-Column Device Layout
+The device body uses a 3-column grid: left grip (15% width) | center screen bezel (70%) | right panel (15%). Top and bottom rows add decorative clip and band elements. Device fills ~95% of viewport with safe margins.
+
+### 2. Screen Bezel Inset Shadow Effect
+Center column (screen bezel) uses deep `box-shadow: inset` to create a recessed 3D CRT well. All tab content and terminal render inside this bezel. The effect simulates the physical depth of a CRT monitor.
+
+### 3. Left Grip Ventilation Grille
+Repeating-linear-gradient vertical stripes simulate ventilation slots. Darker brown (#6b5344) for shadowing. Pure CSS — no SVG or img elements.
+
+### 4. Right Panel with Dials & Knobs
+- **RADS dial:** CSS circle with needle pointer (rotates on mouse hover or telemetry state)
+- **TUNE knob:** Conic-gradient ridges to simulate mechanical knob grooves
+- **Toggles:** 3-state lever switches (up/off/down)
+- **Indicator strip:** Small LED indicators showing status lights
+
+All CSS-only, no SVG.
+
+### 5. Decorative Elements: Screws, Label, Power Button
+- **Screws:** 6 CSS screws using ::before and ::after pseudo-elements with cross-slot styling. No extra DOM nodes.
+- **"PIP-BOY" label:** CSS text-shadow embossing on tan metal
+- **Top clip & latch:** Horizontal CSS border bar
+- **Bottom band:** Ventilation slots + glowing amber POWER button
+- **Power button:** #ffb641 LED with pulse animation (2s cycle)
+
+### 6. Tan/Brown Metal Aesthetic
+Device body: #8B7355 (tan-brown) with CSS gradients for 3D shading. Top-left lighter gradient (highlight), bottom-right darker gradient (shadow). Creates metallic appearance without images.
+
+### 7. VaultBoy SVG Component
+Dedicated `VaultBoy.tsx` component renders a standing Vault Boy figure with thumbs-up pose. Limbs (head, L-arm, R-arm, L-leg, R-leg) each have 5-segment health bars. Colors: green (healthy) → yellow (medium) → red (critical).
+
+Health derived from ConnectionStore telemetry:
+- Latency → strength (physical durability)
+- Throughput → endurance (sustained load)
+- Uptime → perception (observability)
+- Success count → luck (reliability)
+
+### 8. Idle Animation
+VaultBoy has continuous idle animation: vertical bounce (2s cycle, ease-in-out) and subtle chest glow pulse. Keeps the component "alive" visually without being distracting.
+
+### 9. Responsive: Hide Side Panels on Mobile
+Media query at ≤768px hides left/right panels (`display: none`), centers screen bezel to full width. Mobile-friendly without losing core terminal functionality.
+
+### 10. Terminal Mount Location
+xterm.js terminal stays mounted inside `.pipboy-screen-bezel` div. Tab switches use `display: none` on non-active tab wrappers, not conditional rendering. Preserves terminal scroll position, selection, and command history across tab switches.
+
+## Files Changed
+- `src/components/layouts/PipBoyLayout.tsx` — Device chrome CSS grid, decorative elements, responsive logic
+- `src/styles/pipboy.css` — Device body colors, animations, grid layout, responsive breakpoints
+- `src/components/PipBoy/VaultBoy.tsx` — New: SVG component with health bars and idle animation
+- `src/themes/pipboy.ts` — Theme definition (no changes for chrome)
+
+---
+
+### 2026-04-05T15:44:00Z: HMR Fix — Split useTheme Hook & ThemeProvider
+**By:** Woz (Lead Dev)
+**Date:** 2026-04-05
+**Status:** Implemented
+
+## Context
+
+Fast Refresh HMR console warning: "ThemeProvider is not exported from React." Caused by single file exporting both hook and component, confusing React's HMR system.
+
+## Decision
+
+Split `src/hooks/useTheme.tsx` into two files:
+- **`src/hooks/useTheme.tsx`** — Hook + context (functions only, no components)
+- **`src/hooks/ThemeProvider.tsx`** — Provider component (React component)
+
+React Fast Refresh treats hooks-only files and component-only files differently for HMR. Separation enables correct reload strategies.
+
+## Implementation
+
+### useTheme.tsx (After)
+```typescript
+export const ThemeContext = createContext<TerminalTheme | undefined>(undefined);
+export const useTheme = (): TerminalTheme => { ... };
+```
+
+### ThemeProvider.tsx (New)
+```typescript
+export const ThemeProvider = ({ children, theme }: ThemeProviderProps) => (
+  <ThemeContext.Provider value={theme}>
+    {children}
+  </ThemeContext.Provider>
+);
+```
+
+## Import Updates
+- **Components using hook:** `import { useTheme } from '@/hooks/useTheme'` (no change)
+- **Components using provider:** `import { ThemeProvider } from '@/hooks/ThemeProvider'` (updated)
+- **10 import sites** updated: App.tsx, 3 layouts, and others
+
+## Verification
+✓ HMR warnings eliminated
+✓ Fast Refresh works cleanly
+✓ All 399 tests passing
+✓ Build clean, no TypeScript errors
+✓ No breaking changes to public API
+
+---
+
 ## Governance
 
 - All meaningful changes require team consensus

@@ -14,6 +14,7 @@ Scribe for squad-uplink. Maintains decisions, orchestration logs, session logs, 
 📌 Team initialized on 2026-04-05 with Apple Legends universe (Jobs, Woz, Kare, Hertzfeld)
 📌 **Wave 3 (2026-04-05T04:01)**: Woz completed ConnectionManager integration (backoff fix, rate limiting, command system); Kare expanded audio to 12 types with HITL MechanicalSwitch; Hertzfeld verified 233 tests (↑31 audio). Build + lint clean. **Ready for Wave 4 (Telemetry).**
 📌 **Wave 6 (2026-04-05T15:32)**: Pip-Boy 3000 theme (Kare) + 5 data-driven tabs (Woz) + 25 spec tests (Hertzfeld). Full S.P.E.C.I.A.L. integration, message history tracking, tab navigation, CRT effects, audio triggers. 17 files touched. Build clean, 374 tests passing. **Ready for production deployment.**
+📌 **Wave 7 (2026-04-05T15:44)**: Pip-Boy full device chrome (Kare) + un-skip tests + integrate data (Hertzfeld) + HMR fix (Woz). Hardware device aesthetics (tan metal casing, CSS grid layout, decorative screws, power button, RADS dial, VaultBoy SVG health bars). All 25 tests un-skipped and passing. ThemeProvider/useTheme split eliminates Fast Refresh warnings. 399/399 tests passing. **Production-ready.**
 
 ## Learnings
 
