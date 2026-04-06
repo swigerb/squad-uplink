@@ -45,14 +45,14 @@
   z-index: 0;
 }
 
-/* --- Title text --- */
+/* --- Title text (subtle — monitor is the star) --- */
 .a2e-h1-bg {
   position: absolute;
   font-family: 'Cormorant Garamond', serif;
   font-weight: 600;
-  font-size: 20vmin;
+  font-size: 14vmin;
   left: 80vmin;
-  top: 4vmin;
+  top: 2vmin;
   padding: 0;
   margin: 0;
   white-space: nowrap;
@@ -61,6 +61,7 @@
   -webkit-text-fill-color: transparent;
   mix-blend-mode: multiply;
   letter-spacing: -0.5vmin;
+  opacity: 0.35;
 }
 .a2e-h1-bg span {
   font-size: 12vmin;
@@ -230,12 +231,12 @@
 
 .a2e-keyboard {
   position: absolute;
-  top: 66vmin;
+  top: 74vmin;
   left: 15vmin;
   width: 70vmin;
   height: 40vmin;
   transform-style: preserve-3d;
-  transform: scale(0.75) translateY(-50%) translateZ(0vmin) rotateX(80deg);
+  transform: scale(0.5) translateY(-50%) translateZ(0vmin) rotateX(80deg);
   border-radius: 7.5vmin;
 }
 
@@ -364,11 +365,11 @@
 
 .a2e-floppy {
   position: absolute;
-  top: 57vmin;
-  left: 100vmin;
+  top: 25vmin;
+  left: 82vmin;
   transform-style: preserve-3d;
   transform-origin: bottom center;
-  transform: translateZ(-10vmin);
+  transform: translateZ(-10vmin) scale(0.7);
   --depth: 30vmin;
   --size: 7.5vmin;
   --width: 30vmin;
@@ -628,13 +629,13 @@
   box-shadow: inset 0 -0.7vmin 0.7vmin rgba(60, 118, 83, 0.5);
 }
 
-/* Terminal container — where xterm.js renders */
+/* Terminal container — where xterm.js renders, INSIDE the screen bezel */
 .a2e-monitor__terminal {
   position: absolute;
-  top: 5.5vmin;
-  left: 5.5vmin;
-  width: calc(100% - 11vmin);
-  height: calc(100% - 13vmin);
+  top: 7.2vmin;
+  left: 7.8vmin;
+  width: 53vmin;
+  height: 39vmin;
   z-index: 10;
   background: #000;
   border-radius: 0.75vmin;
@@ -702,6 +703,7 @@
   height: 54vmin;
   left: 67.9vmin;
   box-shadow: inset 0 0 0.3vmin rgba(60, 118, 83, 0.6);
+  z-index: 5;
 }
 .a2e-monitor__soft-shadow {
   position: absolute;
@@ -711,6 +713,7 @@
   height: 48vmin;
   border-radius: 0.75vmin;
   box-shadow: inset 0 -0.15vmin 1.05vmin #3c7653;
+  z-index: 1;
 }
 .a2e-monitor__shadow {
   position: absolute;
@@ -720,6 +723,7 @@
   height: 47vmin;
   background-color: #051715;
   border-radius: 0.75vmin;
+  z-index: 1;
 }
 .a2e-monitor__inner {
   position: absolute;
@@ -733,6 +737,7 @@
   border-top: 0.3vmin solid #e1d3cc;
   box-shadow: inset 0 -1.05vmin 1.05vmin rgba(60, 118, 83, 0.8),
     inset 0 -0.5vmin 0.5vmin #3c7653;
+  z-index: 2;
 }
 .a2e-monitor__inner-shadow {
   position: absolute;
@@ -751,6 +756,7 @@
   border-bottom: 0.15vmin solid #e1d3cc;
   border-right: 0.15vmin solid rgba(225, 211, 204, 0.8);
   box-shadow: inset 0 0 1.05vmin rgba(60, 118, 83, 0.8);
+  z-index: 2;
 }
 .a2e-monitor__inner-shadow-light {
   position: absolute;
@@ -782,6 +788,7 @@
   );
   border-radius: 1.5vmin;
   opacity: 0.7;
+  z-index: 2;
 }
 .a2e-monitor__inner-shadow-dark {
   position: absolute;
@@ -813,14 +820,50 @@
   );
   border-radius: 1.5vmin;
   opacity: 0.5;
+  z-index: 2;
 }
 
-/* Screen layers — hidden because the terminal now fills the monitor */
+/* Screen layers — green glass and CRT curvature overlays */
 .a2e-monitor__screen {
-  display: none;
+  position: absolute;
+  top: 6vmin;
+  left: 6.56vmin;
+  width: 55.8vmin;
+  height: 41.85vmin;
+  background-color: #4e654a;
+  border-radius: 1.5vmin;
+  z-index: 3;
 }
 .a2e-monitor__screen-2 {
-  display: none;
+  position: absolute;
+  top: 6vmin;
+  left: 6.56vmin;
+  width: 55.8vmin;
+  height: 41.85vmin;
+  border-radius: 1.5vmin;
+  background: linear-gradient(
+    145deg,
+    rgba(255, 255, 255, 0.1),
+    rgba(255, 255, 255, 0) 50%,
+    rgba(0, 0, 0, 0.2)
+  );
+  z-index: 4;
+}
+.a2e-monitor__screen-2.a2e-top-shadow {
+  background: linear-gradient(
+    rgba(0, 0, 0, 0.4),
+    transparent 20%
+  );
+  z-index: 15;
+  pointer-events: none;
+}
+.a2e-monitor__screen-2.a2e-bottom-shadow {
+  background: linear-gradient(
+    transparent 80%,
+    rgba(0, 0, 0, 0.4)
+  );
+  z-index: 15;
+  pointer-events: none;
 }
 
 /* Monitor logo & controls */
@@ -835,6 +878,7 @@
   background: url('https://upload.wikimedia.org/wikipedia/commons/8/84/Apple_Computer_Logo_rainbow.svg')
     center center no-repeat;
   background-size: 70%;
+  z-index: 20;
 }
 .a2e-monitor__power-switch {
   position: absolute;
@@ -845,6 +889,7 @@
   box-shadow: inset 0 0 0.45vmin #3c7653;
   transform: translate(0, -0.75vmin);
   position: relative;
+  z-index: 20;
 }
 .a2e-monitor__power-switch__button {
   position: absolute;
