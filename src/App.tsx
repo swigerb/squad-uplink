@@ -50,7 +50,7 @@ function FullscreenLayout({
 }) {
   return (
     <div
-      className={crtEnabled ? 'crt-screen' : undefined}
+      className={`fullscreen-layout${crtEnabled ? ' crt-screen' : ''}`}
       style={{ width: '100%', height: '100%' }}
     >
       {children}
@@ -642,6 +642,8 @@ function AppContent() {
   const terminalRef = useRef<TerminalHandle>(null);
   const crtEnabled = useConnectionStore((s) => s.crtEnabled);
   const toggleDrawer = useConnectionStore((s) => s.toggleDrawer);
+  const terminalFullscreen = useConnectionStore((s) => s.terminalFullscreen);
+  const toggleFullscreen = useConnectionStore((s) => s.toggleFullscreen);
   const [themeAnnouncement, setThemeAnnouncement] = useState('');
   const [showMatrixRain, setShowMatrixRain] = useState(theme.id === 'matrix');
 
@@ -711,10 +713,15 @@ function AppContent() {
     connectionManager.send(msg);
   }, []);
 
-  // Close overlays on Escape, toggle TelemetryDrawer on Ctrl+Shift+T
+  // Close overlays on Escape (+ exit fullscreen), toggle TelemetryDrawer on Ctrl+Shift+T
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
+        // Exit terminal fullscreen first, then focus terminal
+        if (useConnectionStore.getState().terminalFullscreen) {
+          toggleFullscreen();
+          requestAnimationFrame(() => window.dispatchEvent(new Event('resize')));
+        }
         terminalRef.current?.focus?.();
       }
       if (e.ctrlKey && e.shiftKey && e.key === 'T') {
@@ -724,7 +731,7 @@ function AppContent() {
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [toggleDrawer]);
+  }, [toggleDrawer, toggleFullscreen]);
 
   const terminal = <Terminal ref={terminalRef} onInput={handleInput} />;
 
@@ -732,15 +739,33 @@ function AppContent() {
 
   const layout = theme.layout ?? 'fullscreen';
 
-  const statusBar = <StatusBar />;
+  // StatusBar always rendered as a floating control bar (hidden for pipboy via CSS)
+  const floatingControls = <StatusBar />;
+
+  // Terminal fullscreen mode — skip layout chrome, render terminal at 100vw x 100vh
+  if (terminalFullscreen && layout !== 'fullscreen') {
+    return (
+      <>
+        <div aria-live="polite" aria-atomic="true" className="sr-only">{themeAnnouncement}</div>
+        <div className="terminal-fullscreen">
+          <div style={crtOffStyle}>{terminal}</div>
+        </div>
+        {floatingControls}
+        <Suspense fallback={null}>
+          <TelemetryDrawer />
+        </Suspense>
+      </>
+    );
+  }
 
   if (layout === 'windowed') {
     return (
       <>
         <div aria-live="polite" aria-atomic="true" className="sr-only">{themeAnnouncement}</div>
-        <Win95Layout statusBar={statusBar}>
+        <Win95Layout statusBar={null}>
           <div style={crtOffStyle}>{terminal}</div>
         </Win95Layout>
+        {floatingControls}
         <Suspense fallback={null}>
           <TelemetryDrawer />
         </Suspense>
@@ -752,9 +777,10 @@ function AppContent() {
     return (
       <>
         <div aria-live="polite" aria-atomic="true" className="sr-only">{themeAnnouncement}</div>
-        <PipBoyLayout statusBar={statusBar} crtEnabled={crtEnabled}>
+        <PipBoyLayout statusBar={floatingControls} crtEnabled={crtEnabled}>
           <div style={crtOffStyle}>{terminal}</div>
         </PipBoyLayout>
+        {floatingControls}
         <Suspense fallback={null}>
           <TelemetryDrawer />
         </Suspense>
@@ -766,9 +792,10 @@ function AppContent() {
     return (
       <>
         <div aria-live="polite" aria-atomic="true" className="sr-only">{themeAnnouncement}</div>
-        <Apple2eLayout statusBar={statusBar} crtEnabled={crtEnabled}>
+        <Apple2eLayout statusBar={null} crtEnabled={crtEnabled}>
           <div style={crtOffStyle}>{terminal}</div>
         </Apple2eLayout>
+        {floatingControls}
         <Suspense fallback={null}>
           <TelemetryDrawer />
         </Suspense>
@@ -780,9 +807,10 @@ function AppContent() {
     return (
       <>
         <div aria-live="polite" aria-atomic="true" className="sr-only">{themeAnnouncement}</div>
-        <C64Layout statusBar={statusBar} crtEnabled={crtEnabled}>
+        <C64Layout statusBar={null} crtEnabled={crtEnabled}>
           <div style={crtOffStyle}>{terminal}</div>
         </C64Layout>
+        {floatingControls}
         <Suspense fallback={null}>
           <TelemetryDrawer />
         </Suspense>
@@ -796,8 +824,8 @@ function AppContent() {
         <div aria-live="polite" aria-atomic="true" className="sr-only">{themeAnnouncement}</div>
         <LcarsLayout>
           <div style={crtOffStyle}>{terminal}</div>
-          {statusBar}
         </LcarsLayout>
+        {floatingControls}
         <Suspense fallback={null}>
           <TelemetryDrawer />
         </Suspense>
@@ -810,8 +838,8 @@ function AppContent() {
       <div aria-live="polite" aria-atomic="true" className="sr-only">{themeAnnouncement}</div>
       <FullscreenLayout crtEnabled={crtEnabled}>
         <div style={crtOffStyle}>{terminal}</div>
-        {statusBar}
       </FullscreenLayout>
+      {floatingControls}
       {showMatrixRain && theme.id === 'matrix' && (
         <Suspense fallback={null}>
           <MatrixRain onComplete={() => setShowMatrixRain(false)} />

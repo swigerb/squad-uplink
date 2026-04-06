@@ -34,6 +34,9 @@ export interface ConnectionStore {
   radsAlert: boolean;
   thinking: boolean;
 
+  // Terminal fullscreen state
+  terminalFullscreen: boolean;
+
   setStatus: (status: ConnectionState) => void;
   setTunnelUrl: (url: string | null) => void;
   setAgentCount: (count: number) => void;
@@ -57,6 +60,9 @@ export interface ConnectionStore {
   // Hardware feedback actions
   setRadsAlert: (alert: boolean) => void;
   setThinking: (thinking: boolean) => void;
+
+  // Terminal fullscreen actions
+  toggleFullscreen: () => void;
 }
 
 const initialTelemetry: TelemetryMetrics = {
@@ -95,6 +101,9 @@ export const useConnectionStore = create<ConnectionStore>((set) => ({
   radsAlert: false,
   thinking: false,
 
+  // Terminal fullscreen initial state
+  terminalFullscreen: false,
+
   setStatus: (status) => set({ status }),
   setTunnelUrl: (url) => set({ tunnelUrl: url }),
   setAgentCount: (count) => set({ agentCount: count }),
@@ -132,4 +141,8 @@ export const useConnectionStore = create<ConnectionStore>((set) => ({
   // Hardware feedback actions
   setRadsAlert: (alert) => set({ radsAlert: alert }),
   setThinking: (thinking) => set({ thinking }),
+
+  // Terminal fullscreen actions
+  toggleFullscreen: () =>
+    set((s) => ({ terminalFullscreen: !s.terminalFullscreen })),
 }));

@@ -79,3 +79,82 @@ body {
   background: rgba(255, 255, 255, 0.15);
   border-radius: 3px;
 }
+
+/* ═══════════════════════════════════════════════
+   Terminal fullscreen mode
+   Fills entire viewport, hides all theme chrome.
+   ═══════════════════════════════════════════════ */
+
+.terminal-fullscreen {
+  position: fixed !important;
+  inset: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  z-index: 9998;
+  background: #000;
+}
+
+.terminal-fullscreen .terminal-container {
+  width: 100% !important;
+  height: 100% !important;
+  padding: 8px !important;
+  border: none !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+}
+
+/* ═══════════════════════════════════════════════
+   Fullscreen themes — ensure 100vh vertical fill
+   ═══════════════════════════════════════════════ */
+
+/* IBM 3270 */
+[data-theme='ibm3270'] .fullscreen-layout {
+  width: 100%;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+[data-theme='ibm3270'] .fullscreen-layout > .terminal-container {
+  flex: 1;
+  min-height: 0;
+}
+
+/* W.O.P.R. */
+[data-theme='wopr'] .fullscreen-layout {
+  width: 100%;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+[data-theme='wopr'] .fullscreen-layout > .terminal-container {
+  flex: 1;
+  min-height: 0;
+}
+
+/* MU-TH-UR — cinematic 60vw width but full vertical height */
+[data-theme='muthur'] .fullscreen-layout {
+  width: 100%;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+[data-theme='muthur'] .fullscreen-layout > .terminal-container {
+  flex: 1;
+  min-height: 0;
+}
+
+/* Matrix */
+[data-theme='matrix'] .fullscreen-layout {
+  width: 100%;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+[data-theme='matrix'] .fullscreen-layout > .terminal-container {
+  flex: 1;
+  min-height: 0;
+}

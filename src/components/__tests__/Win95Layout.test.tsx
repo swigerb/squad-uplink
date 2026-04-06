@@ -410,17 +410,17 @@ describe('Win95Layout', () => {
   // =========================================================================
   // 6. THEME TOGGLE IN STATUSBAR
   // =========================================================================
-  describe('Theme toggle in statusbar', () => {
-    it('ThemeToggle button is rendered inside the win95 window', async () => {
+  describe('Theme toggle (floating control bar)', () => {
+    it('ThemeToggle button is rendered in the floating control bar', async () => {
       await renderApp();
       const themeToggle = screen.getByTestId('theme-toggle');
       expect(themeToggle).toBeInTheDocument();
     });
 
-    it('ThemeToggle is inside the win95-statusbar', async () => {
+    it('ThemeToggle is inside the floating uplink-controls bar', async () => {
       await renderApp();
-      const statusbar = document.querySelector('.win95-statusbar');
-      const themeToggle = statusbar?.querySelector('[data-testid="theme-toggle"]');
+      const controlBar = document.querySelector('.uplink-controls');
+      const themeToggle = controlBar?.querySelector('[data-testid="theme-toggle"]');
       expect(themeToggle).toBeInTheDocument();
     });
 

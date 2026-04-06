@@ -39,6 +39,8 @@
     0 0 30px rgba(137, 211, 253, 0.15);
   overflow: hidden;
   position: relative;
+  flex: 1;
+  min-height: 0;
 }
 
 /* ── Cyan text glow on terminal text ──────────── */
