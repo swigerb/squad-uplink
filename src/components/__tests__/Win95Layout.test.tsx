@@ -107,7 +107,8 @@ describe('Win95Layout', () => {
       const statusSections = document.querySelectorAll('.win95-statusbar-section');
       expect(statusSections.length).toBeGreaterThanOrEqual(2);
       // Statusbar now shows live Zustand data — default is "Disconnected"
-      expect(screen.getByText('Disconnected')).toBeInTheDocument();
+      // May appear in both win95-statusbar-section and the embedded StatusBar component
+      expect(screen.getAllByText('Disconnected').length).toBeGreaterThanOrEqual(1);
       expect(screen.getByText('Windows 95')).toBeInTheDocument();
     });
 
@@ -243,6 +244,71 @@ describe('Win95Layout', () => {
   });
 
   // =========================================================================
+  // 3b. THEME SWITCHER DESKTOP ICON
+  // =========================================================================
+  describe('Theme switcher desktop icon', () => {
+    it('theme icon appears on desktop when window is closed', async () => {
+      await renderApp();
+      fireEvent.click(screen.getByRole('button', { name: 'Close' }));
+
+      const themeIcon = screen.getByTestId('win95-theme-icon');
+      expect(themeIcon).toBeVisible();
+      expect(themeIcon).toHaveTextContent('Display Properties');
+    });
+
+    it('double-click on theme icon cycles to next theme', async () => {
+      const user = userEvent.setup();
+      await renderApp();
+      fireEvent.click(screen.getByRole('button', { name: 'Close' }));
+
+      const themeIcon = screen.getByTestId('win95-theme-icon');
+      await user.dblClick(themeIcon);
+
+      // Win95 is index 3 in THEME_ORDER, next is LCARS (index 4)
+      expect(document.documentElement.getAttribute('data-theme')).toBe('lcars');
+    });
+
+    it('single click selects theme icon', async () => {
+      const user = userEvent.setup();
+      await renderApp();
+      fireEvent.click(screen.getByRole('button', { name: 'Close' }));
+
+      const themeIcon = screen.getByTestId('win95-theme-icon');
+      await user.click(themeIcon);
+
+      expect(themeIcon).toHaveClass('win95-desktop-icon--selected');
+    });
+
+    it('selecting theme icon deselects app icon', async () => {
+      const user = userEvent.setup();
+      await renderApp();
+      fireEvent.click(screen.getByRole('button', { name: 'Close' }));
+
+      const appIcon = screen.getByTestId('win95-desktop-icon');
+      const themeIcon = screen.getByTestId('win95-theme-icon');
+
+      // Select app icon first
+      await user.click(appIcon);
+      expect(appIcon).toHaveClass('win95-desktop-icon--selected');
+
+      // Now select theme icon
+      await user.click(themeIcon);
+      expect(themeIcon).toHaveClass('win95-desktop-icon--selected');
+      expect(appIcon).not.toHaveClass('win95-desktop-icon--selected');
+    });
+
+    it('Enter key on theme icon cycles theme', async () => {
+      await renderApp();
+      fireEvent.click(screen.getByRole('button', { name: 'Close' }));
+
+      const themeIcon = screen.getByTestId('win95-theme-icon');
+      fireEvent.keyDown(themeIcon, { key: 'Enter' });
+
+      expect(document.documentElement.getAttribute('data-theme')).toBe('lcars');
+    });
+  });
+
+  // =========================================================================
   // 4. TASKBAR
   // =========================================================================
   describe('Taskbar — structural', () => {
@@ -339,6 +405,54 @@ describe('Win95Layout', () => {
       // Terminal should stay in DOM (visibility: hidden or display:none, not unmounted)
       const terminalArea = document.querySelector('.win95-terminal-area');
       expect(terminalArea).toBeInTheDocument();
+    });
+  });
+
+  // =========================================================================
+  // 6. THEME TOGGLE IN STATUSBAR
+  // =========================================================================
+  describe('Theme toggle in statusbar', () => {
+    it('ThemeToggle button is rendered inside the win95 window', async () => {
+      await renderApp();
+      const themeToggle = screen.getByTestId('theme-toggle');
+      expect(themeToggle).toBeInTheDocument();
+    });
+
+    it('ThemeToggle is inside the win95-statusbar', async () => {
+      await renderApp();
+      const statusbar = document.querySelector('.win95-statusbar');
+      const themeToggle = statusbar?.querySelector('[data-testid="theme-toggle"]');
+      expect(themeToggle).toBeInTheDocument();
+    });
+
+    it('clicking ThemeToggle cycles theme from win95 to lcars', async () => {
+      await renderApp();
+      const themeToggle = screen.getByTestId('theme-toggle');
+      fireEvent.click(themeToggle);
+
+      expect(document.documentElement.getAttribute('data-theme')).toBe('lcars');
+    });
+  });
+
+  // =========================================================================
+  // 7. MAXIMIZE RESIZE
+  // =========================================================================
+  describe('Maximize triggers resize', () => {
+    it('maximize dispatches a resize event for xterm re-fit', async () => {
+      await renderApp();
+      const resizeSpy = vi.fn();
+      window.addEventListener('resize', resizeSpy);
+
+      const maximizeBtn = screen.getByRole('button', { name: 'Maximize' });
+      fireEvent.click(maximizeBtn);
+
+      // Resize is dispatched via requestAnimationFrame
+      await act(async () => {
+        await new Promise((r) => requestAnimationFrame(r));
+      });
+
+      expect(resizeSpy).toHaveBeenCalled();
+      window.removeEventListener('resize', resizeSpy);
     });
   });
 });

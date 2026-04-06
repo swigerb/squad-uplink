@@ -184,6 +184,33 @@
   min-width: 80px;
 }
 
+/* StatusBar controls embedded in win95 statusbar */
+.win95-statusbar-controls {
+  flex: none !important;
+  min-width: auto !important;
+  padding: 0 !important;
+  border: none !important;
+}
+
+.win95-statusbar-controls .statusbar {
+  background: transparent;
+  border: none;
+  border-top: none;
+  padding: 0;
+  min-height: auto;
+  gap: 4px;
+  font-size: 11px;
+}
+
+.win95-statusbar-controls .statusbar-indicator,
+.win95-statusbar-controls .statusbar-value {
+  display: none;
+}
+
+.win95-statusbar-controls .statusbar-spacer {
+  display: none;
+}
+
 /* Taskbar at the bottom of the desktop */
 .win95-taskbar {
   position: fixed;
@@ -250,7 +277,7 @@
 }
 
 /* ========================================
-   Part 3: Desktop Icon
+   Part 3: Desktop Icons
    ======================================== */
 
 .win95-desktop-icon {
@@ -266,6 +293,11 @@
   user-select: none;
   width: 72px;
   text-align: center;
+}
+
+/* Second desktop icon (theme switcher) offset below the first */
+.win95-desktop-icon--theme {
+  top: 110px;
 }
 
 .win95-desktop-icon-img {

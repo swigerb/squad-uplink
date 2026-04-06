@@ -48,12 +48,16 @@ function FullscreenLayout({
 
 function Win95Layout({
   children,
+  statusBar,
 }: {
   children: React.ReactNode;
+  statusBar: React.ReactNode;
 }) {
   const [windowState, setWindowState] = useState<'normal' | 'minimized' | 'maximized' | 'closed'>('normal');
   const [iconSelected, setIconSelected] = useState(false);
+  const [themeIconSelected, setThemeIconSelected] = useState(false);
   const status = useConnectionStore((s) => s.status);
+  const { toggleTheme } = useTheme();
 
   // Taskbar clock — updates every minute
   const [clock, setClock] = useState(() => {
@@ -75,26 +79,53 @@ function Win95Layout({
 
   const handleMinimize = useCallback(() => setWindowState('minimized'), []);
   const handleMaximize = useCallback(
-    () => setWindowState((s) => (s === 'maximized' ? 'normal' : 'maximized')),
+    () => {
+      setWindowState((s) => (s === 'maximized' ? 'normal' : 'maximized'));
+      // Dispatch resize so xterm.js FitAddon re-fits to the new container size
+      requestAnimationFrame(() => window.dispatchEvent(new Event('resize')));
+    },
     [],
   );
   const handleClose = useCallback(() => {
     setWindowState('closed');
     setIconSelected(false);
+    setThemeIconSelected(false);
   }, []);
   const handleTaskbarClick = useCallback(() => {
-    setWindowState((s) => (s === 'minimized' ? 'normal' : 'minimized'));
+    setWindowState((s) => {
+      const next = s === 'minimized' ? 'normal' : 'minimized';
+      // Trigger resize when restoring from minimized so xterm re-fits
+      if (next === 'normal') {
+        requestAnimationFrame(() => window.dispatchEvent(new Event('resize')));
+      }
+      return next;
+    });
   }, []);
-  const handleDesktopClick = useCallback(() => setIconSelected(false), []);
+  const handleDesktopClick = useCallback(() => {
+    setIconSelected(false);
+    setThemeIconSelected(false);
+  }, []);
   const handleIconClick = useCallback((e: React.MouseEvent) => {
     e.stopPropagation();
     setIconSelected(true);
+    setThemeIconSelected(false);
   }, []);
   const handleIconDoubleClick = useCallback((e: React.MouseEvent) => {
     e.stopPropagation();
     setWindowState('normal');
     setIconSelected(false);
+    requestAnimationFrame(() => window.dispatchEvent(new Event('resize')));
   }, []);
+
+  const handleThemeIconClick = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation();
+    setThemeIconSelected(true);
+    setIconSelected(false);
+  }, []);
+  const handleThemeIconDoubleClick = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation();
+    toggleTheme();
+  }, [toggleTheme]);
 
   const WIN95_STATUS: Record<string, string> = {
     connected: 'Connected',
@@ -107,26 +138,46 @@ function Win95Layout({
 
   return (
     <div className="win95-desktop" onClick={handleDesktopClick}>
-      {/* Desktop icon — visible only when window is closed */}
+      {/* Desktop icons — visible only when window is closed */}
       {windowState === 'closed' && (
-        <div
-          className={`win95-desktop-icon ${iconSelected ? 'win95-desktop-icon--selected' : ''}`}
-          onClick={handleIconClick}
-          onDoubleClick={handleIconDoubleClick}
-          role="button"
-          aria-label="SQUAD UPLINK — double-click to open"
-          tabIndex={0}
-          data-testid="win95-desktop-icon"
-          onKeyDown={(e) => {
-            if (e.key === 'Enter') {
-              setWindowState('normal');
-              setIconSelected(false);
-            }
-          }}
-        >
-          <div className="win95-desktop-icon-img" aria-hidden="true">📟</div>
-          <div className="win95-desktop-icon-label">SQUAD UPLINK</div>
-        </div>
+        <>
+          <div
+            className={`win95-desktop-icon ${iconSelected ? 'win95-desktop-icon--selected' : ''}`}
+            onClick={handleIconClick}
+            onDoubleClick={handleIconDoubleClick}
+            role="button"
+            aria-label="SQUAD UPLINK — double-click to open"
+            tabIndex={0}
+            data-testid="win95-desktop-icon"
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                setWindowState('normal');
+                setIconSelected(false);
+                requestAnimationFrame(() => window.dispatchEvent(new Event('resize')));
+              }
+            }}
+          >
+            <div className="win95-desktop-icon-img" aria-hidden="true">📟</div>
+            <div className="win95-desktop-icon-label">SQUAD UPLINK</div>
+          </div>
+          <div
+            className={`win95-desktop-icon win95-desktop-icon--theme ${themeIconSelected ? 'win95-desktop-icon--selected' : ''}`}
+            onClick={handleThemeIconClick}
+            onDoubleClick={handleThemeIconDoubleClick}
+            role="button"
+            aria-label="Display Properties — double-click to change theme"
+            tabIndex={0}
+            data-testid="win95-theme-icon"
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                toggleTheme();
+              }
+            }}
+          >
+            <div className="win95-desktop-icon-img" aria-hidden="true">🎨</div>
+            <div className="win95-desktop-icon-label">Display Properties</div>
+          </div>
+        </>
       )}
 
       {/* Window — hidden via display:none when minimized/closed to keep terminal mounted */}
@@ -155,6 +206,7 @@ function Win95Layout({
         <div className="win95-terminal-area">{children}</div>
         <div className="win95-statusbar">
           <span className="win95-statusbar-section">{statusText}</span>
+          <span className="win95-statusbar-section win95-statusbar-controls">{statusBar}</span>
           <span className="win95-statusbar-section">Windows 95</span>
         </div>
       </div>
@@ -215,7 +267,7 @@ function PipBoyLayout({
   statusBar: React.ReactNode;
   crtEnabled: boolean;
 }) {
-  const { activeTab, tabIndex, displayTab, switchTab, nextTab, prevTab, transitionPhase } = usePipBoyTransition('DATA');
+  const { activeTab, tabIndex, displayTab, switchTab, nextTab, prevTab, transitionPhase } = usePipBoyTransition('STAT');
   const scale = usePipBoyScale();
   const radsAlert = useConnectionStore((s) => s.radsAlert);
   const thinking = useConnectionStore((s) => s.thinking);
@@ -403,7 +455,7 @@ function PipBoyLayout({
 
                 {/* Codepen decorative bottom elements */}
                 <div className="pipboy-supplies">
-                  <span>Stimpak (0)</span><span>Radaway (0)</span><span>UPLINK</span>
+                  <span>Stimpak (0)</span><span>Radaway (0)</span><span>BRIAN</span>
                 </div>
                 <div className="pipboy-info-bar">
                   <span className="pipboy-weapon" />
@@ -667,7 +719,7 @@ function AppContent() {
     return (
       <>
         <div aria-live="polite" aria-atomic="true" className="sr-only">{themeAnnouncement}</div>
-        <Win95Layout>
+        <Win95Layout statusBar={statusBar}>
           <div style={crtOffStyle}>{terminal}</div>
         </Win95Layout>
         <Suspense fallback={null}>
