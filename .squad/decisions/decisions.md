@@ -151,5 +151,41 @@ All styling uses `pipboy-` prefixed classes (Kare owns the CSS implementation). 
 
 ---
 
+## Apple IIe Theme — Self-Contained CRT System
+
+**By:** Kare (Frontend Dev)  
+**Date:** 2026-04-06  
+**Status:** Implemented
+
+### Context
+
+The Apple IIe 3D theme previously used the shared `<CRTOverlay>` component which applied scanlines across the entire viewport (`position: fixed; inset: 0`). This looked wrong — scanlines covered the monitor bezel, keyboard, floppy drive, and background.
+
+### Decision
+
+The Apple IIe theme now manages its own CRT effect internally, scoped to the terminal area only:
+
+1. **Removed** `<CRTOverlay>` rendering from `Apple2eLayout.tsx` (import removed, `crt-screen` class removed)
+2. **Added** CSS `::after` pseudo-element on `.a2e-monitor__terminal` with:
+   - `repeating-linear-gradient` scanlines (2px pitch)
+   - Green phosphor inner glow via `box-shadow`
+   - `pointer-events: none` so terminal remains interactive
+   - `z-index: 20` above terminal content
+
+### Impact
+
+- The `crtEnabled` prop is still accepted by `Apple2eLayout` for interface compatibility but is no longer used internally
+- Other themes (C64, IBM 3270) still use the shared `<CRTOverlay>` system — this change is Apple2e-specific
+- The Apple IIe CRT toggle in StatusBar will still appear (since `crtEnabled: true` in theme config) but won't affect the Apple2e layout — this is a known cosmetic issue that can be addressed separately
+
+### Layout Changes
+
+- Monitor: 66×47.25 → 76×54 vmin (centered)
+- Keyboard: scaled to 65% via CSS transform
+- Terminal: fills full dark screen area (61.15×47 vmin)
+- Scene: perspective-origin centered (50% 42%)
+
+---
+
 ## Archive Log
 (Post-release decisions logged here).
