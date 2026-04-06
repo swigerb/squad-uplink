@@ -1,10 +1,11 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render, screen, fireEvent, act } from '@testing-library/react';
+import { render, screen, fireEvent, act, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import type { ReactNode } from 'react';
 import { ThemeProvider } from '@/hooks/ThemeProvider';
 import { useConnectionStore } from '@/store/connectionStore';
 import { installMockAudioContext } from '../../__mocks__/audio';
+import { _resetAudioForTesting } from '@/hooks/useAudio';
 
 // Mock xterm.js — Terminal component pulls it in
 vi.mock('@xterm/xterm', () => {
@@ -78,6 +79,7 @@ describe('PipBoyLayout', () => {
   beforeEach(() => {
     localStorage.clear();
     document.documentElement.removeAttribute('data-theme');
+    _resetAudioForTesting();
     installMockAudioContext();
     useConnectionStore.setState({
       status: 'disconnected',
@@ -105,6 +107,8 @@ describe('PipBoyLayout', () => {
       activeAgent: null,
       commandHistory: [],
       uplinkOverride: false,
+      radsAlert: false,
+      thinking: false,
     });
   });
 
@@ -112,6 +116,7 @@ describe('PipBoyLayout', () => {
     vi.restoreAllMocks();
     localStorage.clear();
     document.documentElement.removeAttribute('data-theme');
+    _resetAudioForTesting();
   });
 
   // =========================================================================
@@ -194,34 +199,39 @@ describe('PipBoyLayout', () => {
       expect(screen.getByRole('tab', { name: /RADIO/i })).toBeInTheDocument();
     });
 
-    it('DATA tab is active by default', async () => {
+    it('STAT tab is active by default', async () => {
       await renderApp();
-      const dataTab = screen.getByRole('tab', { name: /DATA/i });
-      expect(dataTab).toHaveAttribute('aria-selected', 'true');
+      const statTab = screen.getByRole('tab', { name: /STAT/i });
+      expect(statTab).toHaveAttribute('aria-selected', 'true');
     });
 
     it('clicking a tab switches the visible content', async () => {
       const user = userEvent.setup();
       await renderApp();
 
-      // DATA should be visible by default
-      const dataPanel = screen.getByRole('tabpanel', { name: /DATA/i });
-      expect(dataPanel).toBeVisible();
-
-      // Click STAT tab
-      const statTab = screen.getByRole('tab', { name: /STAT/i });
-      await user.click(statTab);
-
-      expect(statTab).toHaveAttribute('aria-selected', 'true');
+      // STAT should be visible by default
       const statPanel = screen.getByRole('tabpanel', { name: /STAT/i });
       expect(statPanel).toBeVisible();
+
+      // Click DATA tab
+      const dataTab = screen.getByRole('tab', { name: /DATA/i });
+      await user.click(dataTab);
+
+      // aria-selected updates immediately
+      expect(dataTab).toHaveAttribute('aria-selected', 'true');
+
+      // Wait for transition to complete (content swap at 200ms, done at 400ms)
+      await waitFor(() => {
+        const dataPanel = screen.getByRole('tabpanel', { name: /DATA/i });
+        expect(dataPanel).toBeVisible();
+      }, { timeout: 1000 });
     });
 
     it('active tab has visual distinction (CSS class)', async () => {
       await renderApp();
-      const dataTab = screen.getByRole('tab', { name: /DATA/i });
+      const statTab = screen.getByRole('tab', { name: /STAT/i });
       // Active tab should carry an active CSS class
-      expect(dataTab).toHaveClass(/active/i);
+      expect(statTab).toHaveClass(/active/i);
     });
 
     it('all 5 tabs are keyboard-accessible (Tab + Enter)', async () => {
@@ -237,6 +247,12 @@ describe('PipBoyLayout', () => {
         expect(tab).toHaveFocus();
         await user.keyboard('{Enter}');
         expect(tab).toHaveAttribute('aria-selected', 'true');
+        // Wait for transition to complete so next tab switch isn't blocked
+        await waitFor(() => {
+          // no-op — just wait for React to settle
+        }, { timeout: 600 });
+        // Small delay for transition to fully clear
+        await new Promise((r) => setTimeout(r, 500));
       }
     });
   });
@@ -245,47 +261,69 @@ describe('PipBoyLayout', () => {
   // 3. TERMINAL PRESERVATION
   // =========================================================================
   describe('Terminal preservation', () => {
-    it('terminal remains mounted when switching away from DATA tab (display:none, not unmounted)', async () => {
-      const user = userEvent.setup();
+    it('terminal remains mounted when STAT tab is active (DATA panel hidden via display:none, not unmounted)', async () => {
       await renderApp();
 
-      // Terminal should be present under DATA tab
+      // STAT is the default tab, so DATA panel is hidden
       const terminal = document.querySelector('[data-testid="terminal"]');
       expect(terminal).toBeInTheDocument();
 
-      // Switch to STAT tab
-      const statTab = screen.getByRole('tab', { name: /STAT/i });
-      await user.click(statTab);
+      const dataPanel = document.querySelector('#pipboy-panel-DATA');
+      expect(dataPanel).not.toBeVisible();
 
       // Terminal should still be in DOM (hidden, not destroyed)
-      const terminalAfter = document.querySelector('[data-testid="terminal"]');
-      expect(terminalAfter).toBeInTheDocument();
-      // But it should be hidden (display:none on its panel container)
-      const dataPanel = terminalAfter?.closest('[role="tabpanel"]');
-      expect(dataPanel).toBeInTheDocument();
-      expect(dataPanel).not.toBeVisible();
+      const terminalNode = document.querySelector('[data-testid="terminal"]');
+      expect(terminalNode).toBeInTheDocument();
+      const panel = terminalNode?.closest('[role="tabpanel"]');
+      expect(panel).toBeInTheDocument();
+      expect(panel).not.toBeVisible();
     });
 
     it('terminal is visible when DATA tab is active', async () => {
+      const user = userEvent.setup();
       await renderApp();
+
+      // Default is STAT — switch to DATA
+      const dataTab = screen.getByRole('tab', { name: /DATA/i });
+      await user.click(dataTab);
+
+      await waitFor(() => {
+        const dataPanel = document.querySelector('#pipboy-panel-DATA');
+        expect(dataPanel).toBeVisible();
+      }, { timeout: 1000 });
+
       const terminal = document.querySelector('[data-testid="terminal"]');
       expect(terminal).toBeInTheDocument();
-      const dataPanel = terminal?.closest('[role="tabpanel"]');
-      expect(dataPanel).toBeVisible();
     });
 
     it('switching back to DATA tab shows the same terminal state', async () => {
       const user = userEvent.setup();
       await renderApp();
 
-      // Get reference to terminal DOM node
+      // Get reference to terminal DOM node (present even when STAT is active)
       const terminalBefore = document.querySelector('[data-testid="terminal"]');
 
-      // Switch away then back
-      const statTab = screen.getByRole('tab', { name: /STAT/i });
-      await user.click(statTab);
+      // Switch to DATA
       const dataTab = screen.getByRole('tab', { name: /DATA/i });
       await user.click(dataTab);
+
+      // Wait for full transition to complete (400ms + buffer)
+      await new Promise((r) => setTimeout(r, 500));
+
+      // Switch back to STAT
+      const statTab = screen.getByRole('tab', { name: /STAT/i });
+      await user.click(statTab);
+
+      await new Promise((r) => setTimeout(r, 500));
+
+      // Switch to DATA again
+      await user.click(dataTab);
+
+      // Wait for DATA panel to become visible again
+      await waitFor(() => {
+        const panel = document.querySelector('#pipboy-panel-DATA');
+        expect(panel).toBeVisible();
+      }, { timeout: 1000 });
 
       // Same DOM node — not re-mounted
       const terminalAfter = document.querySelector('[data-testid="terminal"]');

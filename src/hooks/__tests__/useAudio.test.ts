@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
-import { useAudio, bufferCache } from '../useAudio';
+import { useAudio, bufferCache, _resetAudioForTesting } from '../useAudio';
 import type { SoundType } from '../useAudio';
 import {
   MockAudioContext,
@@ -13,6 +13,8 @@ import {
 describe('useAudio', () => {
   beforeEach(() => {
     localStorage.clear();
+    _resetAudioForTesting();
+    bufferCache.clear();
     installMockAudioContext();
     // Mock fetch so preloadSkin doesn't hit real network
     vi.stubGlobal('fetch', createMockAudioFetch());
@@ -21,6 +23,7 @@ describe('useAudio', () => {
   afterEach(() => {
     vi.restoreAllMocks();
     localStorage.clear();
+    _resetAudioForTesting();
   });
 
   // --- AU-05: Lazy AudioContext ---
@@ -172,8 +175,8 @@ describe('useAudio', () => {
       }).not.toThrow();
     });
 
-    it('all 5 skins play all 11 sound types without error', () => {
-      const skins = ['apple2e', 'c64', 'ibm3270', 'win95', 'lcars'] as const;
+    it('all 6 skins play all 11 sound types without error', () => {
+      const skins = ['apple2e', 'c64', 'ibm3270', 'win95', 'lcars', 'pipboy'] as const;
       const sounds: SoundType[] = [
         'keystroke', 'connect', 'disconnect', 'error', 'toggle',
         'agent_started', 'agent_triage', 'agent_success', 'agent_error',
@@ -249,6 +252,7 @@ describe('useAudio', () => {
 
     it('loads mute preference from localStorage', () => {
       localStorage.setItem('squad-uplink-audio-muted', 'true');
+      _resetAudioForTesting(); // Re-sync global state from localStorage
 
       const { result } = renderHook(() => useAudio());
 
@@ -720,7 +724,7 @@ describe('useAudio', () => {
     });
 
     it('each skin manifest entry maps to a valid file path under /audio/{skinId}/', async () => {
-      const skins = ['apple2e', 'c64', 'ibm3270', 'win95', 'lcars'] as const;
+      const skins = ['apple2e', 'c64', 'ibm3270', 'win95', 'lcars', 'pipboy'] as const;
 
       for (const skin of skins) {
         const { unmount } = renderHook(() => useAudio(skin));

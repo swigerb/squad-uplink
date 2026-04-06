@@ -15,6 +15,7 @@ import { StatusBar } from '@/components/StatusBar';
 import { CRTOverlay } from '@/components/CRTOverlay/CRTOverlay';
 import { useConnectionStore } from '@/store/connectionStore';
 import { installMockAudioContext } from '@//__mocks__/audio';
+import { _resetAudioForTesting } from '@/hooks/useAudio';
 
 function renderWithProviders(ui: ReactNode) {
   return render(<ThemeProvider>{ui}</ThemeProvider>);
@@ -36,6 +37,7 @@ function resetStore() {
 describe('Accessibility — Keyboard Navigation', () => {
   beforeEach(() => {
     localStorage.clear();
+    _resetAudioForTesting();
     installMockAudioContext();
     resetStore();
   });
@@ -43,6 +45,7 @@ describe('Accessibility — Keyboard Navigation', () => {
   afterEach(() => {
     vi.restoreAllMocks();
     localStorage.clear();
+    _resetAudioForTesting();
   });
 
   describe('StatusBar controls', () => {
@@ -136,6 +139,7 @@ describe('Accessibility — Keyboard Navigation', () => {
 describe('Accessibility — ARIA Attributes', () => {
   beforeEach(() => {
     localStorage.clear();
+    _resetAudioForTesting();
     installMockAudioContext();
     resetStore();
   });
@@ -143,6 +147,7 @@ describe('Accessibility — ARIA Attributes', () => {
   afterEach(() => {
     vi.restoreAllMocks();
     localStorage.clear();
+    _resetAudioForTesting();
   });
 
   describe('StatusBar — CRT toggle', () => {

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useSyncExternalStore } from 'react';
 import type { ThemeId } from '@/themes';
 import { AudioBufferCache } from '@/audio/bufferCache';
 
@@ -188,34 +188,70 @@ const AUDIO_STORAGE_KEY = 'squad-uplink-audio-muted';
 // Shared cache singleton — survives re-renders, shared across hook instances
 export const bufferCache = new AudioBufferCache();
 
-function loadMutePreference(): boolean {
+// ── Shared AudioContext singleton ──
+// A single AudioContext avoids browser limits and ensures resume() works globally.
+let sharedCtx: AudioContext | null = null;
+
+function getSharedContext(): AudioContext {
+  if (!sharedCtx) {
+    sharedCtx = new AudioContext();
+  }
+  return sharedCtx;
+}
+
+// ── Shared muted state ──
+// All useAudio instances share muted state via useSyncExternalStore so
+// toggling mute in StatusBar also silences PipBoyLayout dial sounds.
+let globalMuted = (() => {
   try {
     return localStorage.getItem(AUDIO_STORAGE_KEY) === 'true';
   } catch {
     return false;
   }
+})();
+
+const mutedListeners = new Set<() => void>();
+
+function subscribeMuted(listener: () => void): () => void {
+  mutedListeners.add(listener);
+  return () => { mutedListeners.delete(listener); };
+}
+
+function getMutedSnapshot(): boolean {
+  return globalMuted;
+}
+
+function setGlobalMuted(next: boolean): void {
+  globalMuted = next;
+  try {
+    localStorage.setItem(AUDIO_STORAGE_KEY, String(next));
+  } catch { /* ignore */ }
+  for (const fn of mutedListeners) fn();
+}
+
+/** Reset module-level singletons — test-only. Re-reads mute from localStorage. */
+export function _resetAudioForTesting(): void {
+  sharedCtx = null;
+  try {
+    globalMuted = localStorage.getItem(AUDIO_STORAGE_KEY) === 'true';
+  } catch {
+    globalMuted = false;
+  }
+  mutedListeners.clear();
 }
 
 export function useAudio(skinId: ThemeId = 'apple2e') {
-  const ctxRef = useRef<AudioContext | null>(null);
-  const [muted, setMuted] = useState(loadMutePreference);
-
-  const getContext = useCallback(() => {
-    if (!ctxRef.current) {
-      ctxRef.current = new AudioContext();
-    }
-    return ctxRef.current;
-  }, []);
+  const muted = useSyncExternalStore(subscribeMuted, getMutedSnapshot);
 
   // Preload audio files for the current skin when it changes
   useEffect(() => {
     try {
-      const ctx = getContext();
+      const ctx = getSharedContext();
       bufferCache.preloadSkin(ctx, skinId);
     } catch {
       // AudioContext not available — procedural fallback only
     }
-  }, [skinId, getContext]);
+  }, [skinId]);
 
   /** Play a cached AudioBuffer sample through the Web Audio graph */
   const playSample = useCallback(
@@ -285,7 +321,14 @@ export function useAudio(skinId: ThemeId = 'apple2e') {
     (sound: SoundType) => {
       if (muted) return;
       try {
-        const ctx = getContext();
+        const ctx = getSharedContext();
+
+        // Resume AudioContext if suspended by browser autoplay policy.
+        // This is the key fix: browsers suspend contexts created outside
+        // user gestures; play() is always called from a gesture handler.
+        if (ctx.state === 'suspended') {
+          void ctx.resume();
+        }
 
         // Try sample file first — if cached buffer exists, use it
         const buffer = bufferCache.get(skinId, sound);
@@ -301,19 +344,11 @@ export function useAudio(skinId: ThemeId = 'apple2e') {
         // Audio not available — silently degrade
       }
     },
-    [getContext, skinId, muted, playSample, playProcedural],
+    [skinId, muted, playSample, playProcedural],
   );
 
   const toggleMute = useCallback(() => {
-    setMuted((prev) => {
-      const next = !prev;
-      try {
-        localStorage.setItem(AUDIO_STORAGE_KEY, String(next));
-      } catch {
-        // ignore
-      }
-      return next;
-    });
+    setGlobalMuted(!getMutedSnapshot());
   }, []);
 
   return { play, muted, toggleMute };

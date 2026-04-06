@@ -3,6 +3,7 @@ import { render, screen, fireEvent } from '@testing-library/react';
 import { MechanicalSwitch } from '../MechanicalSwitch/MechanicalSwitch';
 import { ThemeProvider } from '@/hooks/ThemeProvider';
 import { installMockAudioContext } from '../../__mocks__/audio';
+import { _resetAudioForTesting } from '@/hooks/useAudio';
 
 // Wrap component in ThemeProvider since it uses useTheme()
 function renderWithProvider(crtEnabled: boolean, onToggle = vi.fn()) {
@@ -24,12 +25,14 @@ function renderWithProvider(crtEnabled: boolean, onToggle = vi.fn()) {
 describe.skip('MechanicalSwitch (deprecated — no longer rendered in App)', () => {
   beforeEach(() => {
     localStorage.clear();
+    _resetAudioForTesting();
     installMockAudioContext();
   });
 
   afterEach(() => {
     vi.restoreAllMocks();
     localStorage.clear();
+    _resetAudioForTesting();
   });
 
   it('renders without crashing', () => {

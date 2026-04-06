@@ -5,6 +5,7 @@ import type { ReactNode } from 'react';
 import { ThemeProvider } from '@/hooks/ThemeProvider';
 import { useConnectionStore } from '@/store/connectionStore';
 import { installMockAudioContext } from '../../__mocks__/audio';
+import { _resetAudioForTesting } from '@/hooks/useAudio';
 
 // Mock xterm.js — Terminal component pulls it in
 vi.mock('@xterm/xterm', () => {
@@ -78,6 +79,7 @@ describe('Win95Layout', () => {
   beforeEach(() => {
     localStorage.clear();
     document.documentElement.removeAttribute('data-theme');
+    _resetAudioForTesting();
     installMockAudioContext();
     // Reset Zustand store to defaults
     useConnectionStore.setState({
@@ -94,6 +96,7 @@ describe('Win95Layout', () => {
     vi.restoreAllMocks();
     localStorage.clear();
     document.documentElement.removeAttribute('data-theme');
+    _resetAudioForTesting();
   });
 
   // =========================================================================
