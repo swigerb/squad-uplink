@@ -633,18 +633,26 @@
   position: absolute;
   top: 3.6vmin;
   left: 3.97vmin;
-  width: 61.15vmin;
-  height: 47vmin;
+  width: calc(100% - 2 * 3.97vmin);
+  height: calc(100% - 2 * 3.6vmin);
   z-index: 10;
   background: #000;
   border-radius: 0.75vmin;
-  padding: 0.5vmin;
+  padding: 0;
   font-size: 1vmin;
   color: #33ff33;
   font-family: 'PrintChar21', 'Terminal', monospace;
   text-transform: uppercase;
   overflow: hidden;
   filter: drop-shadow(0 0 0.3vmin rgba(78, 101, 74, 0.6));
+}
+
+/* Override terminal-container padding inside the Apple IIe monitor */
+.a2e-monitor__terminal .terminal-container {
+  padding: 4px;
+}
+.a2e-monitor__terminal .terminal-container .xterm {
+  padding: 2px;
 }
 
 /* CRT scanlines + phosphor vignette — scoped to terminal only */
