@@ -282,6 +282,7 @@ function PipBoyLayout({
   const scale = usePipBoyScale();
   const radsAlert = useConnectionStore((s) => s.radsAlert);
   const thinking = useConnectionStore((s) => s.thinking);
+  const status = useConnectionStore((s) => s.status);
   const { play } = useAudio('pipboy');
 
   // Spike wheel rotation: base 10deg + 15deg per tab index
@@ -414,10 +415,12 @@ function PipBoyLayout({
                       onKeyDown={(e) => handleTabKey(e, tab)}
                     />
                   ))}
-                  <p>
-                    <span className="pipboy-lbl-status" />
-                    <span className="pipboy-off pipboy-lbl-special" />
-                  </p>
+                  <span
+                    className="pipboy-connection-status"
+                    style={{ color: status === 'connected' ? '#1bff80' : status === 'connecting' || status === 'reconnecting' ? '#ffb641' : '#ff4444' }}
+                  >
+                    {status === 'connected' ? 'CONNECTED' : status === 'connecting' || status === 'reconnecting' ? 'CONNECTING...' : 'DISCONNECTED'}
+                  </span>
                 </nav>
 
                 {/* Functional content area */}

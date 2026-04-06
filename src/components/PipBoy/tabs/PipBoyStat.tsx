@@ -72,24 +72,7 @@ function StatBar({ stat }: { stat: SpecialStat }) {
   );
 }
 
-const STATUS_COLOR: Record<string, string> = {
-  connected: '#1bff80',
-  connecting: '#ffb641',
-  reconnecting: '#ffb641',
-  disconnected: '#ff4444',
-  error: '#ff4444',
-};
-
-const STATUS_LABEL: Record<string, string> = {
-  connected: 'CONNECTED',
-  connecting: 'CONNECTING...',
-  reconnecting: 'RECONNECTING...',
-  disconnected: 'DISCONNECTED',
-  error: 'ERROR',
-};
-
 export function PipBoyStat() {
-  const status = useConnectionStore((s) => s.status);
   const agentCount = useConnectionStore((s) => s.agentCount);
   const telemetry = useConnectionStore((s) => s.telemetry);
   const thinking = useConnectionStore((s) => s.thinking);
@@ -183,17 +166,19 @@ export function PipBoyStat() {
           <div className="pipboy-bar5" />
           <div className="pipboy-bar6" />
         </div>
+
+        {/* Icon row below Vault Boy */}
+        <div className="pipboy-info-bar pipboy-info-bar-inline">
+          <span className="pipboy-weapon" />
+          <span className="pipboy-aim"><p>21</p></span>
+          <span className="pipboy-helmet" />
+          <span className="pipboy-shield"><p>110</p></span>
+          <span className="pipboy-voltage"><p>126</p></span>
+          <span className="pipboy-nuclear"><p>35</p></span>
+        </div>
       </div>
 
       <div className="pipboy-stat-data-col">
-        <div
-          className="pipboy-stat-status"
-          style={{ color: STATUS_COLOR[status] ?? '#666' }}
-          data-testid="pipboy-stat-status"
-        >
-          ■ {STATUS_LABEL[status] ?? status.toUpperCase()}
-        </div>
-
         <div className="pipboy-stat-title">S.P.E.C.I.A.L.</div>
 
         <div className="pipboy-stat-list">
