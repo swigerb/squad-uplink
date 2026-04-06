@@ -50,9 +50,9 @@
   position: absolute;
   font-family: 'Cormorant Garamond', serif;
   font-weight: 600;
-  font-size: 30vmin;
-  left: 105vmin;
-  top: 10vmin;
+  font-size: 20vmin;
+  left: 80vmin;
+  top: 4vmin;
   padding: 0;
   margin: 0;
   white-space: nowrap;
@@ -73,7 +73,7 @@
   width: 100vmin;
   height: 100vmin;
   perspective: 80vmin;
-  perspective-origin: 70% 40%;
+  perspective-origin: 50% 42%;
 }
 
 /* ============================================================
@@ -230,12 +230,12 @@
 
 .a2e-keyboard {
   position: absolute;
-  top: 67.5vmin;
-  left: 23.5vmin;
+  top: 63vmin;
+  left: 11vmin;
   width: 78vmin;
   height: 45vmin;
   transform-style: preserve-3d;
-  transform: translateY(-50%) translateZ(0vmin) rotateX(80deg);
+  transform: scale(0.65) translateY(-50%) translateZ(0vmin) rotateX(80deg);
   border-radius: 7.5vmin;
 }
 
@@ -364,8 +364,8 @@
 
 .a2e-floppy {
   position: absolute;
-  top: 61.5vmin;
-  left: 120.5vmin;
+  top: 57vmin;
+  left: 100vmin;
   transform-style: preserve-3d;
   transform-origin: bottom center;
   transform: translateZ(-10vmin);
@@ -590,9 +590,9 @@
 
 .a2e-monitor-shadow {
   position: absolute;
-  top: calc(11.5vmin + 45vmin);
-  left: 33vmin;
-  width: 62vmin;
+  top: calc(6vmin + 52vmin);
+  left: 14vmin;
+  width: 72vmin;
   height: 1.5vmin;
   box-shadow: var(--a2e-box-shadow-monitor);
   z-index: 100;
@@ -600,8 +600,8 @@
 }
 .a2e-back-shadow {
   position: absolute;
-  left: 40vmin;
-  top: 23vmin;
+  left: 25vmin;
+  top: 15vmin;
   width: 50vmin;
   height: 30vmin;
   background-color: black;
@@ -615,10 +615,10 @@
 
 .a2e-monitor {
   position: absolute;
-  left: 31vmin;
-  top: 11.5vmin;
-  width: 66vmin;
-  height: 47.25vmin;
+  left: 12vmin;
+  top: 6vmin;
+  width: 76vmin;
+  height: 54vmin;
   background-color: #e7e4d9;
   border-radius: 1vmin;
   overflow: hidden;
@@ -630,18 +630,40 @@
 
 /* Terminal container — where xterm.js renders */
 .a2e-monitor__terminal {
-  position: relative;
+  position: absolute;
+  top: 3.6vmin;
+  left: 3.97vmin;
+  width: 61.15vmin;
+  height: 47vmin;
   z-index: 10;
-  height: 100%;
-  width: 100%;
-  padding: 2vmin;
+  background: #000;
+  border-radius: 0.75vmin;
+  padding: 0.5vmin;
   font-size: 1vmin;
-  color: #fff;
+  color: #33ff33;
   font-family: 'PrintChar21', 'Terminal', monospace;
   text-transform: uppercase;
   overflow: hidden;
-  /* Phosphor green glow */
   filter: drop-shadow(0 0 0.3vmin rgba(78, 101, 74, 0.6));
+}
+
+/* CRT scanlines + phosphor vignette — scoped to terminal only */
+.a2e-monitor__terminal::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(
+    to bottom,
+    transparent,
+    transparent 2px,
+    rgba(0, 0, 0, 0.12) 2px,
+    rgba(0, 0, 0, 0.12) 4px
+  );
+  pointer-events: none;
+  z-index: 20;
+  border-radius: 0.75vmin;
+  box-shadow: inset 0 0 3vmin rgba(51, 255, 51, 0.06),
+    inset 0 0 8vmin rgba(0, 0, 0, 0.4);
 }
 
 .a2e-monitor__cursor {
@@ -669,34 +691,34 @@
 .a2e-monitor__line {
   position: absolute;
   width: 0.45vmin;
-  height: 47.25vmin;
-  left: 58.95vmin;
+  height: 54vmin;
+  left: 67.9vmin;
   box-shadow: inset 0 0 0.3vmin rgba(60, 118, 83, 0.6);
 }
 .a2e-monitor__soft-shadow {
   position: absolute;
-  top: 2.7vmin;
-  left: 3vmin;
-  width: 54vmin;
-  height: 42vmin;
+  top: 3.1vmin;
+  left: 3.45vmin;
+  width: 62.2vmin;
+  height: 48vmin;
   border-radius: 0.75vmin;
   box-shadow: inset 0 -0.15vmin 1.05vmin #3c7653;
 }
 .a2e-monitor__shadow {
   position: absolute;
-  top: 3.15vmin;
-  left: 3.45vmin;
-  width: 53.1vmin;
-  height: 41.1vmin;
+  top: 3.6vmin;
+  left: 3.97vmin;
+  width: 61.15vmin;
+  height: 47vmin;
   background-color: #051715;
   border-radius: 0.75vmin;
 }
 .a2e-monitor__inner {
   position: absolute;
-  top: 3.75vmin;
-  left: 4.05vmin;
-  width: 51.9vmin;
-  height: 39.9vmin;
+  top: 4.29vmin;
+  left: 4.66vmin;
+  width: 59.8vmin;
+  height: 45.6vmin;
   background-color: #b2aea2;
   border-radius: 0.75vmin;
   background: linear-gradient(145deg, #b2aea2, #a6a294);
@@ -706,10 +728,10 @@
 }
 .a2e-monitor__inner-shadow {
   position: absolute;
-  top: 5.25vmin;
-  left: 5.7vmin;
-  width: 48.45vmin;
-  height: 36.6vmin;
+  top: 6vmin;
+  left: 6.56vmin;
+  width: 55.8vmin;
+  height: 41.85vmin;
   background: linear-gradient(
     145deg,
     #384133,
@@ -724,10 +746,10 @@
 }
 .a2e-monitor__inner-shadow-light {
   position: absolute;
-  top: 5.25vmin;
-  left: 5.7vmin;
-  width: 48.45vmin;
-  height: 36.6vmin;
+  top: 6vmin;
+  left: 6.56vmin;
+  width: 55.8vmin;
+  height: 41.85vmin;
   background: linear-gradient(
     36deg,
     transparent,
@@ -755,10 +777,10 @@
 }
 .a2e-monitor__inner-shadow-dark {
   position: absolute;
-  top: 5.25vmin;
-  left: 5.7vmin;
-  width: 48.45vmin;
-  height: 36.6vmin;
+  top: 6vmin;
+  left: 6.56vmin;
+  width: 55.8vmin;
+  height: 41.85vmin;
   background: linear-gradient(
     36deg,
     transparent,
@@ -788,20 +810,20 @@
 /* Screen layers */
 .a2e-monitor__screen {
   position: absolute;
-  top: 9.6vmin;
-  left: 7.95vmin;
-  width: 43.8vmin;
-  height: 27.75vmin;
+  top: 11vmin;
+  left: 9.15vmin;
+  width: 50.4vmin;
+  height: 31.7vmin;
   background-color: #4e654a;
   border-radius: 10%/95%;
   box-shadow: inset 0 0 10px #000000;
 }
 .a2e-monitor__screen-2 {
   position: absolute;
-  top: 8.4vmin;
-  left: 9.75vmin;
-  width: 40.05vmin;
-  height: 30.3vmin;
+  top: 9.6vmin;
+  left: 11.23vmin;
+  width: 46.1vmin;
+  height: 34.6vmin;
   border-radius: 95%/10%;
   background: linear-gradient(
       217deg,
@@ -821,6 +843,7 @@
   );
 }
 .a2e-monitor__screen-2.a2e-bottom-shadow {
+  z-index: 11;
   mask-image: linear-gradient(to bottom, transparent, transparent 88%, #4e654a);
   -webkit-mask-image: linear-gradient(
     to bottom,
@@ -831,7 +854,8 @@
   box-shadow: inset 0 0 10px #000000;
 }
 .a2e-monitor__screen-2.a2e-top-shadow {
-  top: 8.25vmin;
+  top: 9.4vmin;
+  z-index: 11;
   mask-image: linear-gradient(to top, transparent, transparent 88%, #4e654a);
   -webkit-mask-image: linear-gradient(
     to top,
@@ -845,8 +869,8 @@
 /* Monitor logo & controls */
 .a2e-monitor__logo-embed {
   position: absolute;
-  left: 61.05vmin;
-  top: 42vmin;
+  left: 70.3vmin;
+  top: 48vmin;
   width: 3vmin;
   height: 3vmin;
   border-radius: 0.45vmin;
@@ -857,7 +881,7 @@
 }
 .a2e-monitor__power-switch {
   position: absolute;
-  left: 60.45vmin;
+  left: 69.6vmin;
   top: 0vmin;
   width: 4.35vmin;
   height: 2.55vmin;

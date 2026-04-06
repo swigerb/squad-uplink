@@ -5,7 +5,7 @@ import { AudioBufferCache } from '@/audio/bufferCache';
 export type SoundType =
   | 'keystroke' | 'connect' | 'disconnect' | 'error' | 'toggle'
   | 'agent_started' | 'agent_triage' | 'agent_success' | 'agent_error'
-  | 'boot' | 'crt_toggle';
+  | 'boot' | 'crt_toggle' | 'disk_drive';
 
 interface SoundProfile {
   waveform: OscillatorType;
@@ -45,6 +45,18 @@ const SKIN_PROFILES: Record<ThemeId, Record<SoundType, SoundDef>> = {
     agent_success: { waveform: 'sine', freq: 1200, duration: 120 },
     agent_error: { waveform: 'square', freq: 120, duration: 250 },
     crt_toggle: { waveform: 'sine', freq: 440, duration: 60, freq2: 660 },
+    disk_drive: { steps: [
+      { waveform: 'square', freq: 80, duration: 60, delay: 0 },
+      { waveform: 'square', freq: 120, duration: 40, delay: 80 },
+      { waveform: 'square', freq: 60, duration: 50, delay: 140 },
+      { waveform: 'square', freq: 100, duration: 40, delay: 210 },
+      { waveform: 'square', freq: 70, duration: 60, delay: 270 },
+      { waveform: 'square', freq: 110, duration: 40, delay: 350 },
+      { waveform: 'square', freq: 65, duration: 50, delay: 410 },
+      { waveform: 'square', freq: 90, duration: 40, delay: 480 },
+      { waveform: 'square', freq: 75, duration: 60, delay: 540 },
+      { waveform: 'square', freq: 105, duration: 40, delay: 620 },
+    ] },
   },
 
   // C64: Sawtooth/pulse with detune — SID chip character
@@ -78,6 +90,7 @@ const SKIN_PROFILES: Record<ThemeId, Record<SoundType, SoundDef>> = {
       { waveform: 'sawtooth', freq: 120, duration: 200, delay: 200, detune: 30 },
     ] },
     crt_toggle: { waveform: 'sawtooth', freq: 500, duration: 70, detune: 12 },
+    disk_drive: { waveform: 'square', freq: 80, duration: 100 },
   },
 
   // IBM 3270: Heavy mechanical solenoid sounds
@@ -100,6 +113,7 @@ const SKIN_PROFILES: Record<ThemeId, Record<SoundType, SoundDef>> = {
     agent_success: { waveform: 'sine', freq: 2000, duration: 100 },
     agent_error: { waveform: 'square', freq: 100, duration: 500, freq2: 120 },
     crt_toggle: { waveform: 'square', freq: 400, duration: 30 },
+    disk_drive: { waveform: 'square', freq: 80, duration: 100 },
   },
 
   // Win95: Classic Windows sounds
@@ -126,6 +140,7 @@ const SKIN_PROFILES: Record<ThemeId, Record<SoundType, SoundDef>> = {
       { waveform: 'sine', freq: 415, duration: 300, delay: 210 },
     ] },
     crt_toggle: { waveform: 'sine', freq: 700, duration: 50 },
+    disk_drive: { waveform: 'square', freq: 80, duration: 100 },
   },
 
   // Pip-Boy 3000: Nuclear Age terminal — Geiger ticks, relay clicks, sine sweeps
@@ -153,6 +168,7 @@ const SKIN_PROFILES: Record<ThemeId, Record<SoundType, SoundDef>> = {
       { waveform: 'square', freq: 200, duration: 200, delay: 160 },
     ] },
     crt_toggle: { waveform: 'square', freq: 1400, duration: 25 },
+    disk_drive: { waveform: 'square', freq: 80, duration: 100 },
   },
 
   // LCARS: Clean sci-fi chirps
@@ -180,6 +196,7 @@ const SKIN_PROFILES: Record<ThemeId, Record<SoundType, SoundDef>> = {
       { waveform: 'sine', freq: 600, duration: 120, delay: 260 },
     ] },
     crt_toggle: { waveform: 'sine', freq: 1400, duration: 40, freq2: 1600 },
+    disk_drive: { waveform: 'square', freq: 80, duration: 100 },
   },
 };
 

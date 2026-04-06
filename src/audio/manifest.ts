@@ -21,6 +21,7 @@ export const AUDIO_MANIFEST: Record<ThemeId, Partial<Record<SoundType, string>>>
     agent_success: '/audio/apple2e/agent_success.mp3',
     agent_error: '/audio/apple2e/agent_error.mp3',
     crt_toggle: '/audio/apple2e/crt_toggle.mp3',
+    disk_drive: '/audio/apple2e/disk_drive.mp3',
   },
 
   // C64: SID Chip / Tape Load sounds
