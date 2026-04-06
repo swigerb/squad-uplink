@@ -9,6 +9,12 @@ export default defineConfig({
     alias: {
       '@': path.resolve(__dirname, './src'),
     },
+    // Vite 8 roadmap: tsconfigPaths — built-in TS path resolution
+    // Not yet available in 8.0.x; alias above handles @/ paths for now
+  },
+  server: {
+    // Vite 8 roadmap: forwardConsole — pipes browser console to dev terminal
+    // Not yet available in 8.0.x; planned for agentic dev workflows
   },
   build: {
     rollupOptions: {
