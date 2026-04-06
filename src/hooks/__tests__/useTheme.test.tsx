@@ -105,10 +105,10 @@ describe('useTheme', () => {
       expect(result.current.themeId).toBe('ibm3270');
     });
 
-    it('cycles through all 6 themes back to apple2e', () => {
+    it('cycles through all 9 themes back to apple2e', () => {
       const { result } = renderHook(() => useTheme(), { wrapper });
 
-      for (let i = 0; i < 6; i++) {
+      for (let i = 0; i < 9; i++) {
         act(() => {
           result.current.toggleTheme();
         });

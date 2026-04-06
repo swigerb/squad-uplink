@@ -42,17 +42,14 @@ describe('ThemeToggle', () => {
     expect(button).toHaveTextContent('C64');
   });
 
-  it('clicking six times returns to Apple IIe', async () => {
+  it('clicking nine times returns to Apple IIe', async () => {
     const user = userEvent.setup();
     renderWithTheme(<ThemeToggle />);
 
     const button = screen.getByTestId('theme-toggle');
-    await user.click(button);
-    await user.click(button);
-    await user.click(button);
-    await user.click(button);
-    await user.click(button);
-    await user.click(button);
+    for (let i = 0; i < 9; i++) {
+      await user.click(button);
+    }
 
     expect(button).toHaveTextContent('Apple IIe');
   });

@@ -123,22 +123,21 @@ describe('PipBoyLayout', () => {
   // 1. THEME INTEGRATION
   // =========================================================================
   describe('Theme integration', () => {
-    it('pipboy theme exists in THEME_ORDER (6 themes total)', async () => {
+    it('pipboy theme exists in THEME_ORDER (9 themes total)', async () => {
       const { THEME_ORDER } = await import('@/themes');
       expect(THEME_ORDER).toContain('pipboy');
-      expect(THEME_ORDER).toHaveLength(6);
+      expect(THEME_ORDER).toHaveLength(9);
     });
 
-    it('theme cycling includes pipboy: lcars → pipboy → apple2e', async () => {
+    it('theme cycling includes pipboy: lcars → pipboy → wopr', async () => {
       const { THEME_ORDER } = await import('@/themes');
       const lcarsIdx = THEME_ORDER.indexOf('lcars');
       const pipboyIdx = THEME_ORDER.indexOf('pipboy');
       const apple2eIdx = THEME_ORDER.indexOf('apple2e');
       // pipboy comes right after lcars
       expect(pipboyIdx).toBe(lcarsIdx + 1);
-      // apple2e wraps around (index 0) after pipboy (last)
+      // apple2e is still first
       expect(apple2eIdx).toBe(0);
-      expect(pipboyIdx).toBe(THEME_ORDER.length - 1);
     });
 
     it('pipboy theme has correct colors: fg=#1bff80, bg=#000500', async () => {
@@ -159,7 +158,7 @@ describe('PipBoyLayout', () => {
       expect(pipboy.layout).toBe('pipboy');
     });
 
-    it('ThemeToggle cycles through 6 themes and returns to Apple IIe', async () => {
+    it('ThemeToggle cycles through 9 themes and returns to Apple IIe', async () => {
       const user = userEvent.setup();
       const { ThemeToggle } = await import(
         '@/components/ThemeToggle/ThemeToggle'
@@ -167,17 +166,16 @@ describe('PipBoyLayout', () => {
       renderWithPipBoy(<ThemeToggle />);
       const button = screen.getByTestId('theme-toggle');
 
-      // Starting from pipboy (set via localStorage), 1 click goes to apple2e
-      // But let's start from apple2e and click 6 times to wrap
+      // Starting from apple2e and click 9 times to wrap
       localStorage.setItem('squad-uplink-theme', 'apple2e');
       const { unmount } = render(<ThemeProvider><ThemeToggle /></ThemeProvider>);
       const btn = screen.getAllByTestId('theme-toggle')[1];
 
-      // 6 clicks: apple2e → c64 → ibm3270 → win95 → lcars → pipboy
-      for (let i = 0; i < 5; i++) {
+      // 8 clicks: apple2e → c64 → ibm3270 → win95 → lcars → pipboy → wopr → muthur
+      for (let i = 0; i < 8; i++) {
         await user.click(btn);
       }
-      expect(btn).toHaveTextContent(/pip-boy|pipboy/i);
+      expect(btn).toHaveTextContent(/matrix/i);
 
       // 1 more click wraps back to apple2e
       await user.click(btn);
