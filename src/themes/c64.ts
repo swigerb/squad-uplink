@@ -19,7 +19,7 @@ export const c64Theme: TerminalTheme = {
 
   borderSize: '48px',
   borderColor: '#3528be',
-  layout: 'fullscreen',
+  layout: 'c64',
   crtEnabled: true,
   customCss: 'skin-c64',
 

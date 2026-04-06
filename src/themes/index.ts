@@ -34,7 +34,7 @@ export interface TerminalTheme {
   /** Border color */
   borderColor?: string;
   /** Layout mode: fullscreen CRT, windowed GUI, panel-based, pip-boy tabbed, or apple2e 3D */
-  layout?: 'fullscreen' | 'windowed' | 'panel' | 'pipboy' | 'apple2e';
+  layout?: 'fullscreen' | 'windowed' | 'panel' | 'pipboy' | 'apple2e' | 'c64';
   /** Whether CRT scanline/glow effects are enabled */
   crtEnabled?: boolean;
   /** Skin-specific CSS class name applied to the root */

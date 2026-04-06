@@ -1,0 +1,350 @@
+/* ============================================================
+   c64-3d.css — Commodore 64 3D CSS scene
+   Ported from codepen.io/H-L-the-lessful/pen/ZYzePBx
+   All classes prefixed with c64- to avoid conflicts.
+   Scoped under [data-theme='c64'] where appropriate.
+   ============================================================ */
+
+/* --- Theme-scoped CSS variables --- */
+[data-theme='c64'] {
+  --c64-bg: #1a1a1a;
+  --c64-monitor-body: #3f3b37;
+  --c64-monitor-border: #2a2a2a;
+  --c64-screen-blue: #4040ff;
+  --c64-screen-border: #8888ff;
+  --c64-kb-beige-1: #beae7c;
+  --c64-kb-beige-2: #d4c48e;
+  --c64-key-dark: #4a4a4a;
+  --c64-key-dark-2: #3a4a3a;
+  --c64-key-shadow: #2a2a2a;
+  --c64-key-text: #f0f0f0;
+  --c64-key-shift: #ffa500;
+  --c64-fkey-brown: #854f1b;
+  --c64-fkey-brown-2: #6a3f15;
+}
+
+/* --- Box-sizing reset scoped to theme --- */
+[data-theme='c64'] .c64-container *,
+[data-theme='c64'] .c64-container *::before,
+[data-theme='c64'] .c64-container *::after {
+  box-sizing: border-box;
+}
+
+/* --- Container (full-screen layout) --- */
+[data-theme='c64'] .c64-container {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: var(--c64-bg);
+  position: relative;
+  overflow: hidden;
+  gap: 1.5vmin;
+  padding: 1vmin;
+}
+
+/* --- CRT Monitor housing --- */
+.c64-monitor {
+  width: 80vmin;
+  max-width: 95vw;
+  background: var(--c64-monitor-body);
+  border-radius: 20px;
+  padding: 20px;
+  border: 15px solid var(--c64-monitor-border);
+  box-shadow:
+    0 30px 60px rgba(0, 0, 0, 0.5),
+    0 20px 40px rgba(0, 0, 0, 0.4),
+    inset 0 2px 15px rgba(255, 255, 255, 0.1);
+  display: flex;
+  align-items: stretch;
+  justify-content: center;
+  flex-shrink: 1;
+  min-height: 0;
+  /* Fill available space */
+  flex: 1 1 auto;
+  max-height: 70vh;
+}
+
+/* --- Blue screen area (inside monitor) --- */
+.c64-screen {
+  width: 100%;
+  height: 100%;
+  background: var(--c64-screen-blue);
+  border: 20px solid var(--c64-screen-border);
+  border-radius: 8px;
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  align-items: stretch;
+  justify-content: stretch;
+  /* Radial vignette effect */
+  box-shadow:
+    inset 0 0 80px rgba(0, 0, 0, 0.4),
+    inset 0 0 40px rgba(0, 0, 0, 0.2);
+}
+
+/* --- Terminal area (xterm.js renders here) --- */
+.c64-terminal {
+  position: relative;
+  z-index: 10;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  flex: 1;
+}
+
+/* --- CRT scanlines (scoped to terminal only) --- */
+.c64-terminal::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: repeating-linear-gradient(
+    0deg,
+    rgba(0, 0, 0, 0.15),
+    rgba(0, 0, 0, 0.15) 2px,
+    transparent 2px,
+    transparent 4px
+  );
+  pointer-events: none;
+  z-index: 20;
+}
+
+/* --- Keyboard body --- */
+.c64-keyboard {
+  width: 85vmin;
+  max-width: 98vw;
+  transform: rotateX(20deg) translateZ(40px);
+  transform-style: preserve-3d;
+  background: linear-gradient(
+    135deg,
+    var(--c64-kb-beige-1) 0%,
+    var(--c64-kb-beige-2) 50%,
+    var(--c64-kb-beige-1) 100%
+  );
+  border-radius: 12px;
+  padding: 18px 20px;
+  border: 8px solid rgba(139, 119, 71, 0.4);
+  box-shadow:
+    0 15px 30px rgba(0, 0, 0, 0.5),
+    0 8px 20px rgba(0, 0, 0, 0.3),
+    inset 0 1px 3px rgba(255, 255, 255, 0.3);
+  display: flex;
+  flex-direction: row;
+  gap: 8px;
+  flex-shrink: 0;
+  perspective: 500px;
+}
+
+/* --- Keyboard main area (rows) --- */
+.c64-keyboard-main {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+}
+
+/* --- Key row --- */
+.c64-key-row {
+  display: flex;
+  gap: 3px;
+  justify-content: center;
+}
+
+/* --- Individual key --- */
+.c64-key {
+  width: 44px;
+  height: 42px;
+  background: linear-gradient(to bottom, var(--c64-key-dark), var(--c64-key-dark-2));
+  border-radius: 4px;
+  color: var(--c64-key-text);
+  font-size: 11px;
+  font-family: 'PetMe', 'C64 Pro Mono', monospace;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  cursor: default;
+  user-select: none;
+  position: relative;
+  box-shadow:
+    0 4px 0 var(--c64-key-shadow),
+    inset 0 1px 1px rgba(255, 255, 255, 0.2);
+  transition: transform 0.05s, box-shadow 0.05s;
+  line-height: 1.1;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+.c64-key:active {
+  transform: translateY(2px);
+  box-shadow:
+    0 2px 0 var(--c64-key-shadow),
+    inset 0 1px 1px rgba(255, 255, 255, 0.2);
+}
+
+/* Orange shift sub-label via data-shift */
+.c64-key[data-shift]::after {
+  content: attr(data-shift);
+  display: block;
+  font-size: 8px;
+  color: var(--c64-key-shift);
+  margin-top: 1px;
+  line-height: 1;
+}
+
+/* --- Special keys (wider) --- */
+.c64-key-special {
+  flex: 0 0 auto;
+}
+
+.c64-key-special.c64-key-ctrl {
+  width: 56px;
+}
+
+.c64-key-special.c64-key-return {
+  width: 72px;
+}
+
+.c64-key-special.c64-key-shift,
+.c64-key-special.c64-key-shiftlock {
+  width: 60px;
+}
+
+.c64-key-special.c64-key-runstop {
+  width: 56px;
+  font-size: 8px;
+}
+
+.c64-key-special.c64-key-commodore {
+  width: 52px;
+  font-size: 14px;
+}
+
+.c64-key-special.c64-key-restore {
+  width: 56px;
+  font-size: 9px;
+}
+
+.c64-key-special.c64-key-home {
+  width: 52px;
+  font-size: 9px;
+}
+
+.c64-key-special.c64-key-inst {
+  width: 52px;
+  font-size: 9px;
+}
+
+/* --- Spacebar --- */
+.c64-key-space {
+  width: 320px;
+  max-width: 50vw;
+  height: 42px;
+}
+
+/* --- Function keys column (right side) --- */
+.c64-fkeys {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-left: 6px;
+  justify-content: flex-start;
+}
+
+/* --- Function key styling (brown) --- */
+.c64-key-f {
+  width: 52px;
+  height: 50px;
+  background: linear-gradient(to bottom, var(--c64-fkey-brown), var(--c64-fkey-brown-2));
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: 700;
+  border-radius: 4px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  cursor: default;
+  user-select: none;
+  position: relative;
+  box-shadow:
+    0 4px 0 #4a3010,
+    inset 0 1px 1px rgba(255, 255, 255, 0.2);
+}
+
+.c64-key-f[data-shift]::after {
+  content: attr(data-shift);
+  display: block;
+  font-size: 7px;
+  color: var(--c64-key-shift);
+  margin-top: 2px;
+  line-height: 1;
+}
+
+/* --- Floating status bar (transparent overlay at bottom) --- */
+.c64-statusbar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px 16px;
+  z-index: 100;
+  background: rgba(26, 26, 26, 0.7);
+  backdrop-filter: blur(4px);
+  border-top: 1px solid rgba(136, 136, 255, 0.2);
+}
+
+/* --- Responsive scaling --- */
+@media (max-width: 600px) {
+  .c64-monitor {
+    width: 95vmin;
+    padding: 10px;
+    border-width: 8px;
+  }
+
+  .c64-screen {
+    border-width: 10px;
+  }
+
+  .c64-keyboard {
+    width: 98vmin;
+    padding: 10px 12px;
+    transform: rotateX(15deg) translateZ(20px);
+  }
+
+  .c64-key {
+    width: 28px;
+    height: 28px;
+    font-size: 8px;
+  }
+
+  .c64-key-f {
+    width: 36px;
+    height: 34px;
+    font-size: 10px;
+  }
+
+  .c64-key-space {
+    width: 180px;
+  }
+
+  .c64-key-special.c64-key-ctrl,
+  .c64-key-special.c64-key-return,
+  .c64-key-special.c64-key-shift,
+  .c64-key-special.c64-key-shiftlock,
+  .c64-key-special.c64-key-runstop,
+  .c64-key-special.c64-key-commodore,
+  .c64-key-special.c64-key-restore,
+  .c64-key-special.c64-key-home,
+  .c64-key-special.c64-key-inst {
+    width: 38px;
+  }
+}

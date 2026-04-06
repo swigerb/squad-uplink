@@ -21,8 +21,10 @@ import { PipBoyStat, PipBoyInv, PipBoyMap, PipBoyRadio } from '@/components/PipB
 import { usePipBoyTransition, PIPBOY_TABS } from '@/hooks/usePipBoyTransition';
 import type { PipBoyTab } from '@/hooks/usePipBoyTransition';
 import { Apple2eLayout } from '@/components/Apple2e';
+import { C64Layout } from '@/components/C64';
 import '@/styles/pipboy.css';
 import '@/styles/apple2e-3d.css';
+import '@/styles/c64-3d.css';
 
 const TelemetryDrawer = lazy(() =>
   import('@/components/TelemetryDrawer/TelemetryDrawer').then((m) => ({
@@ -750,6 +752,20 @@ function AppContent() {
         <Apple2eLayout statusBar={statusBar} crtEnabled={crtEnabled}>
           <div style={crtOffStyle}>{terminal}</div>
         </Apple2eLayout>
+        <Suspense fallback={null}>
+          <TelemetryDrawer />
+        </Suspense>
+      </>
+    );
+  }
+
+  if (layout === 'c64') {
+    return (
+      <>
+        <div aria-live="polite" aria-atomic="true" className="sr-only">{themeAnnouncement}</div>
+        <C64Layout statusBar={statusBar} crtEnabled={crtEnabled}>
+          <div style={crtOffStyle}>{terminal}</div>
+        </C64Layout>
         <Suspense fallback={null}>
           <TelemetryDrawer />
         </Suspense>
