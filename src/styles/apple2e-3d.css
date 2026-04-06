@@ -631,10 +631,10 @@
 /* Terminal container — where xterm.js renders */
 .a2e-monitor__terminal {
   position: absolute;
-  top: 3.6vmin;
-  left: 3.97vmin;
-  width: calc(100% - 2 * 3.97vmin);
-  height: calc(100% - 2 * 3.6vmin);
+  top: 5.5vmin;
+  left: 5.5vmin;
+  width: calc(100% - 11vmin);
+  height: calc(100% - 13vmin);
   z-index: 10;
   background: #000;
   border-radius: 0.75vmin;
@@ -826,8 +826,8 @@
 /* Monitor logo & controls */
 .a2e-monitor__logo-embed {
   position: absolute;
-  left: 70.3vmin;
-  top: 48vmin;
+  right: 3vmin;
+  bottom: 2.5vmin;
   width: 3vmin;
   height: 3vmin;
   border-radius: 0.45vmin;
