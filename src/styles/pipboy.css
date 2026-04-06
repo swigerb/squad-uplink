@@ -407,6 +407,7 @@
   border: 5px solid #333;
   padding: 5px 5px 5px 0;
   overflow: hidden;
+  box-sizing: border-box;
 }
 
 /* ── Screen reflection ─────────────────────────── */
@@ -415,7 +416,7 @@
   height: 185px;
   background: linear-gradient(150deg, #fff, rgba(0,0,0,0));
   position: absolute;
-  z-index: 99;
+  z-index: 90;
   opacity: 0.07;
   margin: 9px 10px 10px 10px;
   border-radius: 10px;
@@ -432,14 +433,14 @@
   animation-duration: 4s;
   animation-iteration-count: infinite;
   top: -85px;
-  z-index: 99;
+  z-index: 95;
   opacity: 0.25;
   pointer-events: none;
 }
 
 /* ── Screen nav (tab bar) ──────────────────────── */
 [data-theme='pipboy'] .pipboy-nav {
-  height: 25px;
+  height: 22px;
   width: 90%;
   position: absolute;
   top: 0;
@@ -449,14 +450,16 @@
   border-top-right-radius: 20px;
   z-index: 95;
   border-top-left-radius: 20px;
+  overflow: hidden;
+  box-sizing: border-box;
 }
 
 [data-theme='pipboy'] .pipboy-nav span {
   color: #8df776;
-  line-height: 31px;
-  font-size: 9pt;
+  line-height: 22px;
+  font-size: 7pt;
   letter-spacing: 0.3px;
-  margin-left: 14px;
+  margin-left: 8px;
   font-weight: 300;
   cursor: pointer;
   user-select: none;
@@ -469,28 +472,30 @@
   border-bottom: 1px solid #000;
   border-top-left-radius: 5px;
   border-top-right-radius: 5px;
-  padding: 3px 6px 3px 6px;
+  padding: 2px 4px 2px 4px;
 }
 
 [data-theme='pipboy'] .pipboy-nav p {
-  margin: -10px 0 0 0;
-  height: 25px;
+  margin: -8px 0 0 0;
+  height: 20px;
+  display: inline;
 }
 
 [data-theme='pipboy'] .pipboy-nav .pipboy-off {
   color: #172f18;
   position: relative;
   left: -5px;
+  font-size: 6pt;
 }
 
 /* ── Screen content wrapper (functional) ───────── */
 [data-theme='pipboy'] .pipboy-screen-inner {
   position: absolute;
-  top: 26px;
+  top: 23px;
   left: 0;
   right: 0;
-  bottom: 0;
-  z-index: 1;
+  bottom: 22px;
+  z-index: 10;
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -510,8 +515,10 @@
   position: absolute;
   inset: 0;
   overflow: auto;
+  overflow-x: hidden;
   color: #8df776;
-  font-size: 7pt;
+  font-size: 6pt;
+  line-height: 1.3;
 }
 
 [data-theme='pipboy'] .pipboy-tab-panel--hidden {
@@ -528,15 +535,26 @@
 
 /* ── Vault Boy (walking GIF) ───────────────────── */
 [data-theme='pipboy'] .pipboy-vaultboy {
-  background: url('https://s3-us-west-2.amazonaws.com/s.cdpn.io/184191/vaultboy2.gif');
+  background: url('/images/vaultboy2.gif');
   background-size: 77px;
   background-position: 2px;
   background-repeat: no-repeat;
   width: 80px;
   height: 100px;
-  position: absolute;
-  left: 110px;
-  top: 56px;
+  position: relative;
+  margin: 0 auto;
+  z-index: 10;
+  filter: drop-shadow(0 0 8px rgba(27, 255, 128, 0.7)) brightness(1.2);
+}
+
+/* Thinking state — pulsing green overlay */
+[data-theme='pipboy'] .pipboy-vaultboy-thinking {
+  animation: pipboy-vaultboy-pulse 1s ease-in-out infinite;
+}
+
+@keyframes pipboy-vaultboy-pulse {
+  0%, 100% { filter: drop-shadow(0 0 8px rgba(27, 255, 128, 0.7)) brightness(1.2); }
+  50% { filter: drop-shadow(0 0 16px rgba(27, 255, 128, 1)) brightness(1.5); }
 }
 
 /* ── Vault Boy health bars ─────────────────────── */
@@ -550,6 +568,7 @@
   height: 3.5px;
   background: #64d515;
   position: absolute;
+  box-shadow: 0 0 4px rgba(27, 255, 128, 0.5);
 }
 [data-theme='pipboy'] .pipboy-bar1 { left: 32px; top: -8px; }
 [data-theme='pipboy'] .pipboy-bar2 {
@@ -573,64 +592,72 @@
 
 /* ── Supplies bar ──────────────────────────────── */
 [data-theme='pipboy'] .pipboy-supplies {
-  height: 16px;
+  height: 14px;
   position: absolute;
-  bottom: 22px;
-  left: 13px;
+  bottom: 18px;
+  left: 8px;
   background: #000;
+  z-index: 96;
+  white-space: nowrap;
+  overflow: hidden;
 }
 [data-theme='pipboy'] .pipboy-supplies span {
-  margin-right: 5px;
+  margin-right: 3px;
   background: #78e461;
-  padding: 2px 3px 2px 3px;
+  padding: 1px 2px;
   color: #000;
   font-weight: 700;
+  font-size: 5pt;
 }
 
 /* ── HUD bar (bottom of screen) ────────────────── */
 [data-theme='pipboy'] .pipboy-hud-bar {
-  height: 12px;
+  height: 10px;
   position: absolute;
   width: 290px;
-  bottom: 9px;
-  left: 15px;
+  bottom: 5px;
+  left: 10px;
   background: #000;
   color: #8df776;
   z-index: 96;
-  font-size: 7pt;
+  font-size: 5pt;
+  white-space: nowrap;
+  overflow: hidden;
 }
 
 [data-theme='pipboy'] .pipboy-hp { display: inline-block; }
 [data-theme='pipboy'] .pipboy-hp::before { content: "HP 365/365"; }
-[data-theme='pipboy'] .pipboy-exp { display: inline-block; margin-left: 20px; }
+[data-theme='pipboy'] .pipboy-exp { display: inline-block; margin-left: 10px; }
 [data-theme='pipboy'] .pipboy-exp::before { content: "Level 48"; }
 [data-theme='pipboy'] .pipboy-exp::after {
   content: "";
   display: inline-block;
-  width: 99px;
-  height: 4px;
+  width: 60px;
+  height: 3px;
   border: 1px solid lightgreen;
   margin-left: 2px;
+  vertical-align: middle;
 }
-[data-theme='pipboy'] .pipboy-ap { display: inline-block; margin-left: 20px; }
+[data-theme='pipboy'] .pipboy-ap { display: inline-block; margin-left: 10px; }
 [data-theme='pipboy'] .pipboy-ap::before { content: "AP 110/110"; }
 
 /* ── Info bar ──────────────────────────────────── */
 [data-theme='pipboy'] .pipboy-info-bar {
-  width: 170px;
-  height: 20px;
-  bottom: 50px;
-  left: 86px;
+  width: 160px;
+  height: 16px;
+  bottom: 35px;
+  left: 80px;
   position: absolute;
   z-index: 97;
+  overflow: hidden;
 }
 [data-theme='pipboy'] .pipboy-info-bar span {
   background: rgba(0,255,0,0.02);
-  padding: 3px;
-  height: 15px;
+  padding: 1px 2px;
+  height: 14px;
   display: inline-block;
   vertical-align: top;
-  font-size: 7px;
+  font-size: 5px;
   color: #8df776;
   text-align: center;
   position: relative;
@@ -644,51 +671,36 @@
   margin-top: 8px;
 }
 
+/* Icon SVGs inline (replacing S3 URLs that are no longer accessible) */
 [data-theme='pipboy'] .pipboy-weapon {
-  background: url('https://s3-us-west-2.amazonaws.com/s.cdpn.io/184191/pipboy-gun2.png') no-repeat;
   width: 23px;
-  height: auto;
-  background-size: 27px;
-  background-repeat: no-repeat;
+  height: 14px;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 14'%3E%3Cpath d='M2 6h14l2-4h4v2h-3l-2 4H8l-1 4H4l1-4H2z' fill='%2364d515'/%3E%3C/svg%3E") no-repeat center/contain;
 }
 [data-theme='pipboy'] .pipboy-aim {
-  background: url('https://s3-us-west-2.amazonaws.com/s.cdpn.io/184191/pipboy-aim2.png');
-  width: 10px;
-  background-size: 10px 10px;
-  height: auto;
-  background-repeat: no-repeat;
-  background-position: 3px 0px;
+  width: 14px;
+  height: 14px;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 14 14'%3E%3Ccircle cx='7' cy='7' r='5' fill='none' stroke='%2364d515' stroke-width='1'/%3E%3Ccircle cx='7' cy='7' r='1.5' fill='%2364d515'/%3E%3Cline x1='7' y1='0' x2='7' y2='4' stroke='%2364d515' stroke-width='1'/%3E%3Cline x1='7' y1='10' x2='7' y2='14' stroke='%2364d515' stroke-width='1'/%3E%3Cline x1='0' y1='7' x2='4' y2='7' stroke='%2364d515' stroke-width='1'/%3E%3Cline x1='10' y1='7' x2='14' y2='7' stroke='%2364d515' stroke-width='1'/%3E%3C/svg%3E") no-repeat center/contain;
 }
 [data-theme='pipboy'] .pipboy-helmet {
-  background: url('https://s3-us-west-2.amazonaws.com/s.cdpn.io/184191/pipboy-helmet2.png');
-  background-size: 27px;
-  height: auto;
   width: 23px;
-  background-repeat: no-repeat;
+  height: 14px;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 14'%3E%3Cpath d='M6 13h12v-3c0-5-3-8-6-8S6 5 6 10z' fill='none' stroke='%2364d515' stroke-width='1.2'/%3E%3Crect x='9' y='6' width='6' height='3' rx='1' fill='%2364d515' opacity='0.6'/%3E%3C/svg%3E") no-repeat center/contain;
 }
 [data-theme='pipboy'] .pipboy-shield {
-  background: url('https://s3-us-west-2.amazonaws.com/s.cdpn.io/184191/pipboy-shield2.png');
-  width: 10px;
-  background-size: 10px 10px;
-  height: auto;
-  background-repeat: no-repeat;
-  background-position: 3px 0px;
+  width: 14px;
+  height: 14px;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 14 14'%3E%3Cpath d='M7 1L2 3v4c0 3.5 2.5 5.5 5 6.5 2.5-1 5-3 5-6.5V3z' fill='none' stroke='%2364d515' stroke-width='1.2'/%3E%3C/svg%3E") no-repeat center/contain;
 }
 [data-theme='pipboy'] .pipboy-voltage {
-  background: url('https://s3-us-west-2.amazonaws.com/s.cdpn.io/184191/pipboy-voltage2.png');
-  width: 10px;
-  background-size: 10px 10px;
-  height: auto;
-  background-repeat: no-repeat;
-  background-position: 3px 0px;
+  width: 14px;
+  height: 14px;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 14 14'%3E%3Cpolygon points='8,1 4,8 7,8 6,13 10,6 7,6' fill='%2364d515'/%3E%3C/svg%3E") no-repeat center/contain;
 }
 [data-theme='pipboy'] .pipboy-nuclear {
-  background: url('https://s3-us-west-2.amazonaws.com/s.cdpn.io/184191/pipboy-nuclear2.png');
-  width: 10px;
-  background-size: 10px 10px;
-  height: auto;
-  background-repeat: no-repeat;
-  background-position: 3px 0px;
+  width: 14px;
+  height: 14px;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 14 14'%3E%3Ccircle cx='7' cy='7' r='2' fill='%2364d515'/%3E%3Cpath d='M7 1A6 6 0 0 0 2.1 9.5L5.5 7.5A2.5 2.5 0 0 1 7 4.5z' fill='%2364d515' opacity='0.7'/%3E%3Cpath d='M12 9.5A6 6 0 0 0 7 1v3.5a2.5 2.5 0 0 1 1.5 3z' fill='%2364d515' opacity='0.7'/%3E%3Cpath d='M2.1 9.5a6 6 0 0 0 9.8 0L8.5 7.5a2.5 2.5 0 0 1-3 0z' fill='%2364d515' opacity='0.7'/%3E%3C/svg%3E") no-repeat center/contain;
 }
 
 /* ── Power button ──────────────────────────────── */
@@ -980,7 +992,6 @@
   width: 60px;
   height: 60px;
   background: #000;
-  transform: rotate(45deg);
   border-radius: 8px;
   border-top: 2px solid #999;
   border-left: 2px solid #999;
@@ -988,6 +999,16 @@
   position: absolute;
   top: 240px;
   right: 12px;
+  cursor: pointer;
+  transition: transform 100ms ease-out;
+}
+[data-theme='pipboy'] .pipboy-tune-wheel:hover {
+  border-top-color: #ccc;
+  border-left-color: #ccc;
+}
+[data-theme='pipboy'] .pipboy-tune-wheel:focus-visible {
+  outline: 2px solid #1bff80;
+  outline-offset: 4px;
 }
 [data-theme='pipboy'] .pipboy-tune-wheel::before {
   width: 27px;
@@ -1135,7 +1156,15 @@
   right: 19px;
   border-radius: 5px;
   border-top: 3px solid #777;
-  transform: rotate(10deg);
+  cursor: pointer;
+  transition: transform 200ms ease-out;
+}
+[data-theme='pipboy'] .pipboy-spike-wheel:hover {
+  border-top-color: #aaa;
+}
+[data-theme='pipboy'] .pipboy-spike-wheel:focus-visible {
+  outline: 2px solid #1bff80;
+  outline-offset: 4px;
 }
 [data-theme='pipboy'] .pipboy-spike-wheel::before,
 [data-theme='pipboy'] .pipboy-spike-wheel::after {
@@ -1171,19 +1200,55 @@
 /* ── Status bar (inside hud area) ──────────────── */
 [data-theme='pipboy'] .pipboy-statusbar {
   position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
+  bottom: 18px;
+  right: 8px;
+  left: auto;
   z-index: 96;
+  display: flex;
+  gap: 3px;
+}
+
+/* Hide the generic statusbar chrome inside Pip-Boy — only show controls */
+[data-theme='pipboy'] .pipboy-statusbar .statusbar {
+  background: transparent;
+  border: none;
+  padding: 0;
+  gap: 3px;
+  min-height: auto;
+}
+
+[data-theme='pipboy'] .pipboy-statusbar .statusbar-indicator,
+[data-theme='pipboy'] .pipboy-statusbar .statusbar-value,
+[data-theme='pipboy'] .pipboy-statusbar .statusbar-spacer {
+  display: none;
+}
+
+/* Stimpak-style pill buttons for Audio and Theme controls */
+[data-theme='pipboy'] .pipboy-statusbar .statusbar-toggle,
+[data-theme='pipboy'] .pipboy-statusbar .theme-toggle {
+  background: #78e461;
+  color: #000;
+  font-weight: 700;
+  padding: 1px 2px;
+  font-size: 5pt;
+  text-transform: uppercase;
+  border: none;
+  border-radius: 0;
+  font-family: 'Droid Sans', 'VT323', sans-serif;
+  opacity: 1;
+  gap: 1px;
 }
 
 /* ── Vault Boy in STAT tab styling ─────────────── */
 [data-theme='pipboy'] .pipboy-stat-with-vaultboy {
   display: flex;
-  gap: 12px;
-  padding: 8px 12px;
+  flex-direction: column;
+  align-items: center;
+  padding: 4px 8px;
   height: 100%;
   overflow-y: auto;
+  overflow-x: hidden;
+  gap: 2px;
 }
 
 [data-theme='pipboy'] .pipboy-stat-vaultboy-col {
@@ -1191,13 +1256,78 @@
   flex-direction: column;
   align-items: center;
   justify-content: flex-start;
-  padding-top: 4px;
   flex-shrink: 0;
+  position: relative;
 }
 
 [data-theme='pipboy'] .pipboy-stat-data-col {
   flex: 1;
   min-width: 0;
+  width: 100%;
+}
+
+/* ── STAT tab inner elements ───────────────────── */
+[data-theme='pipboy'] .pipboy-stat-status {
+  font-size: 6pt;
+  margin-bottom: 1px;
+  white-space: nowrap;
+}
+
+[data-theme='pipboy'] .pipboy-stat-title {
+  font-size: 7pt;
+  color: #8df776;
+  margin-bottom: 1px;
+  text-align: center;
+}
+
+[data-theme='pipboy'] .pipboy-stat-list {
+  font-size: 5pt;
+}
+
+[data-theme='pipboy'] .pipboy-stat-row {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
+[data-theme='pipboy'] .pipboy-stat-letter {
+  font-weight: 700;
+  width: 10px;
+  flex-shrink: 0;
+}
+
+[data-theme='pipboy'] .pipboy-stat-name {
+  width: 55px;
+  flex-shrink: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+[data-theme='pipboy'] .pipboy-stat-bar {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  letter-spacing: -1px;
+  font-size: 5pt;
+}
+
+[data-theme='pipboy'] .pipboy-stat-value {
+  width: 45px;
+  flex-shrink: 0;
+  text-align: right;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+[data-theme='pipboy'] .pipboy-stat-footer {
+  font-size: 5pt;
+  margin-top: 2px;
+  color: #64d515;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 /* ── Tab content typography ────────────────────── */
@@ -1208,6 +1338,67 @@
 /* ── Phosphor persistence ──────────────────────── */
 [data-theme='pipboy'] .pipboy-content * {
   transition: opacity 0.08s ease-out;
+}
+
+/* ── Phosphor persistence fade (CRT phosphor decay) ── */
+[data-theme='pipboy'] .pipboy-phosphor-fade {
+  filter: blur(2px);
+  opacity: 0.4;
+  transition: filter 150ms ease-out, opacity 150ms ease-out;
+}
+
+/* ── Scanline sweep (CRT refresh line) ───────────── */
+[data-theme='pipboy'] .pipboy-sweep-line {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: rgba(27, 255, 128, 0.25);
+  z-index: 100;
+  pointer-events: none;
+  animation: pipboy-sweep 200ms linear forwards;
+}
+
+@keyframes pipboy-sweep {
+  from { top: 0; }
+  to { top: 100%; }
+}
+
+/* ── Static burst (white noise flash) ────────────── */
+[data-theme='pipboy'] .pipboy-static-burst {
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    rgba(255, 255, 255, 0.03) 1px,
+    transparent 2px
+  );
+  opacity: 0.15;
+  z-index: 101;
+  pointer-events: none;
+}
+
+/* ── RADS alert spike (error indicator) ──────────── */
+[data-theme='pipboy'] .pipboy-rads-alert .pipboy-rads-value::after {
+  animation: pipboy-rads-spike 0.15s ease-in-out infinite alternate !important;
+}
+
+@keyframes pipboy-rads-spike {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(60deg); }
+}
+
+/* ── Power thinking pulse (agent thinking state) ─── */
+[data-theme='pipboy'] .pipboy-power-thinking::after {
+  animation: pipboy-power-pulse 0.5s ease-in-out infinite !important;
+}
+
+@keyframes pipboy-power-pulse {
+  0%   { box-shadow: 0px 0px 5px 0px red; }
+  50%  { box-shadow: 0px 0px 40px 5px orange; }
+  100% { box-shadow: 0px 0px 5px 0px red; }
 }
 
 /* ── Reduced motion support ────────────────────── */
@@ -1223,5 +1414,30 @@
   }
   [data-theme='pipboy'] .pipboy-content * {
     transition: none;
+  }
+  [data-theme='pipboy'] .pipboy-phosphor-fade {
+    filter: none;
+    opacity: 1;
+    transition: none;
+  }
+  [data-theme='pipboy'] .pipboy-sweep-line {
+    animation: none;
+    display: none;
+  }
+  [data-theme='pipboy'] .pipboy-static-burst {
+    display: none;
+  }
+  [data-theme='pipboy'] .pipboy-rads-alert .pipboy-rads-value::after {
+    animation: none !important;
+  }
+  [data-theme='pipboy'] .pipboy-power-thinking::after {
+    animation: none !important;
+  }
+  [data-theme='pipboy'] .pipboy-vaultboy-thinking {
+    animation: none !important;
+  }
+  [data-theme='pipboy'] .pipboy-spike-wheel,
+  [data-theme='pipboy'] .pipboy-tune-wheel {
+    transition: none !important;
   }
 }

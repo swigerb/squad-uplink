@@ -92,6 +92,7 @@ export function PipBoyStat() {
   const status = useConnectionStore((s) => s.status);
   const agentCount = useConnectionStore((s) => s.agentCount);
   const telemetry = useConnectionStore((s) => s.telemetry);
+  const thinking = useConnectionStore((s) => s.thinking);
   const [, setTick] = useState(0);
 
   // Tick every second for uptime refresh
@@ -167,26 +168,44 @@ export function PipBoyStat() {
   ];
 
   return (
-    <div className="pipboy-stat" data-testid="pipboy-stat">
-      <div
-        className="pipboy-stat-status"
-        style={{ color: STATUS_COLOR[status] ?? '#666' }}
-        data-testid="pipboy-stat-status"
-      >
-        ■ {STATUS_LABEL[status] ?? status.toUpperCase()}
+    <div className="pipboy-stat pipboy-stat-with-vaultboy" data-testid="pipboy-stat">
+      <div className="pipboy-stat-vaultboy-col">
+        <div
+          className={`pipboy-vaultboy ${thinking ? 'pipboy-vaultboy-thinking' : ''}`}
+          data-testid="vault-boy"
+          role="img"
+          aria-label="Vault Boy character"
+        >
+          <div className="pipboy-bar1" />
+          <div className="pipboy-bar2" />
+          <div className="pipboy-bar3" />
+          <div className="pipboy-bar4" />
+          <div className="pipboy-bar5" />
+          <div className="pipboy-bar6" />
+        </div>
       </div>
 
-      <div className="pipboy-stat-title">S.P.E.C.I.A.L.</div>
+      <div className="pipboy-stat-data-col">
+        <div
+          className="pipboy-stat-status"
+          style={{ color: STATUS_COLOR[status] ?? '#666' }}
+          data-testid="pipboy-stat-status"
+        >
+          ■ {STATUS_LABEL[status] ?? status.toUpperCase()}
+        </div>
 
-      <div className="pipboy-stat-list">
-        {stats.map((stat) => (
-          <StatBar key={stat.key} stat={stat} />
-        ))}
-      </div>
+        <div className="pipboy-stat-title">S.P.E.C.I.A.L.</div>
 
-      <div className="pipboy-stat-footer">
-        MSGS: {telemetry.messageCount} | RECONNECTS:{' '}
-        {telemetry.reconnectCount}
+        <div className="pipboy-stat-list">
+          {stats.map((stat) => (
+            <StatBar key={stat.key} stat={stat} />
+          ))}
+        </div>
+
+        <div className="pipboy-stat-footer">
+          MSGS: {telemetry.messageCount} | RECONNECTS:{' '}
+          {telemetry.reconnectCount}
+        </div>
       </div>
     </div>
   );

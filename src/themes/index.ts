@@ -33,8 +33,8 @@ export interface TerminalTheme {
   borderSize?: string;
   /** Border color */
   borderColor?: string;
-  /** Layout mode: fullscreen CRT, windowed GUI, panel-based, or pip-boy tabbed */
-  layout?: 'fullscreen' | 'windowed' | 'panel' | 'pipboy';
+  /** Layout mode: fullscreen CRT, windowed GUI, panel-based, pip-boy tabbed, or apple2e 3D */
+  layout?: 'fullscreen' | 'windowed' | 'panel' | 'pipboy' | 'apple2e';
   /** Whether CRT scanline/glow effects are enabled */
   crtEnabled?: boolean;
   /** Skin-specific CSS class name applied to the root */

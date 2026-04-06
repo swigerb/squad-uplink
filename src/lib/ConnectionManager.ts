@@ -37,11 +37,14 @@ export class ConnectionManager {
   private metricsTimer: ReturnType<typeof setInterval> | null = null;
   private reconnectCount = 0;
 
-  /** Set by consumers to receive inbound messages */
+  /** Singleton instance for the app */
   onMessage: ((msg: InboundMessage) => void) | null = null;
 
   /** Set by consumers to receive connection state changes */
   onStateChange: ((state: ConnectionState) => void) | null = null;
+
+  /** Timer for auto-clearing RADS alert */
+  private radsAlertTimer: ReturnType<typeof setTimeout> | null = null;
 
   /**
    * Connect to a squad-rc WebSocket endpoint.
@@ -85,6 +88,12 @@ export class ConnectionManager {
       ws.onmessage = (event) => {
         this.inboundTimestamps.push(Date.now());
         const store = useConnectionStore.getState();
+
+        // Clear thinking state on any inbound message
+        if (store.thinking) {
+          store.setThinking(false);
+        }
+
         store.updateTelemetry({
           messageCount: store.telemetry.messageCount + 1,
           successCount: store.telemetry.successCount + 1,
@@ -92,6 +101,12 @@ export class ConnectionManager {
         try {
           const msg: InboundMessage = JSON.parse(event.data as string);
           this.trackMessageHistory(msg, 'inbound');
+
+          // Spike RADS needle on error messages
+          if (msg.type === 'error') {
+            this.triggerRadsAlert();
+          }
+
           this.onMessage?.(msg);
         } catch {
           console.error('[squad-uplink] Failed to parse message:', event.data);
@@ -150,11 +165,17 @@ export class ConnectionManager {
       this.rateLimiter.resetAt = now + RATE_LIMIT_WINDOW;
     }
 
+    // Set thinking state — we're awaiting a response
+    useConnectionStore.getState().setThinking(true);
+
     // If under threshold, send immediately
     if (this.rateLimiter.count < RATE_LIMIT_THRESHOLD) {
       this.sendImmediate(message);
       return;
     }
+
+    // Rate limit threshold reached — spike RADS
+    this.triggerRadsAlert();
 
     // If at hard limit, queue
     if (this.rateLimiter.count >= RATE_LIMIT_MAX) {
@@ -376,6 +397,10 @@ export class ConnectionManager {
       clearTimeout(this.reconnectTimer);
       this.reconnectTimer = null;
     }
+    if (this.radsAlertTimer) {
+      clearTimeout(this.radsAlertTimer);
+      this.radsAlertTimer = null;
+    }
     this.stopDrainTimer();
     if (this.ws) {
       this.ws.onopen = null;
@@ -385,6 +410,17 @@ export class ConnectionManager {
       this.ws.close();
       this.ws = null;
     }
+  }
+
+  /** Spike the RADS needle for 2 seconds (error/rate-limit indicator) */
+  private triggerRadsAlert(): void {
+    const store = useConnectionStore.getState();
+    store.setRadsAlert(true);
+    if (this.radsAlertTimer) clearTimeout(this.radsAlertTimer);
+    this.radsAlertTimer = setTimeout(() => {
+      useConnectionStore.getState().setRadsAlert(false);
+      this.radsAlertTimer = null;
+    }, 2000);
   }
 }
 

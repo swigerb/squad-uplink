@@ -202,16 +202,20 @@ describe('Win95Layout', () => {
   // 3. DESKTOP ICON (after close)
   // =========================================================================
   describe('Desktop icon', () => {
-    it('desktop icon appears when window is closed', async () => {
+    it('desktop icons are always visible on the teal desktop', async () => {
       await renderApp();
-      const closeBtn = screen.getByRole('button', { name: 'Close' });
-      fireEvent.click(closeBtn);
-
       const icon = screen.getByTestId('win95-desktop-icon');
       expect(icon).toBeVisible();
     });
 
-    it('double-click on icon reopens the window', async () => {
+    it('desktop icons remain visible when window is open', async () => {
+      await renderApp();
+      // Window starts in 'normal' state (open) — icons should still be there
+      const icon = screen.getByTestId('win95-desktop-icon');
+      expect(icon).toBeInTheDocument();
+    });
+
+    it('double-click on icon reopens the window after close', async () => {
       const user = userEvent.setup();
       await renderApp();
 
@@ -227,7 +231,6 @@ describe('Win95Layout', () => {
 
     it('icon shows "SQUAD UPLINK" label', async () => {
       await renderApp();
-      fireEvent.click(screen.getByRole('button', { name: 'Close' }));
 
       const icon = screen.getByTestId('win95-desktop-icon');
       expect(icon).toHaveTextContent('SQUAD UPLINK');
@@ -236,8 +239,6 @@ describe('Win95Layout', () => {
     it('single click selects the icon (visual highlight)', async () => {
       const user = userEvent.setup();
       await renderApp();
-
-      fireEvent.click(screen.getByRole('button', { name: 'Close' }));
 
       const icon = screen.getByTestId('win95-desktop-icon');
       await user.click(icon);
@@ -250,19 +251,17 @@ describe('Win95Layout', () => {
   // 3b. THEME SWITCHER DESKTOP ICON
   // =========================================================================
   describe('Theme switcher desktop icon', () => {
-    it('theme icon appears on desktop when window is closed', async () => {
+    it('theme icon is always visible on desktop', async () => {
       await renderApp();
-      fireEvent.click(screen.getByRole('button', { name: 'Close' }));
 
       const themeIcon = screen.getByTestId('win95-theme-icon');
-      expect(themeIcon).toBeVisible();
+      expect(themeIcon).toBeInTheDocument();
       expect(themeIcon).toHaveTextContent('Display Properties');
     });
 
     it('double-click on theme icon cycles to next theme', async () => {
       const user = userEvent.setup();
       await renderApp();
-      fireEvent.click(screen.getByRole('button', { name: 'Close' }));
 
       const themeIcon = screen.getByTestId('win95-theme-icon');
       await user.dblClick(themeIcon);
@@ -274,7 +273,6 @@ describe('Win95Layout', () => {
     it('single click selects theme icon', async () => {
       const user = userEvent.setup();
       await renderApp();
-      fireEvent.click(screen.getByRole('button', { name: 'Close' }));
 
       const themeIcon = screen.getByTestId('win95-theme-icon');
       await user.click(themeIcon);
@@ -285,7 +283,6 @@ describe('Win95Layout', () => {
     it('selecting theme icon deselects app icon', async () => {
       const user = userEvent.setup();
       await renderApp();
-      fireEvent.click(screen.getByRole('button', { name: 'Close' }));
 
       const appIcon = screen.getByTestId('win95-desktop-icon');
       const themeIcon = screen.getByTestId('win95-theme-icon');
@@ -302,7 +299,6 @@ describe('Win95Layout', () => {
 
     it('Enter key on theme icon cycles theme', async () => {
       await renderApp();
-      fireEvent.click(screen.getByRole('button', { name: 'Close' }));
 
       const themeIcon = screen.getByTestId('win95-theme-icon');
       fireEvent.keyDown(themeIcon, { key: 'Enter' });

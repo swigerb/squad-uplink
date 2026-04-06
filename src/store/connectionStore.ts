@@ -30,6 +30,10 @@ export interface ConnectionStore {
   commandHistory: string[];
   uplinkOverride: boolean;
 
+  // Hardware feedback state
+  radsAlert: boolean;
+  thinking: boolean;
+
   setStatus: (status: ConnectionState) => void;
   setTunnelUrl: (url: string | null) => void;
   setAgentCount: (count: number) => void;
@@ -49,6 +53,10 @@ export interface ConnectionStore {
   setActiveAgent: (agent: string | null) => void;
   addCommand: (cmd: string) => void;
   toggleUplinkOverride: () => void;
+
+  // Hardware feedback actions
+  setRadsAlert: (alert: boolean) => void;
+  setThinking: (thinking: boolean) => void;
 }
 
 const initialTelemetry: TelemetryMetrics = {
@@ -83,6 +91,10 @@ export const useConnectionStore = create<ConnectionStore>((set) => ({
   commandHistory: [],
   uplinkOverride: false,
 
+  // Hardware feedback initial state
+  radsAlert: false,
+  thinking: false,
+
   setStatus: (status) => set({ status }),
   setTunnelUrl: (url) => set({ tunnelUrl: url }),
   setAgentCount: (count) => set({ agentCount: count }),
@@ -116,4 +128,8 @@ export const useConnectionStore = create<ConnectionStore>((set) => ({
     })),
   toggleUplinkOverride: () =>
     set((s) => ({ uplinkOverride: !s.uplinkOverride })),
+
+  // Hardware feedback actions
+  setRadsAlert: (alert) => set({ radsAlert: alert }),
+  setThinking: (thinking) => set({ thinking }),
 }));

@@ -11,7 +11,10 @@
     "preview": "vite preview",
     "test": "vitest run",
     "test:watch": "vitest",
-    "deploy": "npm run build && echo 'Deploy dist/ to Azure SWA'"
+    "deploy": "npm run build && echo 'Deploy dist/ to Azure SWA'",
+    "swa:start": "swa start http://localhost:5173 --run \"npm run dev\"",
+    "deploy:preview": "npm run build && swa deploy ./dist --env preview",
+    "deploy:prod": "npm run build && swa deploy ./dist --env production"
   },
   "dependencies": {
     "@xterm/addon-canvas": "^0.7.0",
@@ -23,6 +26,7 @@
     "zustand": "^5.0.12"
   },
   "devDependencies": {
+    "@azure/static-web-apps-cli": "^2.0.8",
     "@eslint/js": "^9.39.4",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",

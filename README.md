@@ -67,7 +67,7 @@ npx @azure/static-web-apps-cli deploy dist/ --env production
 
 ## Themes
 
-Five hardware-authentic terminal skins:
+Six hardware-authentic terminal skins:
 
 | Skin | Vibe | Layout |
 |------|------|--------|
@@ -76,8 +76,42 @@ Five hardware-authentic terminal skins:
 | **IBM 3270** | Amber mainframe, solenoid clicks | Fullscreen |
 | **Windows 95** | Teal desktop + windowed terminal | Windowed |
 | **LCARS** | Star Trek bridge panels, sci-fi chirps | Panel |
+| **Pip-Boy 3000** | Fallout retro-futuristic CRT device | Pip-Boy |
 
 Cycle themes with the **Theme** button in the toolbar.
+
+### Pip-Boy 3000 (Uplink-Gamma)
+
+A Fallout-inspired retro-futuristic CRT device skin, faithfully ported from a [Codepen reference](https://codepen.io/stix/pen/KdJEwB). The entire UI is wrapped in a full hardware device frame — tan metal casing, decorative screws, speaker grilles, dials, and a glowing amber power button.
+
+**Color palette:**
+
+| Token | Hex | Usage |
+|-------|-----|-------|
+| Primary | `#1bff80` | Text, borders, glow effects |
+| Muted | `#145b32` | Inactive elements, secondary text |
+| Background | `#000500` | CRT screen background |
+| Alert | `#ffb641` | Power button, warning indicators |
+
+**Layout:** Fixed 630×400 `.pip` container scaled to fit viewport via CSS `transform: scale()`. Three-column CSS grid — left speaker/grip, center CRT screen bezel, right panel with RADS dial and tune wheel.
+
+**Tab navigation:**
+
+| Tab | Content |
+|-----|---------|
+| **STAT** | Agent health metrics (S.P.E.C.I.A.L. stats) + Walking Vault Boy animation |
+| **INV** | Tools and MCP server inventory |
+| **DATA** | Terminal (xterm.js) — default active tab |
+| **MAP** | Agent topology view |
+| **RADIO** | Command console with history and quick buttons |
+
+**Special features:**
+
+- **CRT transitions** — Authentic phosphor persistence, scanline sweep, and static burst effects when switching tabs or connecting
+- **Functional dials** — Spike wheel rotates to select tabs; tune wheel scrolls content within the active tab
+- **Hardware feedback** — RADS needle spikes on errors; power light pulses amber when an agent is thinking
+- **Walking Vault Boy** — Animated GIF with phosphor glow, flanked by limb health bars derived from telemetry metrics
+- **Responsive** — Side panels (speakers, dials) hide on screens ≤768px
 
 ## Keyboard Shortcuts
 
@@ -95,7 +129,7 @@ src/
 ├── hooks/               # useTheme, useAudio, useWebSocket
 ├── lib/                 # ConnectionManager (singleton), commands, formatters
 ├── store/               # Zustand connection/telemetry store
-├── themes/              # 5 theme definitions (CSS vars + xterm ITheme)
+├── themes/              # 6 theme definitions (CSS vars + xterm ITheme)
 ├── styles/              # Global CSS, CRT effects, fonts, layout chrome
 └── types/               # squad-rc protocol types
 ```

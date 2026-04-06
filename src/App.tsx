@@ -20,7 +20,9 @@ import '@/styles/lcars-panels.css';
 import { PipBoyStat, PipBoyInv, PipBoyMap, PipBoyRadio } from '@/components/PipBoy/tabs';
 import { usePipBoyTransition, PIPBOY_TABS } from '@/hooks/usePipBoyTransition';
 import type { PipBoyTab } from '@/hooks/usePipBoyTransition';
+import { Apple2eLayout } from '@/components/Apple2e';
 import '@/styles/pipboy.css';
+import '@/styles/apple2e-3d.css';
 
 const TelemetryDrawer = lazy(() =>
   import('@/components/TelemetryDrawer/TelemetryDrawer').then((m) => ({
@@ -138,47 +140,45 @@ function Win95Layout({
 
   return (
     <div className="win95-desktop" onClick={handleDesktopClick}>
-      {/* Desktop icons — visible only when window is closed */}
-      {windowState === 'closed' && (
-        <>
-          <div
-            className={`win95-desktop-icon ${iconSelected ? 'win95-desktop-icon--selected' : ''}`}
-            onClick={handleIconClick}
-            onDoubleClick={handleIconDoubleClick}
-            role="button"
-            aria-label="SQUAD UPLINK — double-click to open"
-            tabIndex={0}
-            data-testid="win95-desktop-icon"
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') {
-                setWindowState('normal');
-                setIconSelected(false);
-                requestAnimationFrame(() => window.dispatchEvent(new Event('resize')));
-              }
-            }}
-          >
-            <div className="win95-desktop-icon-img" aria-hidden="true">📟</div>
-            <div className="win95-desktop-icon-label">SQUAD UPLINK</div>
-          </div>
-          <div
-            className={`win95-desktop-icon win95-desktop-icon--theme ${themeIconSelected ? 'win95-desktop-icon--selected' : ''}`}
-            onClick={handleThemeIconClick}
-            onDoubleClick={handleThemeIconDoubleClick}
-            role="button"
-            aria-label="Display Properties — double-click to change theme"
-            tabIndex={0}
-            data-testid="win95-theme-icon"
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') {
-                toggleTheme();
-              }
-            }}
-          >
-            <div className="win95-desktop-icon-img" aria-hidden="true">🎨</div>
-            <div className="win95-desktop-icon-label">Display Properties</div>
-          </div>
-        </>
-      )}
+      {/* Desktop icons — always visible on the teal desktop */}
+      <div className="win95-desktop-icons" data-testid="win95-desktop-icons">
+        <div
+          className={`win95-desktop-icon ${iconSelected ? 'win95-desktop-icon--selected' : ''}`}
+          onClick={handleIconClick}
+          onDoubleClick={handleIconDoubleClick}
+          role="button"
+          aria-label="SQUAD UPLINK — double-click to open"
+          tabIndex={0}
+          data-testid="win95-desktop-icon"
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') {
+              setWindowState('normal');
+              setIconSelected(false);
+              requestAnimationFrame(() => window.dispatchEvent(new Event('resize')));
+            }
+          }}
+        >
+          <div className="win95-desktop-icon-img" aria-hidden="true">📟</div>
+          <div className="win95-desktop-icon-label">SQUAD UPLINK</div>
+        </div>
+        <div
+          className={`win95-desktop-icon win95-desktop-icon--theme ${themeIconSelected ? 'win95-desktop-icon--selected' : ''}`}
+          onClick={handleThemeIconClick}
+          onDoubleClick={handleThemeIconDoubleClick}
+          role="button"
+          aria-label="Display Properties — double-click to change theme"
+          tabIndex={0}
+          data-testid="win95-theme-icon"
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') {
+              toggleTheme();
+            }
+          }}
+        >
+          <div className="win95-desktop-icon-img" aria-hidden="true">🎨</div>
+          <div className="win95-desktop-icon-label">Display Properties</div>
+        </div>
+      </div>
 
       {/* Window — hidden via display:none when minimized/closed to keep terminal mounted */}
       <div
@@ -736,6 +736,20 @@ function AppContent() {
         <PipBoyLayout statusBar={statusBar} crtEnabled={crtEnabled}>
           <div style={crtOffStyle}>{terminal}</div>
         </PipBoyLayout>
+        <Suspense fallback={null}>
+          <TelemetryDrawer />
+        </Suspense>
+      </>
+    );
+  }
+
+  if (layout === 'apple2e') {
+    return (
+      <>
+        <div aria-live="polite" aria-atomic="true" className="sr-only">{themeAnnouncement}</div>
+        <Apple2eLayout statusBar={statusBar} crtEnabled={crtEnabled}>
+          <div style={crtOffStyle}>{terminal}</div>
+        </Apple2eLayout>
         <Suspense fallback={null}>
           <TelemetryDrawer />
         </Suspense>

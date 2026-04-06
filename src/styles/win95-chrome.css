@@ -66,6 +66,7 @@
   max-width: 900px;
   height: 80vh;
   min-height: 400px;
+  z-index: 2;
 }
 
 /* Title bar */
@@ -293,6 +294,22 @@
   user-select: none;
   width: 72px;
   text-align: center;
+  z-index: 1;
+}
+
+/* Container keeps icons grouped and below the window */
+.win95-desktop-icons {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 1;
+  pointer-events: none;
+}
+
+.win95-desktop-icons > .win95-desktop-icon {
+  pointer-events: auto;
 }
 
 /* Second desktop icon (theme switcher) offset below the first */

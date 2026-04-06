@@ -25,8 +25,12 @@ export function StatusBar() {
   const tunnelUrl = useConnectionStore((s) => s.tunnelUrl);
   const crtEnabled = useConnectionStore((s) => s.crtEnabled);
   const toggleCRT = useConnectionStore((s) => s.toggleCRT);
-  const { themeId } = useTheme();
+  const { themeId, theme } = useTheme();
   const { muted, toggleMute, play } = useAudio(themeId);
+
+  // CRT toggle only for themes with their own CRT system controlled by this toggle.
+  // Pip-Boy has built-in CRT effects; Win95/LCARS have crtEnabled: false.
+  const showCrtToggle = theme.crtEnabled === true && theme.id !== 'pipboy';
 
   const handleCRTToggle = () => {
     play('crt_toggle');
@@ -48,16 +52,18 @@ export function StatusBar() {
 
       <span className="statusbar-spacer" />
 
-      <button
-        className={`statusbar-toggle ${crtEnabled ? 'statusbar-toggle--active' : 'statusbar-toggle--inactive'}`}
-        onClick={handleCRTToggle}
-        title="Toggle CRT effects"
-        aria-label={`CRT effects: ${crtEnabled ? 'on' : 'off'}`}
-        aria-pressed={crtEnabled}
-        data-testid="crt-toggle"
-      >
-        <span aria-hidden="true">📺</span> CRT {crtEnabled ? 'ON' : 'OFF'}
-      </button>
+      {showCrtToggle && (
+        <button
+          className={`statusbar-toggle ${crtEnabled ? 'statusbar-toggle--active' : 'statusbar-toggle--inactive'}`}
+          onClick={handleCRTToggle}
+          title="Toggle CRT effects"
+          aria-label={`CRT effects: ${crtEnabled ? 'on' : 'off'}`}
+          aria-pressed={crtEnabled}
+          data-testid="crt-toggle"
+        >
+          <span aria-hidden="true">📺</span> CRT {crtEnabled ? 'ON' : 'OFF'}
+        </button>
+      )}
 
       <button
         className={`statusbar-toggle ${!muted ? 'statusbar-toggle--active' : 'statusbar-toggle--inactive'}`}
