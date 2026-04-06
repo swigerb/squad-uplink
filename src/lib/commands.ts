@@ -41,7 +41,8 @@ export function handleCommand(input: string, terminal: TerminalWriter | null): v
         terminal.writeln(`   Tunnel: ${store.tunnelUrl}`);
       }
       terminal.writeln(`   Agents: ${store.agentCount}`);
-      terminal.writeln(`   CRT: ${store.crtEnabled ? 'ON' : 'OFF'} | Audio: ${store.audioEnabled ? 'ON' : 'OFF'}`);
+      const audioMuted = localStorage.getItem('squad-uplink-audio-muted') === 'true';
+      terminal.writeln(`   CRT: ${store.crtEnabled ? 'ON' : 'OFF'} | Audio: ${audioMuted ? 'OFF' : 'ON'}`);
       break;
     }
 

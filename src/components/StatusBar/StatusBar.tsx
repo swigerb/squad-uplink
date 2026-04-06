@@ -1,5 +1,7 @@
 import { useConnectionStore } from '@/store/connectionStore';
 import { useTheme } from '@/hooks/useTheme';
+import { useAudio } from '@/hooks/useAudio';
+import { ThemeToggle } from '@/components/ThemeToggle';
 import './StatusBar.css';
 
 const STATUS_INDICATORS: Record<string, string> = {
@@ -22,10 +24,14 @@ export function StatusBar() {
   const status = useConnectionStore((s) => s.status);
   const tunnelUrl = useConnectionStore((s) => s.tunnelUrl);
   const crtEnabled = useConnectionStore((s) => s.crtEnabled);
-  const audioEnabled = useConnectionStore((s) => s.audioEnabled);
   const toggleCRT = useConnectionStore((s) => s.toggleCRT);
-  const toggleAudio = useConnectionStore((s) => s.toggleAudio);
-  const { theme } = useTheme();
+  const { themeId } = useTheme();
+  const { muted, toggleMute, play } = useAudio(themeId);
+
+  const handleCRTToggle = () => {
+    play('crt_toggle');
+    toggleCRT();
+  };
 
   return (
     <div className="statusbar" data-testid="statusbar" role="status" aria-label="Connection status bar">
@@ -40,14 +46,12 @@ export function StatusBar() {
         </span>
       )}
 
-      <span className="statusbar-label" aria-label={`Current theme: ${theme.name}`}>{theme.name}</span>
-
       <span className="statusbar-spacer" />
 
       <button
         className={`statusbar-toggle ${crtEnabled ? 'statusbar-toggle--active' : 'statusbar-toggle--inactive'}`}
-        onClick={toggleCRT}
-        title="Toggle CRT effects (Mechanical Switch)"
+        onClick={handleCRTToggle}
+        title="Toggle CRT effects"
         aria-label={`CRT effects: ${crtEnabled ? 'on' : 'off'}`}
         aria-pressed={crtEnabled}
         data-testid="crt-toggle"
@@ -56,15 +60,17 @@ export function StatusBar() {
       </button>
 
       <button
-        className={`statusbar-toggle ${audioEnabled ? 'statusbar-toggle--active' : 'statusbar-toggle--inactive'}`}
-        onClick={toggleAudio}
+        className={`statusbar-toggle ${!muted ? 'statusbar-toggle--active' : 'statusbar-toggle--inactive'}`}
+        onClick={toggleMute}
         title="Toggle audio feedback"
-        aria-label={`Audio feedback: ${audioEnabled ? 'on' : 'off'}`}
-        aria-pressed={audioEnabled}
+        aria-label={`Audio feedback: ${!muted ? 'on' : 'off'}`}
+        aria-pressed={!muted}
         data-testid="audio-toggle"
       >
-        <span aria-hidden="true">🔊</span> Audio {audioEnabled ? 'ON' : 'OFF'}
+        <span aria-hidden="true">{muted ? '🔇' : '🔊'}</span> Audio {muted ? 'OFF' : 'ON'}
       </button>
+
+      <ThemeToggle />
     </div>
   );
 }

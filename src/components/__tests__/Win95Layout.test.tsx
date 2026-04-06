@@ -111,14 +111,13 @@ describe('Win95Layout', () => {
       expect(screen.getByText('Windows 95')).toBeInTheDocument();
     });
 
-    it('control labels (theme name, CRT toggle) are readable inside win95 menubar', async () => {
+    it('menubar renders without controls toolbar (controls moved to StatusBar)', async () => {
       await renderApp();
-      // Controls are rendered inside .win95-menubar via the header prop
       const menubar = document.querySelector('.win95-menubar');
       expect(menubar).toBeInTheDocument();
-      // The toolbar with controls lives inside the menubar
-      const toolbar = screen.getByRole('toolbar', { name: /terminal controls/i });
-      expect(menubar!.contains(toolbar)).toBe(true);
+      // Controls toolbar should no longer be in the menubar
+      const toolbar = screen.queryByRole('toolbar', { name: /terminal controls/i });
+      expect(toolbar).not.toBeInTheDocument();
     });
 
     it('titlebar text is white on blue gradient background', async () => {

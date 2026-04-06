@@ -4,10 +4,7 @@ import { useTheme } from '@/hooks/useTheme';
 import { useAudio } from '@/hooks/useAudio';
 import { Terminal } from '@/components/Terminal';
 import type { TerminalHandle } from '@/components/Terminal';
-import { ThemeToggle } from '@/components/ThemeToggle';
 import { CRTOverlay } from '@/components/CRTOverlay';
-import { MechanicalSwitch } from '@/components/MechanicalSwitch/MechanicalSwitch';
-import { AudioToggle } from '@/components/AudioToggle/AudioToggle';
 import { StatusBar } from '@/components/StatusBar';
 import { connectionManager } from '@/lib/ConnectionManager';
 import { useConnectionStore } from '@/store/connectionStore';
@@ -21,6 +18,8 @@ import '@/styles/accessibility.css';
 import '@/styles/win95-chrome.css';
 import '@/styles/lcars-panels.css';
 import { PipBoyStat, PipBoyInv, PipBoyMap, PipBoyRadio } from '@/components/PipBoy/tabs';
+import { usePipBoyTransition, PIPBOY_TABS } from '@/hooks/usePipBoyTransition';
+import type { PipBoyTab } from '@/hooks/usePipBoyTransition';
 import '@/styles/pipboy.css';
 
 const TelemetryDrawer = lazy(() =>
@@ -31,11 +30,9 @@ const TelemetryDrawer = lazy(() =>
 
 function FullscreenLayout({
   children,
-  header,
   crtEnabled,
 }: {
   children: React.ReactNode;
-  header: React.ReactNode;
   crtEnabled: boolean;
 }) {
   return (
@@ -43,19 +40,6 @@ function FullscreenLayout({
       className={crtEnabled ? 'crt-screen' : undefined}
       style={{ width: '100%', height: '100%' }}
     >
-      <header
-        style={{
-          display: 'flex',
-          justifyContent: 'flex-end',
-          padding: '8px 12px',
-          position: 'absolute',
-          top: 0,
-          right: 0,
-          zIndex: 1001,
-        }}
-      >
-        {header}
-      </header>
       {children}
       <CRTOverlay crtEnabled={crtEnabled} />
     </div>
@@ -64,10 +48,8 @@ function FullscreenLayout({
 
 function Win95Layout({
   children,
-  header,
 }: {
   children: React.ReactNode;
-  header: React.ReactNode;
 }) {
   const [windowState, setWindowState] = useState<'normal' | 'minimized' | 'maximized' | 'closed'>('normal');
   const [iconSelected, setIconSelected] = useState(false);
@@ -169,8 +151,6 @@ function Win95Layout({
           <span className="win95-menu-item">Edit</span>
           <span className="win95-menu-item">View</span>
           <span className="win95-menu-item">Help</span>
-          <span style={{ flex: 1 }} />
-          {header}
         </div>
         <div className="win95-terminal-area">{children}</div>
         <div className="win95-statusbar">
@@ -203,9 +183,6 @@ function Win95Layout({
   );
 }
 
-const PIPBOY_TABS = ['STAT', 'INV', 'DATA', 'MAP', 'RADIO'] as const;
-type PipBoyTab = (typeof PIPBOY_TABS)[number];
-
 const PIPBOY_TAB_LABELS: Record<PipBoyTab, string> = {
   STAT: 'pipboy-lbl-stat',
   INV: 'pipboy-lbl-inv',
@@ -231,28 +208,117 @@ function usePipBoyScale() {
 
 function PipBoyLayout({
   children,
-  header,
   statusBar,
   crtEnabled,
 }: {
   children: React.ReactNode;
-  header: React.ReactNode;
   statusBar: React.ReactNode;
   crtEnabled: boolean;
 }) {
-  const [activeTab, setActiveTab] = useState<PipBoyTab>('DATA');
+  const { activeTab, tabIndex, displayTab, switchTab, nextTab, prevTab, transitionPhase } = usePipBoyTransition('DATA');
   const scale = usePipBoyScale();
+  const radsAlert = useConnectionStore((s) => s.radsAlert);
+  const thinking = useConnectionStore((s) => s.thinking);
+  const { play } = useAudio('pipboy');
+
+  // Spike wheel rotation: base 10deg + 15deg per tab index
+  const spikeRotation = 10 + tabIndex * 15;
+
+  // Tune wheel scroll tracking
+  const [tuneRotation, setTuneRotation] = useState(0);
+  const tuneWheelRef = useRef<HTMLDivElement>(null);
+  const tuneDragRef = useRef<{ active: boolean; lastY: number }>({ active: false, lastY: 0 });
+
+  /** Find the scroll container for the currently visible tab */
+  const getActiveScrollContainer = useCallback((): HTMLElement | null => {
+    const panel = document.querySelector(`#pipboy-panel-${displayTab}`) as HTMLElement | null;
+    return panel;
+  }, [displayTab]);
 
   const handleTabClick = useCallback((tab: PipBoyTab) => {
-    setActiveTab(tab);
-  }, []);
+    switchTab(tab);
+  }, [switchTab]);
 
   const handleTabKey = useCallback((e: React.KeyboardEvent, tab: PipBoyTab) => {
     if (e.key === 'Enter' || e.key === ' ') {
       e.preventDefault();
-      setActiveTab(tab);
+      switchTab(tab);
     }
-  }, []);
+  }, [switchTab]);
+
+  // ── Spike Wheel handlers (tab navigation) ──
+  const handleSpikeClick = useCallback(() => {
+    play('toggle');
+    nextTab();
+  }, [play, nextTab]);
+
+  const handleSpikeWheel = useCallback((e: React.WheelEvent) => {
+    e.preventDefault();
+    play('toggle');
+    if (e.deltaY > 0) nextTab(); else prevTab();
+  }, [play, nextTab, prevTab]);
+
+  const handleSpikeKeyDown = useCallback((e: React.KeyboardEvent) => {
+    if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
+      e.preventDefault(); play('toggle'); nextTab();
+    } else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
+      e.preventDefault(); play('toggle'); prevTab();
+    } else if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault(); play('toggle'); nextTab();
+    }
+  }, [play, nextTab, prevTab]);
+
+  // ── Tune Wheel handlers (content scrolling) ──
+  const scrollContent = useCallback((delta: number) => {
+    const container = getActiveScrollContainer();
+    if (container) {
+      container.scrollTop += delta;
+    }
+    setTuneRotation((prev) => prev + delta * 0.5);
+    play('toggle');
+  }, [getActiveScrollContainer, play]);
+
+  const handleTuneWheel = useCallback((e: React.WheelEvent) => {
+    e.preventDefault();
+    const scrollDelta = e.deltaY > 0 ? 40 : -40;
+    scrollContent(scrollDelta);
+  }, [scrollContent]);
+
+  const handleTuneMouseDown = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    tuneDragRef.current = { active: true, lastY: e.clientY };
+
+    const handleMouseMove = (me: MouseEvent) => {
+      if (!tuneDragRef.current.active) return;
+      const delta = me.clientY - tuneDragRef.current.lastY;
+      tuneDragRef.current.lastY = me.clientY;
+      if (Math.abs(delta) > 2) {
+        const container = getActiveScrollContainer();
+        if (container) container.scrollTop += delta;
+        setTuneRotation((prev) => prev + delta * 0.5);
+      }
+    };
+
+    const handleMouseUp = () => {
+      tuneDragRef.current.active = false;
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mouseup', handleMouseUp);
+    };
+
+    window.addEventListener('mousemove', handleMouseMove);
+    window.addEventListener('mouseup', handleMouseUp);
+  }, [getActiveScrollContainer]);
+
+  const handleTuneKeyDown = useCallback((e: React.KeyboardEvent) => {
+    if (e.key === 'ArrowDown') {
+      e.preventDefault(); scrollContent(40);
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault(); scrollContent(-40);
+    }
+  }, [scrollContent]);
+
+  // The tab that's currently shown on screen (lags during transitions)
+  const visibleTab = displayTab;
 
   return (
     <div
@@ -291,42 +357,43 @@ function PipBoyLayout({
                   </p>
                 </nav>
 
-                {/* Controls overlay */}
-                <div className="pipboy-controls">{header}</div>
-
                 {/* Functional content area */}
                 <div className="pipboy-screen-inner">
-                  <div className="pipboy-content">
+                  <div className={`pipboy-content ${transitionPhase === 'fade' ? 'pipboy-phosphor-fade' : ''}`}>
+                    {/* Transition overlays */}
+                    {transitionPhase === 'static' && <div className="pipboy-static-burst" />}
+                    {transitionPhase === 'sweep' && <div className="pipboy-sweep-line" />}
+
                     {/* DATA tab — terminal always mounted */}
                     <div
                       id="pipboy-panel-DATA"
                       role="tabpanel"
                       aria-label="DATA"
-                      className={`pipboy-tab-panel ${activeTab !== 'DATA' ? 'pipboy-tab-panel--hidden' : ''}`}
-                      style={{ display: activeTab !== 'DATA' ? 'none' : undefined }}
+                      className={`pipboy-tab-panel ${visibleTab !== 'DATA' ? 'pipboy-tab-panel--hidden' : ''}`}
+                      style={{ display: visibleTab !== 'DATA' ? 'none' : undefined }}
                     >
                       <div className="pipboy-terminal-wrap">{children}</div>
                     </div>
 
-                    {activeTab === 'STAT' && (
+                    {visibleTab === 'STAT' && (
                       <div id="pipboy-panel-STAT" role="tabpanel" aria-label="STAT" className="pipboy-tab-panel">
                         <PipBoyStat />
                       </div>
                     )}
 
-                    {activeTab === 'INV' && (
+                    {visibleTab === 'INV' && (
                       <div id="pipboy-panel-INV" role="tabpanel" aria-label="INV" className="pipboy-tab-panel">
                         <PipBoyInv />
                       </div>
                     )}
 
-                    {activeTab === 'MAP' && (
+                    {visibleTab === 'MAP' && (
                       <div id="pipboy-panel-MAP" role="tabpanel" aria-label="MAP" className="pipboy-tab-panel">
                         <PipBoyMap />
                       </div>
                     )}
 
-                    {activeTab === 'RADIO' && (
+                    {visibleTab === 'RADIO' && (
                       <div id="pipboy-panel-RADIO" role="tabpanel" aria-label="RADIO" className="pipboy-tab-panel">
                         <PipBoyRadio />
                       </div>
@@ -354,7 +421,7 @@ function PipBoyLayout({
                 <div className="pipboy-statusbar">{statusBar}</div>
               </div>
             </div>
-            <div className="pipboy-power" /><div className="pipboy-screw4" /><div className="pipboy-screw5" />
+            <div className={`pipboy-power ${thinking ? 'pipboy-power-thinking' : ''}`} /><div className="pipboy-screw4" /><div className="pipboy-screw5" />
           </div>
 
           {/* Left wheel */}
@@ -363,14 +430,18 @@ function PipBoyLayout({
             <div className="pipboy-left-wheel-shadow" /><div className="pipboy-left-wheel-shadow" />
           </div>
 
-          {/* Right wheel with tab names */}
+          {/* Right wheel with tab names — clickable dial */}
           <div className="pipboy-wheel">
             <div className="pipboy-tab-names">
               {PIPBOY_TABS.map((tab) => (
                 <li
                   key={tab}
                   className={PIPBOY_TAB_LABELS[tab]}
+                  role="button"
+                  aria-label={`Switch to ${tab}`}
+                  tabIndex={0}
                   onClick={() => handleTabClick(tab)}
+                  onKeyDown={(e) => handleTabKey(e, tab)}
                 />
               ))}
             </div>
@@ -379,8 +450,8 @@ function PipBoyLayout({
             <div className="pipboy-wheel-plug" /><div className="pipboy-wheel-wire" />
           </div>
 
-          {/* RADS meter */}
-          <div className="pipboy-rads">
+          {/* RADS meter — spikes on error/rate-limit */}
+          <div className={`pipboy-rads ${radsAlert ? 'pipboy-rads-alert' : ''}`}>
             <div className="pipboy-rads-meter"><div className="pipboy-rads-value" /><div className="pipboy-bump1" /></div>
           </div>
 
@@ -398,7 +469,20 @@ function PipBoyLayout({
 
           {/* Tune meter & wheel */}
           <div className="pipboy-tune-meter" />
-          <div className="pipboy-tune-wheel"><div className="pipboy-analog" /></div>
+          <div
+            className="pipboy-tune-wheel"
+            ref={tuneWheelRef}
+            role="slider"
+            aria-label="Content scroll dial"
+            aria-valuemin={0}
+            aria-valuemax={100}
+            aria-valuenow={0}
+            tabIndex={0}
+            style={{ transform: `rotate(${45 + tuneRotation}deg)`, transition: 'transform 100ms ease-out' }}
+            onWheel={handleTuneWheel}
+            onMouseDown={handleTuneMouseDown}
+            onKeyDown={handleTuneKeyDown}
+          ><div className="pipboy-analog" /></div>
 
           {/* Bottom panel */}
           <div className="pipboy-bottom">
@@ -412,7 +496,20 @@ function PipBoyLayout({
           {/* Remaining decorative elements */}
           <div className="pipboy-roulette" />
           <div className="pipboy-top-right" />
-          <div className="pipboy-spike-wheel" />
+          <div
+            className="pipboy-spike-wheel"
+            role="slider"
+            aria-label="Tab navigation dial"
+            aria-valuemin={0}
+            aria-valuemax={4}
+            aria-valuenow={tabIndex}
+            aria-valuetext={activeTab}
+            tabIndex={0}
+            style={{ transform: `rotate(${spikeRotation}deg)`, transition: 'transform 200ms ease-out' }}
+            onClick={handleSpikeClick}
+            onWheel={handleSpikeWheel}
+            onKeyDown={handleSpikeKeyDown}
+          />
         </div>
       </div>
 
@@ -423,10 +520,8 @@ function PipBoyLayout({
 
 function LcarsLayout({
   children,
-  header,
 }: {
   children: React.ReactNode;
-  header: React.ReactNode;
 }) {
   return (
     <div className="lcars-layout">
@@ -455,7 +550,6 @@ function LcarsLayout({
             v0.1.0
           </div>
           <div className="lcars-header-spacer" />
-          {header}
         </div>
         <div className="lcars-header-endcap" />
       </div>
@@ -481,11 +575,9 @@ function LcarsLayout({
 }
 
 function AppContent() {
-  const { theme, themeId } = useTheme();
-  const { muted, toggleMute } = useAudio(themeId);
+  const { theme } = useTheme();
   const terminalRef = useRef<TerminalHandle>(null);
   const crtEnabled = useConnectionStore((s) => s.crtEnabled);
-  const toggleCRT = useConnectionStore((s) => s.toggleCRT);
   const toggleDrawer = useConnectionStore((s) => s.toggleDrawer);
   const [themeAnnouncement, setThemeAnnouncement] = useState('');
 
@@ -564,13 +656,6 @@ function AppContent() {
   }, [toggleDrawer]);
 
   const terminal = <Terminal ref={terminalRef} onInput={handleInput} />;
-  const controls = (
-    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }} role="toolbar" aria-label="Terminal controls">
-      <MechanicalSwitch crtEnabled={crtEnabled} onToggle={toggleCRT} />
-      <AudioToggle muted={muted} onToggle={toggleMute} />
-      <ThemeToggle />
-    </div>
-  );
 
   const crtOffStyle = !crtEnabled ? { textShadow: 'none' } as React.CSSProperties : undefined;
 
@@ -582,7 +667,7 @@ function AppContent() {
     return (
       <>
         <div aria-live="polite" aria-atomic="true" className="sr-only">{themeAnnouncement}</div>
-        <Win95Layout header={controls}>
+        <Win95Layout>
           <div style={crtOffStyle}>{terminal}</div>
         </Win95Layout>
         <Suspense fallback={null}>
@@ -596,7 +681,7 @@ function AppContent() {
     return (
       <>
         <div aria-live="polite" aria-atomic="true" className="sr-only">{themeAnnouncement}</div>
-        <PipBoyLayout header={controls} statusBar={statusBar} crtEnabled={crtEnabled}>
+        <PipBoyLayout statusBar={statusBar} crtEnabled={crtEnabled}>
           <div style={crtOffStyle}>{terminal}</div>
         </PipBoyLayout>
         <Suspense fallback={null}>
@@ -610,7 +695,7 @@ function AppContent() {
     return (
       <>
         <div aria-live="polite" aria-atomic="true" className="sr-only">{themeAnnouncement}</div>
-        <LcarsLayout header={controls}>
+        <LcarsLayout>
           <div style={crtOffStyle}>{terminal}</div>
           {statusBar}
         </LcarsLayout>
@@ -624,7 +709,7 @@ function AppContent() {
   return (
     <>
       <div aria-live="polite" aria-atomic="true" className="sr-only">{themeAnnouncement}</div>
-      <FullscreenLayout header={controls} crtEnabled={crtEnabled}>
+      <FullscreenLayout crtEnabled={crtEnabled}>
         <div style={crtOffStyle}>{terminal}</div>
         {statusBar}
       </FullscreenLayout>

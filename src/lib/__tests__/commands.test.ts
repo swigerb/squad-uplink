@@ -73,7 +73,8 @@ describe('handleCommand', () => {
     });
 
     it('shows CRT and audio state', () => {
-      useConnectionStore.setState({ crtEnabled: true, audioEnabled: false });
+      useConnectionStore.setState({ crtEnabled: true });
+      localStorage.setItem('squad-uplink-audio-muted', 'true');
 
       handleCommand('/status', terminal);
 
