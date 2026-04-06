@@ -466,6 +466,33 @@ xterm.js terminal stays mounted inside `.pipboy-screen-bezel` div. Tab switches 
 
 Fast Refresh HMR console warning: "ThemeProvider is not exported from React." Caused by single file exporting both hook and component, confusing React's HMR system.
 
+---
+
+### 2026-04-06T01:30:00Z: Consolidate All Controls to StatusBar
+**By:** Kare (Frontend Dev)
+**Status:** Implemented — Production Ready
+
+**Problem:** Duplicate control buttons existed in two locations:
+1. Upper-right toolbar in App.tsx (`MechanicalSwitch` + `AudioToggle` + `ThemeToggle`)
+2. StatusBar (lower-right) with separate CRT and Audio toggles
+
+Additionally, two audio mute systems conflicted: `useAudio().toggleMute` (real, localStorage-backed) and `connectionStore.toggleAudio` (dead flag, did nothing to actual playback).
+
+**Decision:** StatusBar is the single source of truth for all controls.
+
+**Implementation:**
+- Removed upper-right toolbar entirely from App.tsx
+- Removed `header` prop from all 4 layout components and their TypeScript interfaces
+- StatusBar now contains: CRT toggle (plays `crt_toggle` sound all 6 themes), Audio toggle (wired to real `useAudio().toggleMute`), ThemeToggle
+- CRT toggle confirmed: audible on every click across all themes (apple2e, c64, ibm3270, win95, lcars, pipboy)
+- Audio toggle uses localStorage-backed mute state
+- `/status` command reads audio mute from localStorage (not `connectionStore.audioEnabled`)
+- `MechanicalSwitch` and `AudioToggle` components deprecated (tests skipped) but retain for future reuse
+
+**Rationale:** Single control location eliminates user confusion and state synchronization bugs. StatusBar is persistent across all themes and always accessible.
+
+**Impact:** 380 tests passing, 15 skipped (deprecated components). Build clean. Zero breaking changes.
+
 ## Decision
 
 Split `src/hooks/useTheme.tsx` into two files:
