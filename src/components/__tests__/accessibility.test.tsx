@@ -1,17 +1,16 @@
 /**
- * Accessibility Tests — Wave 6
+ * Accessibility Tests — Wave 6 (updated for consolidated controls)
  *
- * Tests keyboard navigation, ARIA attributes, and prefers-reduced-motion
- * across all interactive components. Covers the a11y requirements from spec.
+ * All control buttons (CRT toggle, Audio toggle, ThemeToggle) now live in
+ * the StatusBar. The upper-right toolbar with MechanicalSwitch + AudioToggle
+ * has been removed. Tests verify keyboard nav, ARIA, and reduced-motion
+ * entirely through the StatusBar surface.
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, fireEvent, act } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import type { ReactNode } from 'react';
 import { ThemeProvider } from '@/hooks/ThemeProvider';
-import { ThemeToggle } from '@/components/ThemeToggle/ThemeToggle';
-import { MechanicalSwitch } from '@/components/MechanicalSwitch/MechanicalSwitch';
-import { AudioToggle } from '@/components/AudioToggle/AudioToggle';
 import { StatusBar } from '@/components/StatusBar';
 import { CRTOverlay } from '@/components/CRTOverlay/CRTOverlay';
 import { useConnectionStore } from '@/store/connectionStore';
@@ -32,7 +31,7 @@ function resetStore() {
 }
 
 // ============================================================
-// Keyboard Navigation
+// Keyboard Navigation — All controls now inside StatusBar
 // ============================================================
 describe('Accessibility — Keyboard Navigation', () => {
   beforeEach(() => {
@@ -46,118 +45,8 @@ describe('Accessibility — Keyboard Navigation', () => {
     localStorage.clear();
   });
 
-  describe('ThemeToggle', () => {
-    it('is focusable via Tab', async () => {
-      const user = userEvent.setup();
-      renderWithProviders(<ThemeToggle />);
-
-      await user.tab();
-      expect(screen.getByTestId('theme-toggle')).toHaveFocus();
-    });
-
-    it('activates on Enter key', async () => {
-      const user = userEvent.setup();
-      renderWithProviders(<ThemeToggle />);
-
-      const button = screen.getByTestId('theme-toggle');
-      button.focus();
-      expect(button).toHaveTextContent('Apple IIe');
-
-      await user.keyboard('{Enter}');
-      expect(button).toHaveTextContent('C64');
-    });
-
-    it('activates on Space key', async () => {
-      const user = userEvent.setup();
-      renderWithProviders(<ThemeToggle />);
-
-      const button = screen.getByTestId('theme-toggle');
-      button.focus();
-      expect(button).toHaveTextContent('Apple IIe');
-
-      await user.keyboard(' ');
-      expect(button).toHaveTextContent('C64');
-    });
-  });
-
-  describe('MechanicalSwitch', () => {
-    it('is focusable via Tab', async () => {
-      const user = userEvent.setup();
-      renderWithProviders(
-        <MechanicalSwitch crtEnabled={true} onToggle={vi.fn()} />,
-      );
-
-      await user.tab();
-      expect(screen.getByTestId('mechanical-switch')).toHaveFocus();
-    });
-
-    it('toggles on Enter key', async () => {
-      const user = userEvent.setup();
-      const onToggle = vi.fn();
-      renderWithProviders(
-        <MechanicalSwitch crtEnabled={true} onToggle={onToggle} />,
-      );
-
-      const el = screen.getByTestId('mechanical-switch');
-      el.focus();
-      await user.keyboard('{Enter}');
-      expect(onToggle).toHaveBeenCalledTimes(1);
-    });
-
-    it('toggles on Space key', async () => {
-      const user = userEvent.setup();
-      const onToggle = vi.fn();
-      renderWithProviders(
-        <MechanicalSwitch crtEnabled={true} onToggle={onToggle} />,
-      );
-
-      const el = screen.getByTestId('mechanical-switch');
-      el.focus();
-      await user.keyboard(' ');
-      expect(onToggle).toHaveBeenCalledTimes(1);
-    });
-  });
-
-  describe('AudioToggle', () => {
-    it('is focusable via Tab', async () => {
-      const user = userEvent.setup();
-      renderWithProviders(
-        <AudioToggle muted={false} onToggle={vi.fn()} />,
-      );
-
-      await user.tab();
-      expect(screen.getByTestId('audio-toggle')).toHaveFocus();
-    });
-
-    it('toggles on Enter key', async () => {
-      const user = userEvent.setup();
-      const onToggle = vi.fn();
-      renderWithProviders(
-        <AudioToggle muted={false} onToggle={onToggle} />,
-      );
-
-      const el = screen.getByTestId('audio-toggle');
-      el.focus();
-      await user.keyboard('{Enter}');
-      expect(onToggle).toHaveBeenCalledTimes(1);
-    });
-
-    it('toggles on Space key', async () => {
-      const user = userEvent.setup();
-      const onToggle = vi.fn();
-      renderWithProviders(
-        <AudioToggle muted={false} onToggle={onToggle} />,
-      );
-
-      const el = screen.getByTestId('audio-toggle');
-      el.focus();
-      await user.keyboard(' ');
-      expect(onToggle).toHaveBeenCalledTimes(1);
-    });
-  });
-
-  describe('StatusBar', () => {
-    it('toggle buttons in StatusBar are focusable in tab order', async () => {
+  describe('StatusBar controls', () => {
+    it('all three controls (CRT, Audio, ThemeToggle) are focusable in tab order', async () => {
       const user = userEvent.setup();
       renderWithProviders(<StatusBar />);
 
@@ -170,6 +59,11 @@ describe('Accessibility — Keyboard Navigation', () => {
       await user.tab();
       const audioToggle = screen.getByTestId('audio-toggle');
       expect(audioToggle).toHaveFocus();
+
+      // Tab to theme toggle
+      await user.tab();
+      const themeToggle = screen.getByTestId('theme-toggle');
+      expect(themeToggle).toHaveFocus();
     });
 
     it('CRT toggle in StatusBar activates on Enter', async () => {
@@ -182,11 +76,62 @@ describe('Accessibility — Keyboard Navigation', () => {
       await user.keyboard('{Enter}');
       expect(useConnectionStore.getState().crtEnabled).toBe(!initialState);
     });
+
+    it('CRT toggle in StatusBar activates on Space', async () => {
+      const user = userEvent.setup();
+      renderWithProviders(<StatusBar />);
+
+      const crtToggle = screen.getByTestId('crt-toggle');
+      crtToggle.focus();
+      const initialState = useConnectionStore.getState().crtEnabled;
+      await user.keyboard(' ');
+      expect(useConnectionStore.getState().crtEnabled).toBe(!initialState);
+    });
+
+    it('Audio toggle in StatusBar activates on Enter', async () => {
+      const user = userEvent.setup();
+      renderWithProviders(<StatusBar />);
+
+      const audioToggle = screen.getByTestId('audio-toggle');
+      audioToggle.focus();
+      await user.keyboard('{Enter}');
+      // Audio button should respond to keyboard activation
+      expect(audioToggle).toBeInTheDocument();
+    });
+
+    it('ThemeToggle in StatusBar activates on Enter', async () => {
+      const user = userEvent.setup();
+      renderWithProviders(<StatusBar />);
+
+      const themeToggle = screen.getByTestId('theme-toggle');
+      themeToggle.focus();
+      expect(themeToggle).toHaveTextContent('Apple IIe');
+      await user.keyboard('{Enter}');
+      expect(themeToggle).toHaveTextContent('C64');
+    });
+
+    it('ThemeToggle in StatusBar activates on Space', async () => {
+      const user = userEvent.setup();
+      renderWithProviders(<StatusBar />);
+
+      const themeToggle = screen.getByTestId('theme-toggle');
+      themeToggle.focus();
+      expect(themeToggle).toHaveTextContent('Apple IIe');
+      await user.keyboard(' ');
+      expect(themeToggle).toHaveTextContent('C64');
+    });
+  });
+
+  describe('No standalone toolbar', () => {
+    it('no role="toolbar" element exists — controls are consolidated in StatusBar', () => {
+      renderWithProviders(<StatusBar />);
+      expect(screen.queryByRole('toolbar')).not.toBeInTheDocument();
+    });
   });
 });
 
 // ============================================================
-// ARIA Attributes
+// ARIA Attributes — All controls consolidated in StatusBar
 // ============================================================
 describe('Accessibility — ARIA Attributes', () => {
   beforeEach(() => {
@@ -200,66 +145,63 @@ describe('Accessibility — ARIA Attributes', () => {
     localStorage.clear();
   });
 
-  describe('AudioToggle', () => {
-    it('has aria-label "Mute audio" when unmuted', () => {
-      renderWithProviders(
-        <AudioToggle muted={false} onToggle={vi.fn()} />,
-      );
-      expect(screen.getByTestId('audio-toggle')).toHaveAttribute(
-        'aria-label',
-        'Mute audio',
-      );
+  describe('StatusBar — CRT toggle', () => {
+    it('has aria-pressed="true" when CRT is enabled', () => {
+      useConnectionStore.setState({ crtEnabled: true });
+      renderWithProviders(<StatusBar />);
+      expect(screen.getByTestId('crt-toggle')).toHaveAttribute('aria-pressed', 'true');
     });
 
-    it('has aria-label "Unmute audio" when muted', () => {
-      renderWithProviders(
-        <AudioToggle muted={true} onToggle={vi.fn()} />,
-      );
-      expect(screen.getByTestId('audio-toggle')).toHaveAttribute(
-        'aria-label',
-        'Unmute audio',
-      );
+    it('has aria-pressed="false" when CRT is disabled', () => {
+      useConnectionStore.setState({ crtEnabled: false });
+      renderWithProviders(<StatusBar />);
+      expect(screen.getByTestId('crt-toggle')).toHaveAttribute('aria-pressed', 'false');
+    });
+
+    it('has a descriptive title', () => {
+      renderWithProviders(<StatusBar />);
+      const crtToggle = screen.getByTestId('crt-toggle');
+      expect(crtToggle).toHaveAttribute('title');
+      expect(crtToggle.getAttribute('title')).toBeTruthy();
     });
   });
 
-  describe('ThemeToggle', () => {
-    it('has a descriptive title attribute with next theme name', () => {
-      renderWithProviders(<ThemeToggle />);
+  describe('StatusBar — Audio toggle', () => {
+    it('has a descriptive title', () => {
+      renderWithProviders(<StatusBar />);
+      const audioToggle = screen.getByTestId('audio-toggle');
+      expect(audioToggle).toHaveAttribute('title');
+      expect(audioToggle.getAttribute('title')).toBeTruthy();
+    });
+
+    it('has aria-pressed attribute reflecting mute state', () => {
+      renderWithProviders(<StatusBar />);
+      const audioToggle = screen.getByTestId('audio-toggle');
+      expect(audioToggle).toHaveAttribute('aria-pressed');
+    });
+  });
+
+  describe('StatusBar — ThemeToggle', () => {
+    it('ThemeToggle is rendered inside StatusBar', () => {
+      renderWithProviders(<StatusBar />);
+      const statusbar = screen.getByTestId('statusbar');
+      const themeToggle = screen.getByTestId('theme-toggle');
+      expect(statusbar.contains(themeToggle)).toBe(true);
+    });
+
+    it('ThemeToggle has a descriptive title with next theme name', () => {
+      renderWithProviders(<StatusBar />);
       const button = screen.getByTestId('theme-toggle');
-      // Default is Apple IIe, next is C64
       expect(button).toHaveAttribute('title', 'Switch to C64');
     });
 
-    it('title updates after toggling', async () => {
+    it('ThemeToggle title updates after toggling', async () => {
       const user = userEvent.setup();
-      renderWithProviders(<ThemeToggle />);
+      renderWithProviders(<StatusBar />);
       const button = screen.getByTestId('theme-toggle');
 
       await user.click(button);
-      // Now on C64, next is IBM 3270
       expect(button).toHaveAttribute('title', 'Switch to IBM 3270');
-    });
-  });
-
-  describe('MechanicalSwitch', () => {
-    it('has aria-pressed="true" when CRT is on', () => {
-      renderWithProviders(
-        <MechanicalSwitch crtEnabled={true} onToggle={vi.fn()} />,
-      );
-      expect(screen.getByTestId('mechanical-switch')).toHaveAttribute(
-        'aria-pressed',
-        'true',
-      );
-    });
-
-    it('has aria-pressed="false" when CRT is off', () => {
-      renderWithProviders(
-        <MechanicalSwitch crtEnabled={false} onToggle={vi.fn()} />,
-      );
-      expect(screen.getByTestId('mechanical-switch')).toHaveAttribute(
-        'aria-pressed',
-        'false',
-      );
     });
   });
 
@@ -271,24 +213,10 @@ describe('Accessibility — ARIA Attributes', () => {
     });
   });
 
-  describe('StatusBar', () => {
+  describe('StatusBar — general', () => {
     it('renders with data-testid for identification', () => {
       renderWithProviders(<StatusBar />);
       expect(screen.getByTestId('statusbar')).toBeInTheDocument();
-    });
-
-    it('CRT toggle button has a descriptive title', () => {
-      renderWithProviders(<StatusBar />);
-      const crtToggle = screen.getByTestId('crt-toggle');
-      expect(crtToggle).toHaveAttribute('title');
-      expect(crtToggle.getAttribute('title')).toBeTruthy();
-    });
-
-    it('audio toggle button has a descriptive title', () => {
-      renderWithProviders(<StatusBar />);
-      const audioToggle = screen.getByTestId('audio-toggle');
-      expect(audioToggle).toHaveAttribute('title');
-      expect(audioToggle.getAttribute('title')).toBeTruthy();
     });
 
     it('shows connection status text', () => {

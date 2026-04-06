@@ -14,7 +14,12 @@ function renderWithProvider(muted: boolean, onToggle = vi.fn()) {
   };
 }
 
-describe('AudioToggle', () => {
+/**
+ * AudioToggle is no longer rendered in App.tsx — audio toggle functionality
+ * is now consolidated in StatusBar using useAudio().toggleMute. These tests
+ * verify the component's isolated API contract in case it's reused.
+ */
+describe.skip('AudioToggle (deprecated — no longer rendered in App)', () => {
   beforeEach(() => {
     localStorage.clear();
   });

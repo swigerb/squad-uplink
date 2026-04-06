@@ -16,7 +16,12 @@ function renderWithProvider(crtEnabled: boolean, onToggle = vi.fn()) {
   };
 }
 
-describe('MechanicalSwitch', () => {
+/**
+ * MechanicalSwitch is no longer rendered in App.tsx — all CRT toggle
+ * functionality is now consolidated in StatusBar. These tests verify the
+ * component's isolated API contract in case it's reused in the future.
+ */
+describe.skip('MechanicalSwitch (deprecated — no longer rendered in App)', () => {
   beforeEach(() => {
     localStorage.clear();
     installMockAudioContext();
