@@ -1,4 +1,4 @@
-import { useCallback } from 'react';
+import { useCallback, useState, useEffect, useRef } from 'react';
 import { useConnectionStore } from '@/store/connectionStore';
 import { useAudio } from '@/hooks/useAudio';
 import { Apple2eKeyboard } from './Apple2eKeyboard';
@@ -13,9 +13,20 @@ export function Apple2eLayout({ children, statusBar, crtEnabled: _crtEnabled }: 
   const status = useConnectionStore((s) => s.status);
   const isConnected = status === 'connected';
   const { play } = useAudio('apple2e');
+  const [diskActive, setDiskActive] = useState(false);
+  const diskTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const handleDiskSlotClick = useCallback(() => {
+  useEffect(() => {
+    return () => {
+      if (diskTimeoutRef.current) clearTimeout(diskTimeoutRef.current);
+    };
+  }, []);
+
+  const handleDiskClick = useCallback(() => {
     play('disk_drive');
+    setDiskActive(true);
+    if (diskTimeoutRef.current) clearTimeout(diskTimeoutRef.current);
+    diskTimeoutRef.current = setTimeout(() => setDiskActive(false), 5000);
   }, [play]);
 
   return (
@@ -48,7 +59,15 @@ export function Apple2eLayout({ children, statusBar, crtEnabled: _crtEnabled }: 
           </div>
           <Apple2eKeyboard />
           {/* Disk II Floppy Drive */}
-          <div className="a2e-floppy">
+          <div
+            className="a2e-floppy"
+            onClick={handleDiskClick}
+            role="button"
+            aria-label="Insert floppy disk"
+            tabIndex={0}
+            onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleDiskClick(); } }}
+            style={{ cursor: 'pointer' }}
+          >
             <div className="a2e-floppy-left">
               <div className="a2e-floppy-emboss" />
             </div>
@@ -59,15 +78,7 @@ export function Apple2eLayout({ children, statusBar, crtEnabled: _crtEnabled }: 
               <div className="a2e-floppy-embed a2e-floppy-embed-2" />
             </div>
             <div className="a2e-floppy-front">
-              <div
-                className="a2e-floppy-slot-container"
-                onClick={handleDiskSlotClick}
-                role="button"
-                aria-label="Insert floppy disk"
-                tabIndex={0}
-                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleDiskSlotClick(); } }}
-                style={{ cursor: 'pointer' }}
-              >
+              <div className="a2e-floppy-slot-container">
                 <div className="a2e-floppy-slot">
                   <div className="a2e-floppy-hole" />
                 </div>
@@ -81,7 +92,7 @@ export function Apple2eLayout({ children, statusBar, crtEnabled: _crtEnabled }: 
               <div className="a2e-floppy-light">
                 <span>IN USE</span>
                 <span className="a2e-floppy-arrow">▼</span>
-                <div className={`a2e-floppy-led ${isConnected ? 'a2e-floppy-led--active' : ''}`}>
+                <div className={`a2e-floppy-led ${isConnected || diskActive ? 'a2e-floppy-led--active' : ''}`}>
                   <div className="a2e-floppy-reflection" />
                 </div>
               </div>
