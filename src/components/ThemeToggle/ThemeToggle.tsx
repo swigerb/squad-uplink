@@ -8,6 +8,9 @@ const labels: Record<ThemeId, { emoji: string; name: string; swatch: string }> =
   win95: { emoji: '🪟', name: 'Win 95', swatch: '#008080' },
   lcars: { emoji: '🚀', name: 'LCARS', swatch: '#ff9900' },
   pipboy: { emoji: '☢️', name: 'Pip-Boy', swatch: '#1bff80' },
+  muthur: { emoji: '👽', name: 'MU-TH-UR', swatch: '#7af042' },
+  wopr: { emoji: '🎮', name: 'W.O.P.R.', swatch: '#7cb4fc' },
+  matrix: { emoji: '💊', name: 'The Matrix', swatch: '#00ff00' },
 };
 
 export function ThemeToggle() {

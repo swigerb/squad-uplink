@@ -25,10 +25,19 @@ import { C64Layout } from '@/components/C64';
 import '@/styles/pipboy.css';
 import '@/styles/apple2e-3d.css';
 import '@/styles/c64-3d.css';
+import '@/styles/wopr.css';
+import '@/styles/muthur.css';
+import '@/styles/matrix.css';
 
 const TelemetryDrawer = lazy(() =>
   import('@/components/TelemetryDrawer/TelemetryDrawer').then((m) => ({
     default: m.TelemetryDrawer,
+  })),
+);
+
+const MatrixRain = lazy(() =>
+  import('@/components/MatrixRain/MatrixRain').then((m) => ({
+    default: m.MatrixRain,
   })),
 );
 
@@ -634,6 +643,14 @@ function AppContent() {
   const crtEnabled = useConnectionStore((s) => s.crtEnabled);
   const toggleDrawer = useConnectionStore((s) => s.toggleDrawer);
   const [themeAnnouncement, setThemeAnnouncement] = useState('');
+  const [showMatrixRain, setShowMatrixRain] = useState(theme.id === 'matrix');
+
+  // Show Matrix rain on theme switch to 'matrix'
+  useEffect(() => {
+    if (theme.id === 'matrix') {
+      setShowMatrixRain(true);
+    }
+  }, [theme.id]);
 
   // Announce theme changes to screen readers
   useEffect(() => {
@@ -795,6 +812,11 @@ function AppContent() {
         <div style={crtOffStyle}>{terminal}</div>
         {statusBar}
       </FullscreenLayout>
+      {showMatrixRain && theme.id === 'matrix' && (
+        <Suspense fallback={null}>
+          <MatrixRain onComplete={() => setShowMatrixRain(false)} />
+        </Suspense>
+      )}
       <Suspense fallback={null}>
         <TelemetryDrawer />
       </Suspense>

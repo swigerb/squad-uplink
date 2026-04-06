@@ -98,6 +98,15 @@ export const AUDIO_MANIFEST: Record<ThemeId, Partial<Record<SoundType, string>>>
     agent_error: '/audio/lcars/agent_error.mp3',
     crt_toggle: '/audio/lcars/crt_toggle.mp3',
   },
+
+  // MU-TH-UR 6000: Industrial mechanical (procedural-only for now)
+  muthur: {},
+
+  // W.O.P.R.: Procedural-only (no audio files)
+  wopr: {},
+
+  // Matrix: Procedural-only (no audio files)
+  matrix: {},
 };
 
 /** All supported audio file extensions */

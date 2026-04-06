@@ -4,7 +4,7 @@ export interface TerminalTheme {
   /** Display name */
   name: string;
   /** Machine-readable id */
-  id: 'apple2e' | 'c64' | 'ibm3270' | 'win95' | 'lcars' | 'pipboy';
+  id: 'apple2e' | 'c64' | 'ibm3270' | 'win95' | 'lcars' | 'pipboy' | 'wopr' | 'muthur' | 'matrix';
 
   /** Foreground color */
   fg: string;
@@ -58,6 +58,9 @@ export const THEME_ORDER: readonly ThemeId[] = [
   'win95',
   'lcars',
   'pipboy',
+  'wopr',
+  'muthur',
+  'matrix',
 ] as const;
 
 export { apple2eTheme } from './apple2e';
@@ -66,3 +69,6 @@ export { ibm3270Theme } from './ibm3270';
 export { win95Theme } from './win95';
 export { lcarsTheme } from './lcars';
 export { pipboyTheme } from './pipboy';
+export { matrixTheme } from './matrix';
+export { woprTheme } from './wopr';
+export { muthurTheme } from './muthur';

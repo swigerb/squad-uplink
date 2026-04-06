@@ -67,6 +67,20 @@ export function getBootMessage(themeId: ThemeId): string[] {
         'Type /help for commands.',
       ];
 
+    case 'muthur':
+      return [
+        'INTERFACE 2037 READY FOR INQUIRY',
+        '',
+        'MU-TH-UR 6000 — WEYLAND-YUTANI CORP',
+        'NOSTROMO SYSTEMS ONLINE',
+        'CREW STATUS: MONITORING',
+        'SPECIAL ORDER 937: CLASSIFIED',
+        '',
+        'SQUAD UPLINK v1.0.0 CONNECTED',
+        '',
+        '> Type /help for commands.',
+      ];
+
     case 'lcars':
       return [
         `LCARS TERMINAL ONLINE — STARDATE ${getLcarsStardate()}`,
@@ -78,6 +92,35 @@ export function getBootMessage(themeId: ThemeId): string[] {
         '╰─────────────────────────────────────╯',
         '',
         'AWAITING COMMAND INPUT...',
+        'Type /help for commands.',
+      ];
+
+    case 'wopr':
+      return [
+        'LOGON: ***',
+        'GREETINGS PROFESSOR FALKEN.',
+        '',
+        'SHALL WE PLAY A GAME?',
+        '',
+        'W.O.P.R. STRATEGIC DEFENSE SYSTEM',
+        'NORAD COMMAND CENTER ONLINE',
+        'SQUAD UPLINK v1.0.0',
+        '',
+        'AWAITING COMMAND...',
+        'Type /help for commands.',
+      ];
+
+    case 'matrix':
+      return [
+        'Wake up, Neo...',
+        'The Matrix has you...',
+        'Follow the white rabbit.',
+        'Knock, knock, Neo.',
+        '',
+        'SQUAD UPLINK v1.0.0',
+        'Initializing neural interface...',
+        'Connection established.',
+        '',
         'Type /help for commands.',
       ];
 

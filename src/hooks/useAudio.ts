@@ -171,6 +171,59 @@ const SKIN_PROFILES: Record<ThemeId, Record<SoundType, SoundDef>> = {
     disk_drive: { waveform: 'square', freq: 80, duration: 100 },
   },
 
+  // MU-TH-UR 6000: Industrial mechanical — heavy, stark, alien
+  muthur: {
+    keystroke: { waveform: 'square', freq: 300, duration: 20 },
+    connect: { waveform: 'sine', freq: 200, duration: 200, freq2: 800 },
+    disconnect: { waveform: 'sine', freq: 600, duration: 250, freq2: 150 },
+    error: { waveform: 'square', freq: 100, duration: 500 },
+    toggle: { waveform: 'square', freq: 500, duration: 50 },
+    boot: { steps: [
+      { waveform: 'square', freq: 80, duration: 200, delay: 0 },
+      { waveform: 'square', freq: 120, duration: 150, delay: 220 },
+      { waveform: 'sine', freq: 200, duration: 200, delay: 400 },
+      { waveform: 'sine', freq: 400, duration: 150, delay: 620 },
+      { waveform: 'sine', freq: 800, duration: 300, delay: 800 },
+    ] },
+    agent_started: { waveform: 'square', freq: 600, duration: 25 },
+    agent_triage: { waveform: 'sine', freq: 400, duration: 80 },
+    agent_success: { waveform: 'sine', freq: 1000, duration: 100, freq2: 1400 },
+    agent_error: { steps: [
+      { waveform: 'square', freq: 200, duration: 200, delay: 0 },
+      { waveform: 'square', freq: 100, duration: 300, delay: 220 },
+    ] },
+    crt_toggle: { waveform: 'sine', freq: 300, duration: 40 },
+    disk_drive: { waveform: 'sine', freq: 80, duration: 100 },
+  },
+
+  // W.O.P.R.: Cold military computer — crisp digital tones
+  wopr: {
+    keystroke: { waveform: 'sine', freq: 1800, duration: 10 },
+    connect: { waveform: 'sine', freq: 600, duration: 150, freq2: 1200 },
+    disconnect: { waveform: 'sine', freq: 400, duration: 200, freq2: 200 },
+    error: { waveform: 'sine', freq: 200, duration: 300 },
+    toggle: { waveform: 'sine', freq: 1000, duration: 50 },
+    boot: { steps: [
+      { waveform: 'sine', freq: 400, duration: 100, delay: 0 },
+      { waveform: 'sine', freq: 600, duration: 100, delay: 120 },
+      { waveform: 'sine', freq: 800, duration: 100, delay: 240 },
+      { waveform: 'sine', freq: 1000, duration: 100, delay: 360 },
+      { waveform: 'sine', freq: 1200, duration: 200, delay: 480 },
+    ] },
+    agent_started: { waveform: 'sine', freq: 1400, duration: 20 },
+    agent_triage: { waveform: 'sine', freq: 800, duration: 60 },
+    agent_success: { steps: [
+      { waveform: 'sine', freq: 1000, duration: 80, delay: 0 },
+      { waveform: 'sine', freq: 1400, duration: 100, delay: 90 },
+    ] },
+    agent_error: { steps: [
+      { waveform: 'sine', freq: 400, duration: 150, delay: 0 },
+      { waveform: 'sine', freq: 200, duration: 200, delay: 160 },
+    ] },
+    crt_toggle: { waveform: 'sine', freq: 900, duration: 40 },
+    disk_drive: { waveform: 'square', freq: 80, duration: 100 },
+  },
+
   // LCARS: Clean sci-fi chirps
   lcars: {
     keystroke: { waveform: 'sine', freq: 1200, duration: 20 },
@@ -197,6 +250,34 @@ const SKIN_PROFILES: Record<ThemeId, Record<SoundType, SoundDef>> = {
     ] },
     crt_toggle: { waveform: 'sine', freq: 1400, duration: 40, freq2: 1600 },
     disk_drive: { waveform: 'square', freq: 80, duration: 100 },
+  },
+
+  // Matrix: Cyberpunk digital tones — high-pitched sine sweeps
+  matrix: {
+    keystroke: { waveform: 'sine', freq: 1200, duration: 15 },
+    connect: { waveform: 'sine', freq: 400, duration: 200, freq2: 1600 },
+    disconnect: { waveform: 'sine', freq: 1200, duration: 200, freq2: 300 },
+    error: { waveform: 'sawtooth', freq: 150, duration: 400 },
+    toggle: { waveform: 'sine', freq: 800, duration: 40 },
+    boot: { steps: [
+      { waveform: 'sine', freq: 200, duration: 80, delay: 0 },
+      { waveform: 'sine', freq: 400, duration: 80, delay: 100 },
+      { waveform: 'sine', freq: 800, duration: 80, delay: 200 },
+      { waveform: 'sine', freq: 1600, duration: 80, delay: 300 },
+      { waveform: 'sine', freq: 3200, duration: 120, delay: 400 },
+    ] },
+    agent_started: { waveform: 'sine', freq: 1600, duration: 20 },
+    agent_triage: { waveform: 'sine', freq: 900, duration: 60 },
+    agent_success: { steps: [
+      { waveform: 'sine', freq: 1000, duration: 60, delay: 0 },
+      { waveform: 'sine', freq: 1500, duration: 80, delay: 70 },
+    ] },
+    agent_error: { steps: [
+      { waveform: 'sawtooth', freq: 300, duration: 150, delay: 0 },
+      { waveform: 'sawtooth', freq: 150, duration: 200, delay: 160 },
+    ] },
+    crt_toggle: { waveform: 'sine', freq: 1000, duration: 40 },
+    disk_drive: { waveform: 'sine', freq: 80, duration: 100 },
   },
 };
 

@@ -6,6 +6,9 @@ import {
   win95Theme,
   lcarsTheme,
   pipboyTheme,
+  woprTheme,
+  muthurTheme,
+  matrixTheme,
   THEME_ORDER,
   type TerminalTheme,
   type ThemeId,
@@ -29,6 +32,9 @@ const THEME_MAP: Record<ThemeId, TerminalTheme> = {
   win95: win95Theme,
   lcars: lcarsTheme,
   pipboy: pipboyTheme,
+  wopr: woprTheme,
+  muthur: muthurTheme,
+  matrix: matrixTheme,
 };
 
 export function getThemeById(id: ThemeId): TerminalTheme {

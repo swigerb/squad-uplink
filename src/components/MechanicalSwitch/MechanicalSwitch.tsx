@@ -15,6 +15,9 @@ const switchVariant: Record<ThemeId, 'lever' | 'checkbox' | 'pill'> = {
   win95: 'checkbox',
   lcars: 'pill',
   pipboy: 'lever',
+  muthur: 'lever',
+  wopr: 'lever',
+  matrix: 'lever',
 };
 
 export function MechanicalSwitch({ crtEnabled, onToggle }: MechanicalSwitchProps) {

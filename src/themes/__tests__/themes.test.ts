@@ -5,6 +5,8 @@ import { ibm3270Theme } from '../ibm3270';
 import { win95Theme } from '../win95';
 import { lcarsTheme } from '../lcars';
 import { pipboyTheme } from '../pipboy';
+import { woprTheme } from '../wopr';
+import { matrixTheme } from '../matrix';
 import type { TerminalTheme } from '../index';
 
 const allThemes: [string, TerminalTheme][] = [
@@ -14,6 +16,8 @@ const allThemes: [string, TerminalTheme][] = [
   ['win95', win95Theme],
   ['lcars', lcarsTheme],
   ['pipboy', pipboyTheme],
+  ['wopr', woprTheme],
+  ['matrix', matrixTheme],
 ];
 
 describe('Theme Configs', () => {
