@@ -1,6 +1,6 @@
 # Squad Uplink
 
-> Retro terminal frontend for [Squad Remote Control](https://github.com/brswig/squad-rc). A 1984-era CRT interface for controlling modern AI agents.
+> Retro terminal frontend for [Squad Remote Control](https://bradygaster.github.io/squad/docs/features/remote-control/). A 1984-era CRT interface for controlling modern AI agents.
 
 ![React](https://img.shields.io/badge/React-19-blue) ![TypeScript](https://img.shields.io/badge/TypeScript-6.0-blue) ![Vite](https://img.shields.io/badge/Vite-8-purple) ![Azure SWA](https://img.shields.io/badge/Azure-Static_Web_Apps-0078D4)
 
@@ -151,3 +151,8 @@ Squad Uplink uses a **hybrid audio system**: real audio sample files are preferr
 5. Files are preloaded per-skin (only the active skin's files are fetched)
 
 See `public/audio/README.md` for sourcing instructions and recommended search terms per skin.
+
+## Related
+
+- [Squad Remote Control docs](https://bradygaster.github.io/squad/docs/features/remote-control/) — official feature documentation
+- [squad-rc on GitHub](https://github.com/brswig/squad-rc) — source repository
