@@ -12,6 +12,8 @@ const HELP_TEXT = `\x1b[1mAvailable commands:\x1b[0m
   /agents      — Request agent roster from squad-rc
   /connect     — Connect: /connect <wsUrl> <token>
   /disconnect  — Disconnect from squad-rc
+  /stop        — Disconnect from squad-rc (alias)
+  /reset       — Clear terminal and reconnect
   /clear       — Clear terminal
   /help        — Show this help message
   
@@ -73,9 +75,21 @@ export function handleCommand(input: string, terminal: TerminalWriter | null): v
       break;
     }
 
+    case '/stop':
     case '/disconnect': {
       connectionManager.disconnect();
       terminal.writeln('Disconnected.');
+      break;
+    }
+
+    case '/reset': {
+      const wasConnected = connectionManager.isConnected;
+      connectionManager.disconnect();
+      terminal.clear();
+      terminal.writeln('Terminal cleared. Connection reset.');
+      if (wasConnected) {
+        terminal.writeln('Use /connect to re-establish connection.');
+      }
       break;
     }
 

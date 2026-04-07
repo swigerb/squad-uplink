@@ -605,6 +605,7 @@
 [data-theme='pipboy'] .pipboy-bar6 { right: -20px; top: 82px; }
 
 /* ── Supplies bar ──────────────────────────────── */
+/* Hidden by default; shown only on STAT tab */
 [data-theme='pipboy'] .pipboy-supplies {
   height: 14px;
   position: absolute;
@@ -614,6 +615,10 @@
   z-index: 96;
   white-space: nowrap;
   overflow: hidden;
+  display: none;
+}
+[data-theme='pipboy'] .pipboy-screen[data-active-tab='STAT'] .pipboy-supplies {
+  display: block;
 }
 [data-theme='pipboy'] .pipboy-supplies span {
   margin-right: 3px;
@@ -625,6 +630,7 @@
 }
 
 /* ── HUD bar (bottom of screen) ────────────────── */
+/* Hidden by default; shown only on STAT tab */
 [data-theme='pipboy'] .pipboy-hud-bar {
   height: 10px;
   position: absolute;
@@ -637,9 +643,12 @@
   font-size: 5pt;
   white-space: nowrap;
   overflow: visible;
-  display: flex;
+  display: none;
   align-items: center;
   justify-content: space-between;
+}
+[data-theme='pipboy'] .pipboy-screen[data-active-tab='STAT'] .pipboy-hud-bar {
+  display: flex;
 }
 
 [data-theme='pipboy'] .pipboy-hp { display: inline-block; }
@@ -1706,13 +1715,11 @@
   margin: 0;
 }
 
-/* ── DATA tab: hide HUD chrome, expand terminal ── */
-[data-theme='pipboy'] .pipboy-screen[data-active-tab='DATA'] .pipboy-supplies,
-[data-theme='pipboy'] .pipboy-screen[data-active-tab='DATA'] .pipboy-hud-bar {
-  display: none !important;
-}
-
-[data-theme='pipboy'] .pipboy-screen[data-active-tab='DATA'] .pipboy-screen-inner {
+/* ── Non-STAT tabs: expand content to fill viewport ── */
+[data-theme='pipboy'] .pipboy-screen[data-active-tab='DATA'] .pipboy-screen-inner,
+[data-theme='pipboy'] .pipboy-screen[data-active-tab='RADIO'] .pipboy-screen-inner,
+[data-theme='pipboy'] .pipboy-screen[data-active-tab='INV'] .pipboy-screen-inner,
+[data-theme='pipboy'] .pipboy-screen[data-active-tab='MAP'] .pipboy-screen-inner {
   bottom: 2px;
 }
 
