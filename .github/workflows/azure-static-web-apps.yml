@@ -4,9 +4,14 @@ on:
   push:
     branches:
       - main
+  pull_request:
+    types: [opened, synchronize, reopened, closed]
+    branches:
+      - main
 
 jobs:
   build_and_deploy:
+    if: github.event_name == 'push' || (github.event_name == 'pull_request' && github.event.action != 'closed')
     runs-on: ubuntu-latest
     name: Build and Deploy
     steps:
@@ -25,7 +30,7 @@ jobs:
         run: npm run lint
 
       - name: Type check
-        run: npx tsc -b
+        run: npm run typecheck
 
       - name: Test
         run: npm test
@@ -54,3 +59,15 @@ jobs:
           app_location: /
           output_location: dist
           skip_app_build: true
+          skip_api_directory_check: true
+
+  close_staging:
+    if: github.event_name == 'pull_request' && github.event.action == 'closed'
+    runs-on: ubuntu-latest
+    name: Close PR Staging Environment
+    steps:
+      - name: Close staging environment
+        uses: Azure/static-web-apps-deploy@v1
+        with:
+          azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN }}
+          action: close

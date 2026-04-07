@@ -353,3 +353,23 @@
   font-style: italic;
   font-size: 12px;
 }
+
+/* Section header row (title + action button) */
+.telemetry-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.telemetry-section-title--flush {
+  margin: 0;
+}
+
+/* Timestamp caption */
+.telemetry-timestamp {
+  font-size: 10px;
+  color: #404060;
+  margin-top: 6px;
+  text-align: right;
+}

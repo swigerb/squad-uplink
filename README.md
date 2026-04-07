@@ -2,11 +2,11 @@
 
 > Retro terminal frontend for [Squad Remote Control](https://github.com/brswig/squad-rc). A 1984-era CRT interface for controlling modern AI agents.
 
-![React](https://img.shields.io/badge/React-19-blue) ![TypeScript](https://img.shields.io/badge/TypeScript-5.9-blue) ![Vite](https://img.shields.io/badge/Vite-8-purple) ![Azure SWA](https://img.shields.io/badge/Azure-Static_Web_Apps-0078D4)
+![React](https://img.shields.io/badge/React-19-blue) ![TypeScript](https://img.shields.io/badge/TypeScript-6.0-blue) ![Vite](https://img.shields.io/badge/Vite-8-purple) ![Azure SWA](https://img.shields.io/badge/Azure-Static_Web_Apps-0078D4)
 
 ## Tech Stack
 
-- **React 19** + **TypeScript 5.9** + **Vite 8**
+- **React 19** + **TypeScript 6.0** + **Vite 8**
 - **xterm.js** — terminal emulation with canvas renderer
 - **Zustand** — connection/telemetry state (works outside React)
 - **Web Audio API** — hybrid audio: sample files with procedural fallback
@@ -67,7 +67,7 @@ npx @azure/static-web-apps-cli deploy dist/ --env production
 
 ## Themes
 
-Six hardware-authentic terminal skins:
+Nine hardware-authentic terminal skins:
 
 | Skin | Vibe | Layout |
 |------|------|--------|
@@ -77,23 +77,15 @@ Six hardware-authentic terminal skins:
 | **Windows 95** | Teal desktop + windowed terminal | Windowed |
 | **LCARS** | Star Trek bridge panels, sci-fi chirps | Panel |
 | **Pip-Boy 3000** | Fallout retro-futuristic CRT device | Pip-Boy |
+| **MU-TH-UR 6000** | Alien shipboard mainframe, green phosphor | Fullscreen |
+| **W.O.P.R.** | WarGames cold-war terminal, icy blue glow | Fullscreen |
+| **The Matrix** | Digital rain green-on-black, no CRT filter | Fullscreen |
 
 Cycle themes with the **Theme** button in the toolbar.
 
 ### Pip-Boy 3000 (Uplink-Gamma)
 
 A Fallout-inspired retro-futuristic CRT device skin, faithfully ported from a [Codepen reference](https://codepen.io/stix/pen/KdJEwB). The entire UI is wrapped in a full hardware device frame — tan metal casing, decorative screws, speaker grilles, dials, and a glowing amber power button.
-
-**Color palette:**
-
-| Token | Hex | Usage |
-|-------|-----|-------|
-| Primary | `#1bff80` | Text, borders, glow effects |
-| Muted | `#145b32` | Inactive elements, secondary text |
-| Background | `#000500` | CRT screen background |
-| Alert | `#ffb641` | Power button, warning indicators |
-
-**Layout:** Fixed 630×400 `.pip` container scaled to fit viewport via CSS `transform: scale()`. Three-column CSS grid — left speaker/grip, center CRT screen bezel, right panel with RADS dial and tune wheel.
 
 **Tab navigation:**
 
@@ -117,8 +109,9 @@ A Fallout-inspired retro-futuristic CRT device skin, faithfully ported from a [C
 
 | Key | Action |
 |-----|--------|
-| `Ctrl+Shift+T` | Toggle telemetry drawer |
 | `Escape` | Close telemetry / focus terminal |
+
+> Telemetry panel is toggled via the 📡 button in the floating control bar.
 
 ## Architecture
 
@@ -129,7 +122,7 @@ src/
 ├── hooks/               # useTheme, useAudio, useWebSocket
 ├── lib/                 # ConnectionManager (singleton), commands, formatters
 ├── store/               # Zustand connection/telemetry store
-├── themes/              # 6 theme definitions (CSS vars + xterm ITheme)
+├── themes/              # 9 theme definitions (CSS vars + xterm ITheme)
 ├── styles/              # Global CSS, CRT effects, fonts, layout chrome
 └── types/               # squad-rc protocol types
 ```

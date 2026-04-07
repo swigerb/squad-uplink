@@ -363,7 +363,7 @@ export function TelemetryDrawer() {
 
         {/* Footer */}
         <div className="telemetry-footer">
-          Ctrl+Shift+T to toggle &nbsp;·&nbsp; Auto-refreshes every 30s
+          📡 button to toggle &nbsp;·&nbsp; Auto-refreshes every 30s
         </div>
       </aside>
     </>

@@ -5,7 +5,7 @@
  * Key implementation details:
  * - Drawer is always in the DOM, shown/hidden via CSS transform
  * - drawerOpen state lives in Zustand connectionStore
- * - Ctrl+Shift+T shortcut is in App.tsx, not the component itself
+ * - Telemetry drawer toggled via 📡 button in StatusBar (keyboard shortcut removed)
  * - Escape key closes the drawer (handled inside the component)
  * - /status calls go through connectionManager.fetchStatus()
  * - Telemetry metrics live in store.telemetry sub-object

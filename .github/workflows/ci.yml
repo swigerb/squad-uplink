@@ -1,6 +1,9 @@
-name: PR Check
+name: CI
 
 on:
+  push:
+    branches:
+      - main
   pull_request:
     branches:
       - main
@@ -25,7 +28,7 @@ jobs:
         run: npm run lint
 
       - name: Type check
-        run: npx tsc -b
+        run: npm run typecheck
 
       - name: Test
         run: npm test

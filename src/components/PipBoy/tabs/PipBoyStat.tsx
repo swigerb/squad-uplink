@@ -21,24 +21,14 @@ export function PipBoyStat() {
           <div className="pipboy-bar6" />
         </div>
 
-        {/* Stat icons with numbers — each icon sits above its value */}
+        {/* Stat icons — matches original Codepen info-bar structure */}
         <div className="pipboy-info-bar pipboy-info-bar-inline">
-          <span className="pipboy-stat-icon-group">
-            <span className="pipboy-weapon" />
-            <p>21</p>
-          </span>
-          <span className="pipboy-stat-icon-group">
-            <span className="pipboy-helmet" />
-            <p>110</p>
-          </span>
-          <span className="pipboy-stat-icon-group">
-            <span className="pipboy-voltage" />
-            <p>126</p>
-          </span>
-          <span className="pipboy-stat-icon-group">
-            <span className="pipboy-nuclear" />
-            <p>35</p>
-          </span>
+          <span className="pipboy-weapon" />
+          <span className="pipboy-aim"><p>21</p></span>
+          <span className="pipboy-helmet" />
+          <span className="pipboy-shield"><p>110</p></span>
+          <span className="pipboy-voltage"><p>126</p></span>
+          <span className="pipboy-nuclear"><p>35</p></span>
         </div>
       </div>
     </div>

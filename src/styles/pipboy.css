@@ -698,36 +698,36 @@
   margin-top: 8px;
 }
 
-/* Icon SVGs inline (replacing S3 URLs that are no longer accessible) */
+/* Codepen icon PNGs (replacing inline SVGs) */
 [data-theme='pipboy'] .pipboy-weapon {
   width: 23px;
   height: 14px;
-  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 14'%3E%3Cpath d='M2 6h14l2-4h4v2h-3l-2 4H8l-1 4H4l1-4H2z' fill='%2364d515'/%3E%3C/svg%3E") no-repeat center/contain;
+  background: url("/images/pipboy/pipboy-gun2.png") no-repeat center/contain;
 }
 [data-theme='pipboy'] .pipboy-aim {
   width: 14px;
   height: 14px;
-  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 14 14'%3E%3Ccircle cx='7' cy='7' r='5' fill='none' stroke='%2364d515' stroke-width='1'/%3E%3Ccircle cx='7' cy='7' r='1.5' fill='%2364d515'/%3E%3Cline x1='7' y1='0' x2='7' y2='4' stroke='%2364d515' stroke-width='1'/%3E%3Cline x1='7' y1='10' x2='7' y2='14' stroke='%2364d515' stroke-width='1'/%3E%3Cline x1='0' y1='7' x2='4' y2='7' stroke='%2364d515' stroke-width='1'/%3E%3Cline x1='10' y1='7' x2='14' y2='7' stroke='%2364d515' stroke-width='1'/%3E%3C/svg%3E") no-repeat center/contain;
+  background: url("/images/pipboy/pipboy-aim2.png") no-repeat center/contain;
 }
 [data-theme='pipboy'] .pipboy-helmet {
   width: 23px;
   height: 14px;
-  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 14'%3E%3Cpath d='M6 13h12v-3c0-5-3-8-6-8S6 5 6 10z' fill='none' stroke='%2364d515' stroke-width='1.2'/%3E%3Crect x='9' y='6' width='6' height='3' rx='1' fill='%2364d515' opacity='0.6'/%3E%3C/svg%3E") no-repeat center/contain;
+  background: url("/images/pipboy/pipboy-helmet2.png") no-repeat center/contain;
 }
 [data-theme='pipboy'] .pipboy-shield {
   width: 14px;
   height: 14px;
-  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 14 14'%3E%3Cpath d='M7 1L2 3v4c0 3.5 2.5 5.5 5 6.5 2.5-1 5-3 5-6.5V3z' fill='none' stroke='%2364d515' stroke-width='1.2'/%3E%3C/svg%3E") no-repeat center/contain;
+  background: url("/images/pipboy/pipboy-shield2.png") no-repeat center/contain;
 }
 [data-theme='pipboy'] .pipboy-voltage {
   width: 14px;
   height: 14px;
-  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 14 14'%3E%3Cpolygon points='8,1 4,8 7,8 6,13 10,6 7,6' fill='%2364d515'/%3E%3C/svg%3E") no-repeat center/contain;
+  background: url("/images/pipboy/pipboy-voltage2.png") no-repeat center/contain;
 }
 [data-theme='pipboy'] .pipboy-nuclear {
   width: 14px;
   height: 14px;
-  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 14 14'%3E%3Ccircle cx='7' cy='7' r='2' fill='%2364d515'/%3E%3Cpath d='M7 1A6 6 0 0 0 2.1 9.5L5.5 7.5A2.5 2.5 0 0 1 7 4.5z' fill='%2364d515' opacity='0.7'/%3E%3Cpath d='M12 9.5A6 6 0 0 0 7 1v3.5a2.5 2.5 0 0 1 1.5 3z' fill='%2364d515' opacity='0.7'/%3E%3Cpath d='M2.1 9.5a6 6 0 0 0 9.8 0L8.5 7.5a2.5 2.5 0 0 1-3 0z' fill='%2364d515' opacity='0.7'/%3E%3C/svg%3E") no-repeat center/contain;
+  background: url("/images/pipboy/pipboy-nuclear2.png") no-repeat center/contain;
 }
 
 /* ── Power button ──────────────────────────────── */
@@ -1308,35 +1308,30 @@
   width: auto;
   height: auto;
   display: flex;
+  align-items: flex-end;
   justify-content: center;
-  gap: 6px;
+  gap: 4px;
   margin: 2px auto 4px;
   z-index: auto;
   overflow: visible;
 }
-
-/* Icon-above-number group for STAT info bar */
-[data-theme='pipboy'] .pipboy-stat-icon-group {
-  display: flex;
+[data-theme='pipboy'] .pipboy-info-bar-inline > span {
+  display: inline-flex;
   flex-direction: column;
   align-items: center;
-  gap: 0;
-  color: #8df776;
-  font-size: 5px;
-  text-align: center;
-}
-[data-theme='pipboy'] .pipboy-stat-icon-group span {
-  display: block;
   background-size: contain;
   background-repeat: no-repeat;
-  background-position: center;
+  background-position: center top;
+  padding-top: 16px;
+  min-width: 14px;
 }
-[data-theme='pipboy'] .pipboy-stat-icon-group p {
+[data-theme='pipboy'] .pipboy-info-bar-inline > span p {
   margin: 0;
   padding: 0;
   font-size: 6px;
   color: #8df776;
   line-height: 1;
+  text-align: center;
 }
 
 /* ── STAT tab inner elements ───────────────────── */
