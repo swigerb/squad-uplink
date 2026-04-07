@@ -55,7 +55,7 @@ export function handleCommand(input: string, terminal: TerminalWriter | null): v
 
     case '/agents': {
       if (!connectionManager.isConnected) {
-        terminal.writeln('\x1b[31mNot connected. Use /connect <url> [token]\x1b[0m');
+        terminal.writeln('\x1b[31mNot connected. Use /connect <url> or /auth <url> first\x1b[0m');
         break;
       }
       connectionManager.send({ type: 'prompt', text: '/agents' });
@@ -77,11 +77,14 @@ export function handleCommand(input: string, terminal: TerminalWriter | null): v
         authUrl = authUrl.replace(/^ws/, 'http');
       }
       terminal.writeln('\x1b[2mOpening DevTunnel for authentication...\x1b[0m');
-      terminal.writeln('\x1b[2mComplete Microsoft login in the new tab, then:\x1b[0m');
-      // Show the connect command they'll need after auth
       const connectUrl = authUrl.replace(/^https/, 'wss').replace(/^http/, 'ws');
+      const popup = window.open(authUrl, '_blank');
+      if (!popup) {
+        terminal.writeln('\x1b[33mPopup blocked! Open this URL manually in your browser:\x1b[0m');
+        terminal.writeln(`  ${authUrl}`);
+      }
+      terminal.writeln('\x1b[2mAfter Microsoft login, run:\x1b[0m');
       terminal.writeln(`  /connect ${connectUrl}`);
-      window.open(authUrl, '_blank');
       break;
     }
 

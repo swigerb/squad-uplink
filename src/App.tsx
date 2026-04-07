@@ -714,7 +714,7 @@ function AppContent() {
     }
 
     if (!connectionManager.isConnected) {
-      terminalRef.current?.write('\x1b[31mNot connected. Use /connect <url> <token>\x1b[0m\r\n> ');
+      terminalRef.current?.write('\x1b[31mNot connected. Use /connect <url> or /auth <url> first\x1b[0m\r\n> ');
       return;
     }
 
