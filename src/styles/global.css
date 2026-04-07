@@ -133,7 +133,14 @@ body {
   flex-direction: column;
 }
 
-[data-theme='ibm3270'] .fullscreen-layout > .terminal-container {
+[data-theme='ibm3270'] .fullscreen-layout > div {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+[data-theme='ibm3270'] .fullscreen-layout .terminal-container {
   flex: 1;
   min-height: 0;
 }
@@ -146,12 +153,19 @@ body {
   flex-direction: column;
 }
 
-[data-theme='wopr'] .fullscreen-layout > .terminal-container {
+[data-theme='wopr'] .fullscreen-layout > div {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+[data-theme='wopr'] .fullscreen-layout .terminal-container {
   flex: 1;
   min-height: 0;
 }
 
-/* MU-TH-UR — cinematic 60vw width but full vertical height */
+/* MU-TH-UR — full vertical height, left-aligned text */
 [data-theme='muthur'] .fullscreen-layout {
   width: 100%;
   height: 100vh;
@@ -159,7 +173,14 @@ body {
   flex-direction: column;
 }
 
-[data-theme='muthur'] .fullscreen-layout > .terminal-container {
+[data-theme='muthur'] .fullscreen-layout > div {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+[data-theme='muthur'] .fullscreen-layout .terminal-container {
   flex: 1;
   min-height: 0;
 }
@@ -172,7 +193,14 @@ body {
   flex-direction: column;
 }
 
-[data-theme='matrix'] .fullscreen-layout > .terminal-container {
+[data-theme='matrix'] .fullscreen-layout > div {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+[data-theme='matrix'] .fullscreen-layout .terminal-container {
   flex: 1;
   min-height: 0;
 }
