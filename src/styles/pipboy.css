@@ -1799,6 +1799,18 @@
 [data-theme='pipboy'] .terminal-fullscreen .terminal-container {
   position: relative;
   text-shadow: 0 0 6px rgba(27, 255, 128, 0.5);
+  height: 100vh !important;
+  max-height: 100vh !important;
+  overflow: hidden;
+}
+
+/* Ensure xterm fills the fullscreen container */
+[data-theme='pipboy'] .terminal-fullscreen .xterm {
+  height: 100% !important;
+}
+
+[data-theme='pipboy'] .terminal-fullscreen .xterm-viewport {
+  height: 100% !important;
 }
 
 /* Scanline overlay effect in fullscreen */
