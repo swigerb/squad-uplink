@@ -565,7 +565,7 @@
 /* ── Vault Boy health bars ─────────────────────── */
 /* Horizontal bar above Vault Boy (matches bars around/below) */
 [data-theme='pipboy'] .pipboy-bar-above {
-  width: 60px;
+  width: 15px;
   height: 3.5px;
   background: #64d515;
   margin: 0 auto 2px;
@@ -628,15 +628,15 @@
 [data-theme='pipboy'] .pipboy-hud-bar {
   height: 10px;
   position: absolute;
-  width: 290px;
+  width: 295px;
   bottom: 5px;
-  left: 10px;
+  left: 5px;
   background: #000;
   color: #8df776;
   z-index: 96;
   font-size: 5pt;
   white-space: nowrap;
-  overflow: hidden;
+  overflow: visible;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -664,6 +664,7 @@
 [data-theme='pipboy'] .pipboy-ap {
   display: inline-block;
   margin-left: auto;
+  flex-shrink: 0;
 }
 [data-theme='pipboy'] .pipboy-ap::before { content: "AP 110/110"; }
 
@@ -1305,13 +1306,37 @@
   bottom: auto;
   left: auto;
   width: auto;
-  height: 16px;
+  height: auto;
   display: flex;
   justify-content: center;
-  gap: 2px;
+  gap: 6px;
   margin: 2px auto 4px;
   z-index: auto;
   overflow: visible;
+}
+
+/* Icon-above-number group for STAT info bar */
+[data-theme='pipboy'] .pipboy-stat-icon-group {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0;
+  color: #8df776;
+  font-size: 5px;
+  text-align: center;
+}
+[data-theme='pipboy'] .pipboy-stat-icon-group span {
+  display: block;
+  background-size: contain;
+  background-repeat: no-repeat;
+  background-position: center;
+}
+[data-theme='pipboy'] .pipboy-stat-icon-group p {
+  margin: 0;
+  padding: 0;
+  font-size: 6px;
+  color: #8df776;
+  line-height: 1;
 }
 
 /* ── STAT tab inner elements ───────────────────── */

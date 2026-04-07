@@ -339,8 +339,9 @@ describe('PipBoyLayout', () => {
 
       // Vault Boy character renders
       expect(screen.getByTestId('vault-boy')).toBeInTheDocument();
-      // Stat footer renders
-      expect(screen.getByText(/MSGS:/)).toBeInTheDocument();
+      // Stat icon numbers render (telemetry footer removed — belongs in TelemetryDrawer)
+      expect(screen.getByText('21')).toBeInTheDocument();
+      expect(screen.getByText('110')).toBeInTheDocument();
     });
 
     it('PipBoyInv shows "NO ITEMS" when disconnected', async () => {

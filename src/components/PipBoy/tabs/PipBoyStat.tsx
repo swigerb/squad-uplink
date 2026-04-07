@@ -2,7 +2,6 @@ import { useConnectionStore } from '@/store/connectionStore';
 
 export function PipBoyStat() {
   const thinking = useConnectionStore((s) => s.thinking);
-  const telemetry = useConnectionStore((s) => s.telemetry);
 
   return (
     <div className="pipboy-stat pipboy-stat-with-vaultboy" data-testid="pipboy-stat">
@@ -22,20 +21,25 @@ export function PipBoyStat() {
           <div className="pipboy-bar6" />
         </div>
 
-        {/* Stat icons with numbers — STAT tab only */}
+        {/* Stat icons with numbers — each icon sits above its value */}
         <div className="pipboy-info-bar pipboy-info-bar-inline">
-          <span className="pipboy-weapon" />
-          <span className="pipboy-aim"><p>21</p></span>
-          <span className="pipboy-helmet" />
-          <span className="pipboy-shield"><p>110</p></span>
-          <span className="pipboy-voltage"><p>126</p></span>
-          <span className="pipboy-nuclear"><p>35</p></span>
+          <span className="pipboy-stat-icon-group">
+            <span className="pipboy-weapon" />
+            <p>21</p>
+          </span>
+          <span className="pipboy-stat-icon-group">
+            <span className="pipboy-helmet" />
+            <p>110</p>
+          </span>
+          <span className="pipboy-stat-icon-group">
+            <span className="pipboy-voltage" />
+            <p>126</p>
+          </span>
+          <span className="pipboy-stat-icon-group">
+            <span className="pipboy-nuclear" />
+            <p>35</p>
+          </span>
         </div>
-      </div>
-
-      <div className="pipboy-stat-footer">
-        MSGS: {telemetry.messageCount} | RECONNECTS:{' '}
-        {telemetry.reconnectCount}
       </div>
     </div>
   );

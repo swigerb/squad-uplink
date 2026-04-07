@@ -647,7 +647,6 @@ function AppContent() {
   const { theme } = useTheme();
   const terminalRef = useRef<TerminalHandle>(null);
   const crtEnabled = useConnectionStore((s) => s.crtEnabled);
-  const toggleDrawer = useConnectionStore((s) => s.toggleDrawer);
   const terminalFullscreen = useConnectionStore((s) => s.terminalFullscreen);
   const toggleFullscreen = useConnectionStore((s) => s.toggleFullscreen);
   const [themeAnnouncement, setThemeAnnouncement] = useState('');
@@ -719,7 +718,7 @@ function AppContent() {
     connectionManager.send(msg);
   }, []);
 
-  // Close overlays on Escape (+ exit fullscreen), toggle TelemetryDrawer on Ctrl+Shift+T
+  // Close overlays on Escape (+ exit fullscreen)
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
@@ -730,14 +729,10 @@ function AppContent() {
         }
         terminalRef.current?.focus?.();
       }
-      if (e.ctrlKey && e.shiftKey && e.key === 'T') {
-        e.preventDefault();
-        toggleDrawer();
-      }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [toggleDrawer, toggleFullscreen]);
+  }, [toggleFullscreen]);
 
   const terminal = <Terminal ref={terminalRef} onInput={handleInput} />;
 
@@ -786,7 +781,7 @@ function AppContent() {
       <>
         <a href="#terminal" className="skip-link">Skip to terminal</a>
         <div aria-live="polite" aria-atomic="true" className="sr-only">{themeAnnouncement}</div>
-        <PipBoyLayout statusBar={floatingControls} crtEnabled={crtEnabled}>
+        <PipBoyLayout statusBar={null} crtEnabled={crtEnabled}>
           <div style={crtOffStyle}>{terminal}</div>
         </PipBoyLayout>
         {floatingControls}
