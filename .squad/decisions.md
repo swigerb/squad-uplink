@@ -518,6 +518,37 @@ export const ThemeProvider = ({ children, theme }: ThemeProviderProps) => (
 );
 ```
 
+---
+
+### 2026-04-07: Avoid CSS `background` shorthand on generic selectors
+**By:** Kare (Frontend Dev)
+**Status:** Approved
+
+**Decision:** When a CSS rule only needs to set `background-color`, use `background-color:` explicitly — never the `background` shorthand. The shorthand resets `background-image`, `background-size`, `background-repeat`, and `background-position` to initial values, which can silently break image backgrounds set by less-specific selectors.
+
+**Context:** `.pipboy-info-bar span` rule used `background: rgba(0,255,0,0.02)` — a shorthand that implicitly reset `background-image` to `none`. This silently clobbered the `background: url(...)` declarations on icon-specific classes (`.pipboy-weapon`, `.pipboy-aim`, etc.) because the generic selector had higher CSS specificity.
+
+**Impact:** Applies to all theme CSS files. Especially important for generic selectors that match elements which may also have icon/image backgrounds from more specific class rules.
+
+---
+
+### 2026-04-07: Link "Squad Remote Control" to official docs in README
+**By:** Woz (Lead Dev)
+**Status:** Approved
+
+**Decision:** Update README.md to link "Squad Remote Control" to the official documentation instead of the GitHub repo, with a "Related" section at the bottom preserving the repo link for contributors.
+
+**Context:** README.md linked "Squad Remote Control" to `github.com/brswig/squad-rc`. The official documentation lives at `bradygaster.github.io/squad/docs/features/remote-control/`.
+
+**Implementation:**
+1. Updated the hero link (line 3) to point to the official docs
+2. Added a "Related" section at the bottom with links to both official docs and GitHub repo
+3. Did not over-link — other `squad-rc` mentions (env var table, architecture types) remain as technical references
+
+**Rationale:** First mention is highest-visibility; it should point users to documentation, not raw source. GitHub repo link preserved for contributors.
+
+---
+
 ## Import Updates
 - **Components using hook:** `import { useTheme } from '@/hooks/useTheme'` (no change)
 - **Components using provider:** `import { ThemeProvider } from '@/hooks/ThemeProvider'` (updated)
