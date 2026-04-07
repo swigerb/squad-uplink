@@ -448,5 +448,43 @@ Brady requested a BIOS-style boot sequence for first-visit users to sell the "Up
 
 ---
 
+## DevTunnel Browser WebSocket Authentication
+
+**By:** Woz (Lead Dev)  
+**Date:** 2026-04-07  
+**Status:** Implemented
+
+### Context
+
+Squad Uplink enters a constant WebSocket reconnect loop when connecting through Microsoft Dev Tunnels from a browser. Two root causes: (1) devtunnel relay serves an HTML anti-phishing warning page instead of completing the WebSocket handshake, causing immediate close; (2) browsers cannot set custom headers on WebSocket handshake, so `X-Tunnel-Authorization` doesn't work.
+
+### Decisions
+
+1. **Anti-phishing bypass:** Added `X-Tunnel-Skip-AntiPhishing-Page=true` as a query parameter on ALL WebSocket URLs. This tells the devtunnel relay to skip the warning page. Harmless on non-devtunnel servers (ignored by servers that don't recognize it).
+2. **Token delivery via query param:** Changed from `token` to `access_token` query parameter name. `access_token` is the standard OAuth2 bearer token query parameter, recognized by the devtunnel relay for browser-based WebSocket auth.
+3. **Protocol normalization:** Both `ConnectionManager.connect()` and the `/connect` command handler now normalize `https://` → `wss://` and `http://` → `ws://` before opening the WebSocket. Users can now paste devtunnel URLs directly from terminal output.
+4. **Removed ticket exchange flow:** The `exchangeTicket` private method and `TicketResponse` type import were removed from ConnectionManager. This was for a squad-rc-specific auth flow that was never implemented on the server side. Simplifies the connect path to: normalize protocol → set access_token → set anti-phishing bypass → open WebSocket.
+
+### Alternatives Considered
+
+- Keeping `exchangeTicket` as dead code: rejected because TypeScript strict mode (`noUnusedLocals`) flags it, and it adds confusion about the actual auth flow.
+- Using `X-Tunnel-Authorization` header: not possible in browsers — WebSocket API doesn't support custom handshake headers.
+
+### Files Modified
+
+- `src/lib/ConnectionManager.ts` — connect() rewritten, exchangeTicket removed
+- `src/lib/commands.ts` — /connect handler adds protocol normalization
+- `src/lib/__tests__/ConnectionManager.test.ts` — ticket exchange tests replaced with protocol normalization + devtunnel param tests
+- `src/lib/__tests__/commands.test.ts` — added https→wss and http→ws normalization tests
+
+### Verification
+
+- 527 tests passing
+- Build clean
+- No TypeScript errors
+- No lint warnings
+
+---
+
 ## Archive Log
 (Post-release decisions logged here).
