@@ -1,5 +1,5 @@
 /* MU-TH-UR 6000 — Alien (1979) fullscreen terminal theme */
-@import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap');
+/* Font loaded locally via fonts.css — no external Google Fonts import (CSP: font-src 'self') */
 
 /* ── Root theme scope ── */
 [data-theme='muthur'] {

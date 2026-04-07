@@ -39,6 +39,26 @@
   box-shadow: 0 0 0 4px rgba(0, 0, 0, 0.8), 0 0 8px rgba(255, 153, 0, 0.4);
 }
 
+[data-theme='pipboy'] :focus-visible {
+  outline-color: #1bff80;
+  box-shadow: 0 0 0 4px rgba(0, 5, 0, 0.8), 0 0 8px rgba(27, 255, 128, 0.4);
+}
+
+[data-theme='wopr'] :focus-visible {
+  outline-color: #7cb4fc;
+  box-shadow: 0 0 0 4px rgba(22, 32, 48, 0.8), 0 0 8px rgba(124, 180, 252, 0.4);
+}
+
+[data-theme='muthur'] :focus-visible {
+  outline-color: #7af042;
+  box-shadow: 0 0 0 4px rgba(0, 0, 0, 0.8), 0 0 8px rgba(122, 240, 66, 0.4);
+}
+
+[data-theme='matrix'] :focus-visible {
+  outline-color: #00ff00;
+  box-shadow: 0 0 0 4px rgba(0, 0, 0, 0.8), 0 0 8px rgba(0, 255, 0, 0.4);
+}
+
 /* ===== Reduced motion ===== */
 
 @media (prefers-reduced-motion: reduce) {
@@ -91,6 +111,42 @@
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
+  }
+
+  /* Disable Matrix rain canvas transition */
+  .matrix-rain-canvas {
+    transition: none !important;
+    opacity: 0 !important;
+  }
+
+  /* Disable MU-TH-UR glow pulse */
+  [data-theme='muthur'] .xterm-rows {
+    animation: none !important;
+  }
+
+  /* Disable W.O.P.R. scan sweep */
+  [data-theme='wopr'] .terminal-container::after {
+    animation: none !important;
+  }
+
+  /* Disable Pip-Boy scan, meter needle, flicker, vault boy pulse */
+  .pipboy-scan,
+  .pipboy-scan-line,
+  [data-theme='pipboy'] .pipboy-screen::after {
+    animation: none !important;
+  }
+
+  .pipboy-meter-needle,
+  .pipboy-rads-needle {
+    animation: none !important;
+  }
+
+  .pipboy-power-button {
+    animation: none !important;
+  }
+
+  .pipboy-vaultboy-thinking {
+    animation: none !important;
   }
 }
 

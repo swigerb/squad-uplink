@@ -61,6 +61,24 @@ body {
   -moz-osx-font-smoothing: unset;
 }
 
+[data-theme='wopr'] body {
+  background: #162030;
+  color: #7cb4fc;
+  font-family: 'VT323', monospace;
+}
+
+[data-theme='muthur'] body {
+  background: #000000;
+  color: #7af042;
+  font-family: 'Share Tech Mono', monospace;
+}
+
+[data-theme='matrix'] body {
+  background: #000000;
+  color: #00ff00;
+  font-family: 'Share Tech Mono', monospace;
+}
+
 /* Disable text selection on CRT overlay */
 .crt-overlay {
   user-select: none;

@@ -4,7 +4,7 @@
    All rules scoped to [data-theme='wopr']
    ═══════════════════════════════════════════════ */
 
-@import url('https://fonts.googleapis.com/css2?family=VT323&display=swap');
+/* Font loaded locally via fonts.css — no external Google Fonts import (CSP: font-src 'self') */
 
 /* ── Scan sweep animation ──────────────────────── */
 @keyframes wopr-scan {

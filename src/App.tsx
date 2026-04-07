@@ -749,6 +749,7 @@ function AppContent() {
   if (terminalFullscreen && layout !== 'fullscreen') {
     return (
       <>
+        <a href="#terminal" className="skip-link">Skip to terminal</a>
         <div aria-live="polite" aria-atomic="true" className="sr-only">{themeAnnouncement}</div>
         <div className="terminal-fullscreen">
           <div style={crtOffStyle}>{terminal}</div>
@@ -764,6 +765,7 @@ function AppContent() {
   if (layout === 'windowed') {
     return (
       <>
+        <a href="#terminal" className="skip-link">Skip to terminal</a>
         <div aria-live="polite" aria-atomic="true" className="sr-only">{themeAnnouncement}</div>
         <Win95Layout statusBar={null}>
           <div style={crtOffStyle}>{terminal}</div>
@@ -779,6 +781,7 @@ function AppContent() {
   if (layout === 'pipboy') {
     return (
       <>
+        <a href="#terminal" className="skip-link">Skip to terminal</a>
         <div aria-live="polite" aria-atomic="true" className="sr-only">{themeAnnouncement}</div>
         <PipBoyLayout statusBar={floatingControls} crtEnabled={crtEnabled}>
           <div style={crtOffStyle}>{terminal}</div>
@@ -794,6 +797,7 @@ function AppContent() {
   if (layout === 'apple2e') {
     return (
       <>
+        <a href="#terminal" className="skip-link">Skip to terminal</a>
         <div aria-live="polite" aria-atomic="true" className="sr-only">{themeAnnouncement}</div>
         <Apple2eLayout statusBar={null} crtEnabled={crtEnabled}>
           <div style={crtOffStyle}>{terminal}</div>
@@ -809,6 +813,7 @@ function AppContent() {
   if (layout === 'c64') {
     return (
       <>
+        <a href="#terminal" className="skip-link">Skip to terminal</a>
         <div aria-live="polite" aria-atomic="true" className="sr-only">{themeAnnouncement}</div>
         <C64Layout statusBar={null} crtEnabled={crtEnabled}>
           <div style={crtOffStyle}>{terminal}</div>
@@ -824,6 +829,7 @@ function AppContent() {
   if (layout === 'panel') {
     return (
       <>
+        <a href="#terminal" className="skip-link">Skip to terminal</a>
         <div aria-live="polite" aria-atomic="true" className="sr-only">{themeAnnouncement}</div>
         <LcarsLayout>
           <div style={crtOffStyle}>{terminal}</div>
@@ -838,6 +844,7 @@ function AppContent() {
 
   return (
     <>
+      <a href="#terminal" className="skip-link">Skip to terminal</a>
       <div aria-live="polite" aria-atomic="true" className="sr-only">{themeAnnouncement}</div>
       <FullscreenLayout crtEnabled={crtEnabled}>
         <div style={crtOffStyle}>{terminal}</div>

@@ -120,6 +120,7 @@ export const Terminal = forwardRef<TerminalHandle, TerminalProps>(
     return (
       <div
         ref={containerRef}
+        id="terminal"
         className="terminal-container"
         data-testid="terminal"
         role="application"
