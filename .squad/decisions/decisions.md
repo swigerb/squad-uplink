@@ -376,5 +376,46 @@ The Apple IIe `disk_drive` sound is user-initiated (click the floppy). No theme 
 
 ---
 
+## LCARS Theme — Authenticity Overhaul with Doug Drexler Palette
+
+**By:** Kare (Frontend Dev)  
+**Date:** 2026-04-07  
+**Status:** Implemented
+
+### Context
+
+The LCARS theme used generic approximation colors (#ff9900, #cc99cc, #9999ff) and a "Trek" font that weren't screen-accurate to the Star Trek TNG/DS9/VOY production design. Brady requested an overhaul using authentic reference material.
+
+### Decision
+
+Replaced entire LCARS color palette with Doug Drexler reference colors (the production designer's actual palette), switched primary font from "Trek" to "LCARSGTJ3" (free recreation of Helvetica Ultra Compressed), and overhauled the CSS layout for thicker elbows, wider sidebar, and authentic panel seam gaps.
+
+### Key Design Choices
+
+1. **Doug Drexler palette as canonical source** — #ec943a (warm orange), #c082a9 (mauve), #8b72aa (violet), #faa41b (golden yellow), #d29a7f (salmon), #9c698a (deep mauve), #b6a5d1 (lavender). These are screen-captured from actual Star Trek episodes.
+2. **LCARSGTJ3 font** — Free recreation of Helvetica Ultra Compressed (the original LCARS typeface). `font-display: block` chosen over `swap` because LCARS UI text flashing in a wrong typeface breaks the illusion.
+3. **44px border-radius on elbows** — Increased from 32px. Elbows are THE signature LCARS element; they need to be thick and prominent.
+4. **5px gaps everywhere** — Represents physical panel seams between OKUDAGRAM display segments.
+5. **Varied sidebar pill heights** — Added `--tall` (52px) and `--short` (24px) modifiers. Authentic LCARS sidebars have irregular block sizes, not uniform rows.
+6. **Trek-style numeric readouts** — "47-4521" and "09-8742" in sidebar short pills, matching the production design's decorative numeric sequences.
+
+### Impact
+
+- Visual-only changes to LCARS theme
+- No structural/API changes
+- Build clean, 0 TS errors
+- All 509 tests pass
+
+### Files Modified
+
+- `src/themes/lcars.ts` — Full palette replacement, font family update
+- `src/styles/lcars-panels.css` — Major CSS overhaul (sidebar width, elbow radius, pill sizes, gaps, font refs)
+- `src/styles/fonts.css` — Added LCARSGTJ3 @font-face declaration
+- `src/styles/global.css` — Updated [data-theme='lcars'] body styling
+- `src/App.tsx` — LcarsLayout component colors, pill sizes, Trek-themed text
+- `public/fonts/README.md` — Documented LCARSGTJ3 source and license
+
+---
+
 ## Archive Log
 (Post-release decisions logged here).
