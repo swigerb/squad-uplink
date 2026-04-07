@@ -64,13 +64,28 @@
 }
 
 /* ═══════════════════════════════════════════════
-   Pip-Boy exception — statusbar pills inside
-   the device chrome (unchanged from before)
+   Pip-Boy theme — blend floating controls with
+   the Pip-Boy green aesthetic
    ═══════════════════════════════════════════════ */
 
-/* Hide the floating control bar inside Pip-Boy — Pip-Boy uses .pipboy-statusbar instead */
 [data-theme='pipboy'] .uplink-controls {
-  display: none;
+  background: rgba(0, 12, 0, 0.85);
+  border-color: rgba(0, 255, 0, 0.2);
+}
+
+[data-theme='pipboy'] .uplink-controls-btn {
+  border-color: rgba(0, 255, 0, 0.15);
+  color: #00ff00;
+}
+
+[data-theme='pipboy'] .uplink-controls-btn:hover {
+  background: rgba(0, 255, 0, 0.1);
+  border-color: rgba(0, 255, 0, 0.4);
+}
+
+[data-theme='pipboy'] .uplink-controls-btn--active {
+  border-color: rgba(0, 255, 0, 0.5);
+  background: rgba(0, 255, 0, 0.08);
 }
 
 /* Legacy statusbar classes kept for Pip-Boy internal use */
