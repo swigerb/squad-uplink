@@ -10,7 +10,7 @@ export const pipboyTheme: TerminalTheme = {
   selection: 'rgba(27, 255, 128, 0.25)',
 
   fontFamily: '"VT323", "Share Tech Mono", monospace',
-  fontSize: 16,
+  fontSize: 9,
   cols: 80,
   rows: 24,
 

@@ -481,14 +481,7 @@ function PipBoyLayout({
                 <div className="pipboy-supplies">
                   <span>Stimpak (0)</span><span>Radaway (0)</span><span>BRIAN</span>
                 </div>
-                <div className="pipboy-info-bar">
-                  <span className="pipboy-weapon" />
-                  <span className="pipboy-aim"><p>21</p></span>
-                  <span className="pipboy-helmet" />
-                  <span className="pipboy-shield"><p>110</p></span>
-                  <span className="pipboy-voltage"><p>126</p></span>
-                  <span className="pipboy-nuclear"><p>35</p></span>
-                </div>
+                {/* Info bar with stat icons moved to PipBoyStat — only shows on STAT tab */}
                 <div className="pipboy-hud-bar">
                   <div className="pipboy-hp" />
                   <div className="pipboy-exp" />

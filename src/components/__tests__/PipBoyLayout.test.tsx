@@ -333,15 +333,14 @@ describe('PipBoyLayout', () => {
   // 4. DATA COMPONENTS (pending Woz)
   // =========================================================================
   describe('Data components', () => {
-    it('PipBoyStat renders S.P.E.C.I.A.L. attributes from store', async () => {
+    it('PipBoyStat renders Vault Boy and stat icons', async () => {
       const { PipBoyStat } = await import('@/components/PipBoy/tabs/PipBoyStat');
       renderWithPipBoy(<PipBoyStat />);
 
-      // Component renders fullName for each of the 7 S.P.E.C.I.A.L. stats
-      const attrs = ['Strength', 'Perception', 'Endurance', 'Charisma', 'Intelligence', 'Agility', 'Luck'];
-      for (const attr of attrs) {
-        expect(screen.getByText(new RegExp(attr))).toBeInTheDocument();
-      }
+      // Vault Boy character renders
+      expect(screen.getByTestId('vault-boy')).toBeInTheDocument();
+      // Stat footer renders
+      expect(screen.getByText(/MSGS:/)).toBeInTheDocument();
     });
 
     it('PipBoyInv shows "NO ITEMS" when disconnected', async () => {
