@@ -445,9 +445,34 @@ export function useAudio(skinId: ThemeId = 'apple2e') {
     [skinId, muted, playSample, playProcedural],
   );
 
+  /** Play a sound, waiting for the buffer to load first (skips procedural fallback) */
+  const playWhenReady = useCallback(
+    async (sound: SoundType) => {
+      if (muted) return;
+      try {
+        const ctx = getSharedContext();
+        if (ctx.state === 'suspended') {
+          void ctx.resume();
+        }
+
+        // Wait for the buffer to load before playing
+        const buffer = await bufferCache.load(ctx, skinId, sound);
+        if (buffer) {
+          playSample(ctx, buffer);
+        } else {
+          // No file available — fall back to procedural
+          playProcedural(ctx, sound);
+        }
+      } catch {
+        // Audio not available — silently degrade
+      }
+    },
+    [skinId, muted, playSample, playProcedural],
+  );
+
   const toggleMute = useCallback(() => {
     setGlobalMuted(!getMutedSnapshot());
   }, []);
 
-  return { play, muted, toggleMute };
+  return { play, playWhenReady, muted, toggleMute };
 }
