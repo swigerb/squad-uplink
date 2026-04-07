@@ -68,6 +68,8 @@ export function usePipBoyTransition(initialTab: PipBoyTab = 'DATA'): PipBoyTrans
       const t3 = setTimeout(() => {
         // t=400ms — done
         setTransitionPhase('idle');
+        // Dispatch resize so xterm.js FitAddon re-fits after tab switch
+        window.dispatchEvent(new Event('resize'));
       }, 400);
 
       timersRef.current = [t1, t2, t3];

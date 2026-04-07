@@ -563,12 +563,9 @@
 }
 
 /* ── Vault Boy health bars ─────────────────────── */
-/* Horizontal bar above Vault Boy */
+/* Horizontal bar above Vault Boy — hidden; bar1 is the correct top bar */
 [data-theme='pipboy'] .pipboy-bar-above {
-  width: 60px;
-  height: 3px;
-  background: #64d515;
-  margin-bottom: 2px;
+  display: none;
 }
 
 [data-theme='pipboy'] .pipboy-bar1,
@@ -1319,7 +1316,7 @@
   display: flex;
   align-items: flex-end;
   justify-content: center;
-  gap: 4px;
+  gap: 10px;
   margin: 14px auto 4px;
   z-index: auto;
   overflow: visible;
@@ -1533,7 +1530,7 @@
   flex-direction: column;
   height: 100%;
   overflow: hidden;
-  padding: 2px 4px;
+  padding: 2px 4px 2px 20px;
   box-sizing: border-box;
 }
 
@@ -1576,8 +1573,8 @@
   background: #78e461;
   color: #000;
   font-weight: 700;
-  padding: 1px 2px;
-  font-size: 5pt;
+  padding: 1px 1px;
+  font-size: 4pt;
   text-transform: uppercase;
   border: none;
   border-radius: 0;
@@ -1740,15 +1737,20 @@
 [data-theme='pipboy'] .pipboy-terminal-wrap .terminal-container {
   padding: 0;
   padding-left: 20px;
+  flex: 1;
+  min-height: 0;
+  height: 100%;
 }
 
 [data-theme='pipboy'] .pipboy-terminal-wrap .xterm {
   font-size: 7px !important;
   padding: 0 !important;
+  height: 100% !important;
 }
 
 [data-theme='pipboy'] .pipboy-terminal-wrap .xterm-screen {
   margin: 0 !important;
+  height: 100% !important;
 }
 
 [data-theme='pipboy'] .pipboy-terminal-wrap .xterm-viewport {
