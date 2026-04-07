@@ -30,13 +30,13 @@ describe('ConnectionManager', () => {
       expect(url.searchParams.get('X-Tunnel-Skip-AntiPhishing-Page')).toBe('true');
     });
 
-    it('omits access_token when token is empty string', async () => {
+    it('omits access_token and anti-phishing param when token is empty (cookie auth)', async () => {
       await cm.connect({ wsUrl: 'wss://tunnel.example.com/ws', token: '' });
 
       expect(MockWebSocket.instances).toHaveLength(1);
       const url = new URL(MockWebSocket.latest.url);
       expect(url.searchParams.has('access_token')).toBe(false);
-      expect(url.searchParams.get('X-Tunnel-Skip-AntiPhishing-Page')).toBe('true');
+      expect(url.searchParams.has('X-Tunnel-Skip-AntiPhishing-Page')).toBe(false);
     });
 
     it('transitions disconnected → connecting on connect()', async () => {

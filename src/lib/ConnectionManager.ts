@@ -71,12 +71,12 @@ export class ConnectionManager {
 
       // Build WebSocket URL with optional auth token
       const url = new URL(wsUrl);
-      // Only set access_token if a token was actually provided
       if (config.token) {
         url.searchParams.set('access_token', config.token);
+        // Anti-phishing bypass only needed for programmatic token auth
+        // For cookie auth (no token), the browser cookie handles auth + anti-phishing skip
+        url.searchParams.set('X-Tunnel-Skip-AntiPhishing-Page', 'true');
       }
-      // Bypass Microsoft Dev Tunnel anti-phishing page (harmless on non-devtunnel servers)
-      url.searchParams.set('X-Tunnel-Skip-AntiPhishing-Page', 'true');
       wsUrl = url.toString();
 
       const ws = new WebSocket(wsUrl);
