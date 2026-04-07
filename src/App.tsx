@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState, lazy, Suspense } from 'react';
+import { BootScreen } from '@/components/BootScreen';
 import { ThemeProvider } from '@/hooks/ThemeProvider';
 import { useTheme } from '@/hooks/useTheme';
 import { useAudio } from '@/hooks/useAudio';
@@ -863,6 +864,25 @@ function AppContent() {
 }
 
 export default function App() {
+  const [booted, setBooted] = useState(() => {
+    // Skip boot if user has a saved theme (returning user) or has booted before
+    return Boolean(
+      localStorage.getItem('squad-uplink-theme') ||
+      localStorage.getItem('squad-uplink-booted')
+    );
+  });
+
+  if (!booted) {
+    return (
+      <BootScreen
+        onComplete={() => {
+          localStorage.setItem('squad-uplink-booted', '1');
+          setBooted(true);
+        }}
+      />
+    );
+  }
+
   return (
     <ThemeProvider>
       <AppContent />

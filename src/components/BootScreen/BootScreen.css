@@ -1,0 +1,89 @@
+/* BootScreen — BIOS-style boot sequence on first visit.
+ * Renders green phosphor text (#33FF33) on black, outside the theme system.
+ * Plays once per install; skipped when a saved theme already exists. */
+
+.boot-screen {
+  position: fixed;
+  inset: 0;
+  z-index: 99999;
+  background: #000000;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  padding: 40px;
+  overflow: hidden;
+  font-family: 'PrintChar21', 'Apple II', 'Courier New', monospace;
+}
+
+/* Subtle CRT scanlines */
+.boot-screen::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(
+    to bottom,
+    transparent 0px,
+    transparent 2px,
+    rgba(0, 0, 0, 0.15) 2px,
+    rgba(0, 0, 0, 0.15) 4px
+  );
+  pointer-events: none;
+  z-index: 1;
+}
+
+.boot-line {
+  color: #33FF33;
+  font-size: 16px;
+  line-height: 1.6;
+  white-space: pre;
+  text-shadow: 0 0 6px rgba(51, 255, 51, 0.6);
+  position: relative;
+  z-index: 2;
+}
+
+.boot-line--indent {
+  padding-left: 2em;
+}
+
+.boot-line--ready {
+  font-weight: bold;
+  font-size: 18px;
+  text-shadow: 0 0 12px rgba(51, 255, 51, 0.8);
+}
+
+/* Blinking cursor on the last visible line */
+.boot-cursor {
+  display: inline-block;
+  width: 10px;
+  height: 16px;
+  background: #33FF33;
+  vertical-align: middle;
+  animation: boot-blink 0.6s step-end infinite;
+  margin-left: 4px;
+  box-shadow: 0 0 6px rgba(51, 255, 51, 0.5);
+}
+
+@keyframes boot-blink {
+  0%, 50% { opacity: 1; }
+  51%, 100% { opacity: 0; }
+}
+
+/* Screen flicker on initial render */
+.boot-screen--flicker {
+  animation: boot-flicker 0.12s ease-in-out 1;
+}
+
+@keyframes boot-flicker {
+  0%   { opacity: 0; }
+  20%  { opacity: 0.8; }
+  40%  { opacity: 0.3; }
+  60%  { opacity: 0.9; }
+  80%  { opacity: 0.5; }
+  100% { opacity: 1; }
+}
+
+/* Respect reduced motion — disable all animations */
+@media (prefers-reduced-motion: reduce) {
+  .boot-screen--flicker { animation: none; }
+  .boot-cursor { animation: none; opacity: 1; }
+}
