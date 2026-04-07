@@ -417,5 +417,36 @@ Replaced entire LCARS color palette with Doug Drexler reference colors (the prod
 
 ---
 
+## BIOS Boot Screen UX Pattern
+
+**By:** Kare (Frontend Dev)  
+**Date:** 2026-04-07  
+**Status:** Implemented
+
+### Context
+
+Brady requested a BIOS-style boot sequence for first-visit users to sell the "Uplink" terminal fantasy from second one.
+
+### Decision
+
+- Boot screen renders **outside** the ThemeProvider — it's not part of the theme system. Always green-on-black (#33FF33 on #000), using PrintChar21 font.
+- Skip logic uses two localStorage keys: `squad-uplink-theme` (returning user) OR `squad-uplink-booted` (completed boot once). Either key present = skip boot entirely.
+- Animation is setTimeout-driven (not CSS), ~3-4 seconds total, non-blocking.
+- `prefers-reduced-motion` respected — disables flicker and cursor blink.
+- Component is fully self-contained in `src/components/BootScreen/` with its own CSS.
+
+### Impact
+
+- App.tsx: Boot screen wraps ThemeProvider — renders *before* any theme logic runs.
+- No changes to ThemeProvider, useTheme, or connectionStore.
+- PWA standalone mode works (boot screen uses fixed positioning).
+
+### Team Notes
+
+- Hertzfeld: Boot screen tests should check localStorage skip logic and line rendering. Component uses `role="status"` for a11y.
+- Woz: No WebSocket connections during boot — ConnectionManager untouched.
+
+---
+
 ## Archive Log
 (Post-release decisions logged here).
