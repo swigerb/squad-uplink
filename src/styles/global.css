@@ -125,6 +125,26 @@ body {
    Fullscreen themes — ensure 100vh vertical fill
    ═══════════════════════════════════════════════ */
 
+/* Commodore 64 */
+[data-theme='c64'] .fullscreen-layout {
+  width: 100%;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+[data-theme='c64'] .fullscreen-layout > div {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+[data-theme='c64'] .fullscreen-layout .terminal-container {
+  flex: 1;
+  min-height: 0;
+}
+
 /* IBM 3270 */
 [data-theme='ibm3270'] .fullscreen-layout {
   width: 100%;
