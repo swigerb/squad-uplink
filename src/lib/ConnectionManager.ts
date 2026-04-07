@@ -3,7 +3,6 @@ import type {
   ConnectionState,
   OutboundMessage,
   InboundMessage,
-  TicketResponse,
   StatusResponse,
   MessageHistoryEntry,
 } from '@/types/squad-rc';
@@ -59,18 +58,19 @@ export class ConnectionManager {
     try {
       let wsUrl = config.wsUrl;
 
-      // If the URL is HTTP(S), do ticket exchange first
-      if (wsUrl.startsWith('http')) {
-        const ticket = await this.exchangeTicket(wsUrl, config.token);
-        const base = wsUrl.replace(/^http/, 'ws');
-        const url = new URL(base);
-        url.searchParams.set('ticket', ticket);
-        wsUrl = url.toString();
-      } else {
-        const url = new URL(wsUrl);
-        url.searchParams.set('token', config.token);
-        wsUrl = url.toString();
+      // Normalize protocol: https→wss, http→ws for browser WebSocket compatibility
+      if (wsUrl.startsWith('https://')) {
+        wsUrl = wsUrl.replace(/^https/, 'wss');
+      } else if (wsUrl.startsWith('http://')) {
+        wsUrl = wsUrl.replace(/^http/, 'ws');
       }
+
+      // Build authenticated WebSocket URL
+      const url = new URL(wsUrl);
+      url.searchParams.set('access_token', config.token);
+      // Bypass Microsoft Dev Tunnel anti-phishing page (harmless on non-devtunnel servers)
+      url.searchParams.set('X-Tunnel-Skip-AntiPhishing-Page', 'true');
+      wsUrl = url.toString();
 
       const ws = new WebSocket(wsUrl);
       this.ws = ws;
@@ -288,25 +288,6 @@ export class ConnectionManager {
     }
   }
 
-  private async exchangeTicket(baseUrl: string, token: string): Promise<string> {
-    const resp = await fetch(`${baseUrl}/api/auth/ticket`, {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${token}`,
-        'Content-Type': 'application/json',
-      },
-    });
-    if (!resp.ok) {
-      throw new Error(`Ticket exchange failed: ${resp.status} ${resp.statusText}`);
-    }
-    const data: TicketResponse = await resp.json();
-    return data.token;
-  }
-
-  /**
-   * Schedule a reconnection attempt with exponential backoff.
-   * Key fix: retries are NOT reset here. Only a successful onopen resets them.
-   */
   private scheduleReconnect(): void {
     const cfg = this.config;
     if (!cfg || cfg.reconnect === false) {

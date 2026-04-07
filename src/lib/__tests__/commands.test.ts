@@ -123,6 +123,37 @@ describe('handleCommand', () => {
       const output = terminal.lines.join('\n');
       expect(output).toContain('Connecting');
     });
+
+    it('normalizes https:// to wss:// before connecting', () => {
+      const spy = vi.spyOn(connectionManager, 'connectFresh').mockResolvedValue();
+
+      handleCommand('/connect https://tunnel.dev my-token', terminal);
+
+      expect(spy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          wsUrl: 'wss://tunnel.dev',
+          token: 'my-token',
+          reconnect: true,
+        }),
+      );
+
+      const output = terminal.lines.join('\n');
+      expect(output).toContain('wss://tunnel.dev');
+      spy.mockRestore();
+    });
+
+    it('normalizes http:// to ws:// before connecting', () => {
+      const spy = vi.spyOn(connectionManager, 'connectFresh').mockResolvedValue();
+
+      handleCommand('/connect http://localhost:3000 tok', terminal);
+
+      expect(spy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          wsUrl: 'ws://localhost:3000',
+        }),
+      );
+      spy.mockRestore();
+    });
   });
 
   // --- /disconnect ---

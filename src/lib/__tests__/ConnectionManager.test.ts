@@ -26,7 +26,8 @@ describe('ConnectionManager', () => {
 
       expect(MockWebSocket.instances).toHaveLength(1);
       const url = new URL(MockWebSocket.latest.url);
-      expect(url.searchParams.get('token')).toBe('abc-123');
+      expect(url.searchParams.get('access_token')).toBe('abc-123');
+      expect(url.searchParams.get('X-Tunnel-Skip-AntiPhishing-Page')).toBe('true');
     });
 
     it('transitions disconnected → connecting on connect()', async () => {
@@ -358,48 +359,37 @@ describe('ConnectionManager', () => {
     });
   });
 
-  // --- Ticket exchange ---
-  describe('ticket exchange', () => {
-    it('exchanges ticket when URL is HTTP', async () => {
-      const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue(
-        new Response(JSON.stringify({ token: 'ticket-xyz', expiresAt: '2026-12-31' }), {
-          status: 200,
-          headers: { 'Content-Type': 'application/json' },
-        }),
-      );
-
+  // --- Protocol normalization & DevTunnel params ---
+  describe('protocol normalization', () => {
+    it('normalizes https:// to wss:// and sets access_token + anti-phishing param', async () => {
       await cm.connect({ wsUrl: 'https://tunnel.example.com', token: 'bearer-abc' });
 
-      expect(fetchSpy).toHaveBeenCalledWith(
-        'https://tunnel.example.com/api/auth/ticket',
-        expect.objectContaining({
-          method: 'POST',
-          headers: expect.objectContaining({
-            Authorization: 'Bearer bearer-abc',
-          }),
-        }),
-      );
-
-      // WebSocket should be created with ws:// URL and ticket param
       const wsUrl = new URL(MockWebSocket.latest.url);
       expect(wsUrl.protocol).toBe('wss:');
-      expect(wsUrl.searchParams.get('ticket')).toBe('ticket-xyz');
-
-      fetchSpy.mockRestore();
+      expect(wsUrl.searchParams.get('access_token')).toBe('bearer-abc');
+      expect(wsUrl.searchParams.get('X-Tunnel-Skip-AntiPhishing-Page')).toBe('true');
     });
 
-    it('transitions to error state when ticket exchange fails', async () => {
-      const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue(
-        new Response('Unauthorized', { status: 401 }),
-      );
+    it('normalizes http:// to ws://', async () => {
+      await cm.connect({ wsUrl: 'http://localhost:3000', token: 'local-tok' });
 
-      const states: string[] = [];
-      cm.onStateChange = (s) => states.push(s);
+      const wsUrl = new URL(MockWebSocket.latest.url);
+      expect(wsUrl.protocol).toBe('ws:');
+      expect(wsUrl.searchParams.get('access_token')).toBe('local-tok');
+    });
 
-      await cm.connect({ wsUrl: 'https://tunnel.example.com', token: 'bad-token' });
+    it('preserves wss:// URLs as-is', async () => {
+      await cm.connect({ wsUrl: 'wss://tunnel.example.com/ws', token: 't' });
 
-      expect(states).toContain('error');
-      fetchSpy.mockRestore();
+      const wsUrl = new URL(MockWebSocket.latest.url);
+      expect(wsUrl.protocol).toBe('wss:');
+    });
+
+    it('always includes X-Tunnel-Skip-AntiPhishing-Page param', async () => {
+      await cm.connect({ wsUrl: 'wss://example.com/ws', token: 't' });
+
+      const wsUrl = new URL(MockWebSocket.latest.url);
+      expect(wsUrl.searchParams.get('X-Tunnel-Skip-AntiPhishing-Page')).toBe('true');
     });
   });
 

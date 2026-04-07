@@ -70,8 +70,15 @@ export function handleCommand(input: string, terminal: TerminalWriter | null): v
         terminal.writeln('\x1b[31mUsage: /connect <wsUrl> <token>\x1b[0m');
         break;
       }
-      terminal.writeln(`\x1b[2mConnecting to ${wsUrl}...\x1b[0m`);
-      connectionManager.connectFresh({ wsUrl, token, reconnect: true });
+      // Normalize protocol for browser WebSocket compatibility
+      let normalizedUrl = wsUrl;
+      if (normalizedUrl.startsWith('https://')) {
+        normalizedUrl = normalizedUrl.replace(/^https/, 'wss');
+      } else if (normalizedUrl.startsWith('http://')) {
+        normalizedUrl = normalizedUrl.replace(/^http/, 'ws');
+      }
+      terminal.writeln(`\x1b[2mConnecting to ${normalizedUrl}...\x1b[0m`);
+      connectionManager.connectFresh({ wsUrl: normalizedUrl, token, reconnect: true });
       break;
     }
 
