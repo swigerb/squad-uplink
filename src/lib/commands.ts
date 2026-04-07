@@ -11,6 +11,7 @@ const HELP_TEXT = `\x1b[1mAvailable commands:\x1b[0m
   /status      — Show connection state, tunnel URL, agent count
   /agents      — Request agent roster from squad-rc
   /connect     — Connect: /connect <url> [token]
+  /auth        — Authenticate: /auth <tunnel-url> (opens Microsoft login)
   /disconnect  — Disconnect from squad-rc
   /stop        — Disconnect from squad-rc (alias)
   /reset       — Clear terminal and reconnect
@@ -19,9 +20,9 @@ const HELP_TEXT = `\x1b[1mAvailable commands:\x1b[0m
   
 \x1b[2mTip: Prefix with @agentName to direct a message to a specific agent\x1b[0m
   
-\x1b[2mDevTunnel tips:
-  Anonymous: devtunnel port create -p PORT --protocol https --allow-anonymous
-  Cookie auth: visit tunnel URL in browser first, then /connect <url>\x1b[0m`;
+\x1b[2mDevTunnel auth:
+  Cookie: /auth <url> → login → /connect <url>
+  Anonymous: devtunnel port create -p PORT --protocol https --allow-anonymous\x1b[0m`;
 
 export function handleCommand(input: string, terminal: TerminalWriter | null): void {
   if (!terminal) return;
@@ -59,6 +60,28 @@ export function handleCommand(input: string, terminal: TerminalWriter | null): v
       }
       connectionManager.send({ type: 'prompt', text: '/agents' });
       terminal.writeln('\x1b[2mRequesting agent roster...\x1b[0m');
+      break;
+    }
+
+    case '/auth': {
+      let authUrl = parts[1] || import.meta.env.VITE_TUNNEL_URL;
+      if (!authUrl) {
+        terminal.writeln('\x1b[31mUsage: /auth <tunnel-url>\x1b[0m');
+        terminal.writeln('\x1b[2mOpens the DevTunnel URL for Microsoft login\x1b[0m');
+        break;
+      }
+      // Ensure HTTPS for auth (not WSS)
+      if (authUrl.startsWith('wss://')) {
+        authUrl = authUrl.replace(/^wss/, 'https');
+      } else if (authUrl.startsWith('ws://')) {
+        authUrl = authUrl.replace(/^ws/, 'http');
+      }
+      terminal.writeln('\x1b[2mOpening DevTunnel for authentication...\x1b[0m');
+      terminal.writeln('\x1b[2mComplete Microsoft login in the new tab, then:\x1b[0m');
+      // Show the connect command they'll need after auth
+      const connectUrl = authUrl.replace(/^https/, 'wss').replace(/^http/, 'ws');
+      terminal.writeln(`  /connect ${connectUrl}`);
+      window.open(authUrl, '_blank');
       break;
     }
 

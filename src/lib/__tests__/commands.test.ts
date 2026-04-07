@@ -208,6 +208,33 @@ describe('handleCommand', () => {
     });
   });
 
+  // --- /auth ---
+  describe('/auth', () => {
+    it('opens devtunnel URL in new tab for authentication', () => {
+      const openSpy = vi.spyOn(window, 'open').mockImplementation(() => null);
+      handleCommand('/auth https://xxx.devtunnels.ms', terminal);
+      expect(openSpy).toHaveBeenCalledWith('https://xxx.devtunnels.ms', '_blank');
+      expect(terminal.writeln).toHaveBeenCalledWith(
+        expect.stringContaining('Opening DevTunnel')
+      );
+      openSpy.mockRestore();
+    });
+
+    it('converts wss:// to https:// for browser auth', () => {
+      const openSpy = vi.spyOn(window, 'open').mockImplementation(() => null);
+      handleCommand('/auth wss://xxx.devtunnels.ms', terminal);
+      expect(openSpy).toHaveBeenCalledWith('https://xxx.devtunnels.ms', '_blank');
+      openSpy.mockRestore();
+    });
+
+    it('shows usage when no URL provided and no env var', () => {
+      handleCommand('/auth', terminal);
+      expect(terminal.writeln).toHaveBeenCalledWith(
+        expect.stringContaining('Usage: /auth')
+      );
+    });
+  });
+
   // --- /clear ---
   describe('/clear', () => {
     it('calls terminal.clear()', () => {
