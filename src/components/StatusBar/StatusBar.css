@@ -88,6 +88,31 @@
   background: rgba(0, 255, 0, 0.08);
 }
 
+/* ═══════════════════════════════════════════════
+   LCARS theme — position controls above footer bar
+   ═══════════════════════════════════════════════ */
+
+[data-theme='lcars'] .uplink-controls {
+  bottom: 64px;
+  background: rgba(0, 0, 0, 0.85);
+  border-color: rgba(255, 153, 0, 0.3);
+}
+
+[data-theme='lcars'] .uplink-controls-btn {
+  border-color: rgba(255, 153, 0, 0.2);
+  color: #ff9900;
+}
+
+[data-theme='lcars'] .uplink-controls-btn:hover {
+  background: rgba(255, 153, 0, 0.15);
+  border-color: rgba(255, 153, 0, 0.5);
+}
+
+[data-theme='lcars'] .uplink-controls-btn--active {
+  border-color: rgba(255, 153, 0, 0.5);
+  background: rgba(255, 153, 0, 0.1);
+}
+
 /* Legacy statusbar classes kept for Pip-Boy internal use */
 .statusbar {
   display: flex;
