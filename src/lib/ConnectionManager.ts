@@ -18,6 +18,9 @@ const RATE_LIMIT_MAX = 20;
 const RATE_LIMIT_THRESHOLD = 16;
 const DRAIN_INTERVAL = 3000; // drain timer interval in ms
 
+// Heartbeat: keep DevTunnel / Azure LB connections alive during long agent thinking
+const HEARTBEAT_INTERVAL = 30_000;
+
 // Metrics tracking
 const METRICS_WINDOW = 10_000; // 10s rolling window for message rates
 
@@ -29,6 +32,7 @@ export class ConnectionManager {
   private rateLimiter = { count: 0, resetAt: 0 };
   private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
   private drainTimer: ReturnType<typeof setInterval> | null = null;
+  private heartbeatTimer: ReturnType<typeof setInterval> | null = null;
 
   // Metrics tracking
   private inboundTimestamps: number[] = [];
@@ -86,9 +90,13 @@ export class ConnectionManager {
           connectedAt: Date.now(),
         });
         this.startMetricsTimer();
+        this.startHeartbeat();
       };
 
       ws.onmessage = (event) => {
+        // Skip heartbeat responses (empty frames)
+        if (!event.data || event.data === '') return;
+
         this.inboundTimestamps.push(Date.now());
         const store = useConnectionStore.getState();
 
@@ -147,6 +155,7 @@ export class ConnectionManager {
           code: event.code,
           url: wsUrl.replace(/access_token=[^&]+/, 'access_token=***'),
         });
+        this.stopHeartbeat();
         this.stopMetricsTimer();
         this.scheduleReconnect();
       };
@@ -326,6 +335,22 @@ export class ConnectionManager {
     }
   }
 
+  private startHeartbeat(): void {
+    this.stopHeartbeat();
+    this.heartbeatTimer = setInterval(() => {
+      if (this.ws?.readyState === WebSocket.OPEN) {
+        this.ws.send('');
+      }
+    }, HEARTBEAT_INTERVAL);
+  }
+
+  private stopHeartbeat(): void {
+    if (this.heartbeatTimer) {
+      clearInterval(this.heartbeatTimer);
+      this.heartbeatTimer = null;
+    }
+  }
+
   private scheduleReconnect(): void {
     const cfg = this.config;
     if (!cfg || cfg.reconnect === false) {
@@ -420,6 +445,7 @@ export class ConnectionManager {
       clearTimeout(this.radsAlertTimer);
       this.radsAlertTimer = null;
     }
+    this.stopHeartbeat();
     this.stopDrainTimer();
     if (this.ws) {
       this.ws.onopen = null;
