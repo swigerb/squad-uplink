@@ -825,3 +825,38 @@ vite-plugin-pwa@1.2.0 declares `peerDependency: vite ^3–7` but the project use
 **Impact**
 - 523 total tests passing (no regressions)
 - Ready for PWA install prompt (pending icon generation)
+
+---
+
+### 2026-04-07: Connection Error Telemetry for TelemetryDrawer
+**By:** Woz (Lead Dev)
+**Status:** Implemented
+
+## Context
+
+WebSocket reconnect loop provides no visibility into failure causes. The TelemetryDrawer showed "Connect to view status" with no error details, making it impossible to diagnose why connections fail (anti-phishing blocks, auth failures, network issues, etc.).
+
+## Decisions
+
+### 1. Error Log as Ring Buffer in TelemetryMetrics
+Added `connectionErrors: ConnectionError[]` to the existing `TelemetryMetrics` interface rather than a separate store field. Capped at 10 entries (oldest evicted). Rationale: errors are telemetry data, and the ring buffer prevents unbounded memory growth during extended reconnect loops.
+
+### 2. Four Capture Points in ConnectionManager
+Errors captured at: `ws.onerror`, `ws.onclose` (with close code/reason), `connect()` catch, and `fetchStatus()` catch. Each tagged with a `type` discriminant for filtering/display.
+
+### 3. Token Masking in Stored URLs
+All URLs stored in error entries have `access_token` values replaced with `***` before storage. This prevents token leakage through telemetry state, React DevTools, or serialized store snapshots.
+
+### 4. Stable Zustand Selector Fallback
+Used a module-level `EMPTY_ERRORS` constant instead of inline `?? []` for the Zustand selector. Inline `[]` creates a new reference per render, causing infinite re-render loops when the field is undefined (e.g., in tests with incomplete store resets).
+
+## Files Changed
+- `src/types/squad-rc.ts` — New `ConnectionError` interface, extended `TelemetryMetrics`
+- `src/store/connectionStore.ts` — `addConnectionError` action, ring buffer impl
+- `src/lib/ConnectionManager.ts` — Error capture at 4 WebSocket/fetch failure points
+- `src/components/TelemetryDrawer/TelemetryDrawer.tsx` — Connection Log section, improved empty states
+- `src/components/TelemetryDrawer/TelemetryDrawer.css` — Error log styling
+- `src/lib/commands.ts` — URL + anti-phishing debug logging in `/connect`
+- `src/store/__tests__/connectionStore.test.ts` — Added `connectionErrors` to telemetry fixture
+- `src/components/__tests__/TelemetryDrawer.test.tsx` — Added `connectionErrors` to telemetry fixture
+- `src/components/__tests__/PipBoyLayout.test.tsx` — Added `connectionErrors` to telemetry fixture
