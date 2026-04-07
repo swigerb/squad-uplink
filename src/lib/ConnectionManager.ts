@@ -65,9 +65,12 @@ export class ConnectionManager {
         wsUrl = wsUrl.replace(/^http/, 'ws');
       }
 
-      // Build authenticated WebSocket URL
+      // Build WebSocket URL with optional auth token
       const url = new URL(wsUrl);
-      url.searchParams.set('access_token', config.token);
+      // Only set access_token if a token was actually provided
+      if (config.token) {
+        url.searchParams.set('access_token', config.token);
+      }
       // Bypass Microsoft Dev Tunnel anti-phishing page (harmless on non-devtunnel servers)
       url.searchParams.set('X-Tunnel-Skip-AntiPhishing-Page', 'true');
       wsUrl = url.toString();
@@ -129,10 +132,18 @@ export class ConnectionManager {
         store.updateTelemetry({
           lastDisconnectAt: new Date().toISOString(),
         });
+
+        let message = `WebSocket closed: ${event.code} ${event.reason || '(no reason)'}`;
+
+        // Add diagnostic hint for common devtunnel auth failure
+        if (event.code === 1006 && this.retries >= 2) {
+          message += ' — DevTunnel browser auth may require: (1) anonymous tunnel access via `devtunnel port create -p PORT --protocol https --allow-anonymous`, or (2) visit tunnel URL in browser first to authenticate via Microsoft login';
+        }
+
         store.addConnectionError({
           timestamp: Date.now(),
           type: 'ws_close',
-          message: `WebSocket closed: ${event.code} ${event.reason || '(no reason)'}`,
+          message,
           code: event.code,
           url: wsUrl.replace(/access_token=[^&]+/, 'access_token=***'),
         });

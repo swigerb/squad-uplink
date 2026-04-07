@@ -10,14 +10,18 @@ export interface TerminalWriter {
 const HELP_TEXT = `\x1b[1mAvailable commands:\x1b[0m
   /status      — Show connection state, tunnel URL, agent count
   /agents      — Request agent roster from squad-rc
-  /connect     — Connect: /connect <wsUrl> <token>
+  /connect     — Connect: /connect <url> [token]
   /disconnect  — Disconnect from squad-rc
   /stop        — Disconnect from squad-rc (alias)
   /reset       — Clear terminal and reconnect
   /clear       — Clear terminal
   /help        — Show this help message
   
-\x1b[2mTip: Prefix with @agentName to direct a message to a specific agent\x1b[0m`;
+\x1b[2mTip: Prefix with @agentName to direct a message to a specific agent\x1b[0m
+  
+\x1b[2mDevTunnel tips:
+  Anonymous: devtunnel port create -p PORT --protocol https --allow-anonymous
+  Cookie auth: visit tunnel URL in browser first, then /connect <url>\x1b[0m`;
 
 export function handleCommand(input: string, terminal: TerminalWriter | null): void {
   if (!terminal) return;
@@ -50,7 +54,7 @@ export function handleCommand(input: string, terminal: TerminalWriter | null): v
 
     case '/agents': {
       if (!connectionManager.isConnected) {
-        terminal.writeln('\x1b[31mNot connected. Use /connect <url> <token>\x1b[0m');
+        terminal.writeln('\x1b[31mNot connected. Use /connect <url> [token]\x1b[0m');
         break;
       }
       connectionManager.send({ type: 'prompt', text: '/agents' });
@@ -60,14 +64,11 @@ export function handleCommand(input: string, terminal: TerminalWriter | null): v
 
     case '/connect': {
       const wsUrl = parts[1] || import.meta.env.VITE_TUNNEL_URL;
-      const token = parts[2];
+      const token = parts[2]; // Optional — omit for anonymous tunnels or cookie auth
       if (!wsUrl) {
-        terminal.writeln('\x1b[31mUsage: /connect <wsUrl> <token>\x1b[0m');
+        terminal.writeln('\x1b[31mUsage: /connect <url> [token]\x1b[0m');
+        terminal.writeln('\x1b[2mToken is optional for anonymous tunnels or cookie-based auth\x1b[0m');
         terminal.writeln('\x1b[2mOr set VITE_TUNNEL_URL env var\x1b[0m');
-        break;
-      }
-      if (!token) {
-        terminal.writeln('\x1b[31mUsage: /connect <wsUrl> <token>\x1b[0m');
         break;
       }
       // Normalize protocol for browser WebSocket compatibility
@@ -78,9 +79,9 @@ export function handleCommand(input: string, terminal: TerminalWriter | null): v
         normalizedUrl = normalizedUrl.replace(/^http/, 'ws');
       }
       terminal.writeln(`\x1b[2mConnecting to ${normalizedUrl}...\x1b[0m`);
-      terminal.writeln(`\x1b[2m  URL: ${normalizedUrl}\x1b[0m`);
+      terminal.writeln(`\x1b[2m  Token: ${token ? 'provided' : 'none (anonymous/cookie auth)'}\x1b[0m`);
       terminal.writeln(`\x1b[2m  Anti-phishing: bypass enabled\x1b[0m`);
-      connectionManager.connectFresh({ wsUrl: normalizedUrl, token, reconnect: true });
+      connectionManager.connectFresh({ wsUrl: normalizedUrl, token: token || '', reconnect: true });
       break;
     }
 

@@ -101,18 +101,28 @@ describe('handleCommand', () => {
       spy.mockRestore();
     });
 
-    it('shows error when url or token missing', () => {
+    it('shows error when url is missing', () => {
       handleCommand('/connect', terminal);
 
       const output = terminal.lines.join('\n');
       expect(output).toContain('Usage');
     });
 
-    it('shows error when only url is provided', () => {
+    it('connects without token for anonymous/cookie auth', () => {
+      const spy = vi.spyOn(connectionManager, 'connectFresh').mockResolvedValue();
+
       handleCommand('/connect wss://tunnel.dev/ws', terminal);
 
+      expect(spy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          wsUrl: 'wss://tunnel.dev/ws',
+          token: '',
+          reconnect: true,
+        }),
+      );
       const output = terminal.lines.join('\n');
-      expect(output).toContain('Usage');
+      expect(output).toContain('anonymous/cookie auth');
+      spy.mockRestore();
     });
 
     it('shows connecting message', () => {

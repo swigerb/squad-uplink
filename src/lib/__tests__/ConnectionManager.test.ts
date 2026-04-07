@@ -30,6 +30,15 @@ describe('ConnectionManager', () => {
       expect(url.searchParams.get('X-Tunnel-Skip-AntiPhishing-Page')).toBe('true');
     });
 
+    it('omits access_token when token is empty string', async () => {
+      await cm.connect({ wsUrl: 'wss://tunnel.example.com/ws', token: '' });
+
+      expect(MockWebSocket.instances).toHaveLength(1);
+      const url = new URL(MockWebSocket.latest.url);
+      expect(url.searchParams.has('access_token')).toBe(false);
+      expect(url.searchParams.get('X-Tunnel-Skip-AntiPhishing-Page')).toBe('true');
+    });
+
     it('transitions disconnected → connecting on connect()', async () => {
       const states: string[] = [];
       cm.onStateChange = (s) => states.push(s);
@@ -426,6 +435,27 @@ describe('ConnectionManager', () => {
       MockWebSocket.latest.simulateError();
 
       expect(states).toContain('error');
+    });
+
+    it('adds devtunnel diagnostic hint after repeated 1006 closes', async () => {
+      const { useConnectionStore } = await import('@/store/connectionStore');
+
+      await cm.connect({ wsUrl: 'wss://example.com/ws', token: 't', reconnect: true, maxRetries: 10 });
+      MockWebSocket.latest.simulateOpen();
+
+      // First two 1006 closes — no diagnostic yet (retries < 2 at time of close)
+      MockWebSocket.latest.simulateClose(1006);
+      vi.advanceTimersByTime(1000);
+      MockWebSocket.latest.simulateClose(1006);
+      vi.advanceTimersByTime(2000);
+
+      // Third 1006 close — retries >= 2, diagnostic should appear
+      MockWebSocket.latest.simulateClose(1006);
+
+      const errors = useConnectionStore.getState().telemetry.connectionErrors;
+      const lastError = errors[errors.length - 1];
+      expect(lastError.message).toContain('DevTunnel browser auth');
+      expect(lastError.message).toContain('allow-anonymous');
     });
   });
 
