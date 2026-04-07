@@ -486,5 +486,50 @@ Squad Uplink enters a constant WebSocket reconnect loop when connecting through 
 
 ---
 
+## DevTunnel Browser WebSocket Auth — Optional Token + 1006 Diagnostics
+
+**Author:** Woz (Lead Dev)  
+**Date:** 2026-04-07  
+**Status:** Implemented  
+**Requested by:** Brian Swiger
+
+### Context
+
+Microsoft Dev Tunnels do NOT support `access_token` as a query parameter for browser WebSocket authentication. The tunnel relay rejects the handshake, producing a 1006 close code and an infinite reconnect loop. Browsers cannot set custom headers on WebSocket connections, so header-based auth is also impossible.
+
+### Decision
+
+Support two legitimate browser→devtunnel auth approaches:
+
+1. **Anonymous tunnel access** — User configures tunnel with `--allow-anonymous`. No token needed.
+2. **Cookie-based auth** — User visits tunnel URL in browser first, authenticates via Microsoft login. The auth cookie is automatically sent with subsequent WebSocket requests.
+
+#### Changes Made
+
+| File | Change |
+|------|--------|
+| `src/lib/commands.ts` | `/connect <url> [token]` — token is now optional. Empty string passed when omitted. Help text updated with DevTunnel tips. |
+| `src/lib/ConnectionManager.ts` | `access_token` query param only set when token is non-empty (empty string is falsy). 1006 diagnostic hint added after 2+ retries. |
+| `src/lib/__tests__/commands.test.ts` | Updated: "connects without token" test added, old "error when only url" test replaced. |
+| `src/lib/__tests__/ConnectionManager.test.ts` | Added: "omits access_token when empty", "1006 diagnostic hint" tests. |
+
+### Key Design Choices
+
+- **Empty string as "no token"** — `SquadRcConfig.token` stays as `string` type. Empty string `''` is falsy in JS, so `if (config.token)` naturally gates the `access_token` param. No interface change needed.
+- **Diagnostic at retries >= 2** — Don't spam the error log on first 1006; could be a transient network issue. After 2+ failures, it's likely an auth problem worth diagnosing.
+- **Non-breaking** — `/connect <url> <token>` still works exactly as before. Only the "token required" gate was removed.
+
+### Alternatives Considered
+
+- **Subprotocol-based auth** — Passing token via WebSocket subprotocol. Not supported by devtunnel relay.
+- **Custom proxy** — Running a local proxy that adds headers. Adds complexity, defeats the purpose of devtunnel simplicity.
+
+### Verification
+
+- 529 tests passing, 15 skipped (pre-existing), 0 failures
+- Build clean (0 TS errors, 0 lint warnings)
+
+---
+
 ## Archive Log
 (Post-release decisions logged here).
