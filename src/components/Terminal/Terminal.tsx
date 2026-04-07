@@ -4,9 +4,12 @@ import { CanvasAddon } from '@xterm/addon-canvas';
 import { FitAddon } from '@xterm/addon-fit';
 import { WebLinksAddon } from '@xterm/addon-web-links';
 import { useTheme } from '@/hooks/useTheme';
+import { useConnectionStore } from '@/store/connectionStore';
 import { getBootMessage } from '@/lib/bootMessages';
 import '@xterm/xterm/css/xterm.css';
 import './Terminal.css';
+
+const FULLSCREEN_MIN_FONT_SIZE = 16;
 
 export interface TerminalHandle {
   write: (data: string) => void;
@@ -116,6 +119,24 @@ export const Terminal = forwardRef<TerminalHandle, TerminalProps>(
       // Only re-init on theme identity change
       // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [theme.id]);
+
+    // Dynamically adjust font size for fullscreen mode
+    const terminalFullscreen = useConnectionStore((s) => s.terminalFullscreen);
+    useEffect(() => {
+      const term = xtermRef.current;
+      const fit = fitRef.current;
+      if (!term || !fit) return;
+
+      const targetSize = terminalFullscreen
+        ? Math.max(theme.fontSize, FULLSCREEN_MIN_FONT_SIZE)
+        : theme.fontSize;
+
+      if (term.options.fontSize !== targetSize) {
+        term.options.fontSize = targetSize;
+        // Allow DOM to settle before re-fitting
+        requestAnimationFrame(() => fit.fit());
+      }
+    }, [terminalFullscreen, theme.fontSize]);
 
     return (
       <div

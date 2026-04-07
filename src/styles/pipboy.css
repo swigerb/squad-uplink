@@ -405,7 +405,7 @@
   border-radius: 20px;
   background: #000;
   border: 5px solid #333;
-  padding: 5px 5px 5px 0;
+  padding: 5px;
   overflow: hidden;
   box-sizing: border-box;
 }
@@ -563,9 +563,12 @@
 }
 
 /* ── Vault Boy health bars ─────────────────────── */
-/* Horizontal bar above Vault Boy — hidden; bar1 (absolute inside vaultboy) already renders this */
+/* Horizontal bar above Vault Boy */
 [data-theme='pipboy'] .pipboy-bar-above {
-  display: none;
+  width: 60px;
+  height: 3px;
+  background: #64d515;
+  margin-bottom: 2px;
 }
 
 [data-theme='pipboy'] .pipboy-bar1,
@@ -1276,6 +1279,7 @@
   display: flex;
   flex-direction: column;
   align-items: center;
+  justify-content: center;
   padding: 4px 8px;
   height: 100%;
   overflow-y: auto;
@@ -1340,7 +1344,7 @@
 }
 [data-theme='pipboy'] .pipboy-info-bar-inline > span p {
   margin: 0;
-  padding: 0;
+  padding-top: 5px;
   font-size: 6px;
   color: #8df776;
   line-height: 1;
@@ -1729,13 +1733,13 @@
 
 /* ── INV tab — nudge content right to align with viewport border ── */
 [data-theme='pipboy'] .pipboy-inv {
-  padding-left: 10px;
+  padding-left: 20px;
 }
 
 /* ── DATA tab — terminal flush-left, no wrapping, full height ── */
 [data-theme='pipboy'] .pipboy-terminal-wrap .terminal-container {
   padding: 0;
-  padding-left: 10px;
+  padding-left: 20px;
 }
 
 [data-theme='pipboy'] .pipboy-terminal-wrap .xterm {
@@ -1758,7 +1762,7 @@
 /* ── MAP tab — left-align text with 10px offset from viewport border ── */
 [data-theme='pipboy'] .pipboy-map {
   text-align: left;
-  padding: 2px 4px 2px 10px;
+  padding: 2px 4px 2px 20px;
   box-sizing: border-box;
 }
 
@@ -1778,4 +1782,37 @@
 /* ── RADIO tab — spacing between override button and input ── */
 [data-theme='pipboy'] .pipboy-radio-input-row {
   margin-top: 4px;
+}
+
+/* ═══════════════════════════════════════════════
+   Pip-Boy Fullscreen Mode
+   When terminal fullscreen is active, the Codepen
+   device chrome is hidden and the terminal fills
+   the entire viewport with the Pip-Boy green CRT.
+   ═══════════════════════════════════════════════ */
+
+[data-theme='pipboy'] .terminal-fullscreen {
+  background: #000500 !important;
+}
+
+/* Green phosphor glow on the fullscreen terminal text */
+[data-theme='pipboy'] .terminal-fullscreen .terminal-container {
+  position: relative;
+  text-shadow: 0 0 6px rgba(27, 255, 128, 0.5);
+}
+
+/* Scanline overlay effect in fullscreen */
+[data-theme='pipboy'] .terminal-fullscreen .terminal-container::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    rgba(0, 0, 0, 0.15) 2px,
+    rgba(0, 0, 0, 0.15) 4px
+  );
+  z-index: 1;
 }
