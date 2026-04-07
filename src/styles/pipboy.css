@@ -563,13 +563,9 @@
 }
 
 /* ── Vault Boy health bars ─────────────────────── */
-/* Horizontal bar above Vault Boy (matches bars around/below) */
+/* Horizontal bar above Vault Boy — hidden; bar1 (absolute inside vaultboy) already renders this */
 [data-theme='pipboy'] .pipboy-bar-above {
-  width: 15px;
-  height: 3.5px;
-  background: #64d515;
-  margin: 0 auto 2px;
-  box-shadow: 0 0 4px rgba(27, 255, 128, 0.5);
+  display: none;
 }
 
 [data-theme='pipboy'] .pipboy-bar1,
@@ -714,8 +710,8 @@
   background: url("/images/pipboy/pipboy-gun2.png") no-repeat center/contain;
 }
 [data-theme='pipboy'] .pipboy-aim {
-  width: 11px;
-  height: 11px;
+  width: 5.5px;
+  height: 5.5px;
   background: url("/images/pipboy/pipboy-aim2.png") no-repeat center/contain;
 }
 [data-theme='pipboy'] .pipboy-helmet {
@@ -724,18 +720,18 @@
   background: url("/images/pipboy/pipboy-helmet2.png") no-repeat center/contain;
 }
 [data-theme='pipboy'] .pipboy-shield {
-  width: 11px;
-  height: 11px;
+  width: 5.5px;
+  height: 5.5px;
   background: url("/images/pipboy/pipboy-shield2.png") no-repeat center/contain;
 }
 [data-theme='pipboy'] .pipboy-voltage {
-  width: 11px;
-  height: 11px;
+  width: 5.5px;
+  height: 5.5px;
   background: url("/images/pipboy/pipboy-voltage2.png") no-repeat center/contain;
 }
 [data-theme='pipboy'] .pipboy-nuclear {
-  width: 11px;
-  height: 11px;
+  width: 5.5px;
+  height: 5.5px;
   background: url("/images/pipboy/pipboy-nuclear2.png") no-repeat center/contain;
 }
 
@@ -1320,7 +1316,7 @@
   align-items: flex-end;
   justify-content: center;
   gap: 4px;
-  margin: 2px auto 4px;
+  margin: 14px auto 4px;
   z-index: auto;
   overflow: visible;
 }
@@ -1333,6 +1329,14 @@
   background-position: center top;
   padding-top: 12px;
   min-width: 11px;
+}
+/* Halved icons: aim, shield, voltage, nuclear */
+[data-theme='pipboy'] .pipboy-info-bar-inline > span.pipboy-aim,
+[data-theme='pipboy'] .pipboy-info-bar-inline > span.pipboy-shield,
+[data-theme='pipboy'] .pipboy-info-bar-inline > span.pipboy-voltage,
+[data-theme='pipboy'] .pipboy-info-bar-inline > span.pipboy-nuclear {
+  min-width: 6px;
+  padding-top: 6px;
 }
 [data-theme='pipboy'] .pipboy-info-bar-inline > span p {
   margin: 0;
