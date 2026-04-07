@@ -95,6 +95,15 @@ export interface StatusResponse {
   [key: string]: unknown;
 }
 
+/** Connection error entry for telemetry */
+export interface ConnectionError {
+  timestamp: number;
+  type: 'ws_error' | 'ws_close' | 'connect_failed' | 'status_fetch_failed';
+  message: string;
+  code?: number;
+  url?: string;
+}
+
 /** Telemetry metrics tracked by ConnectionManager */
 export interface TelemetryMetrics {
   /** Round-trip latency to squad-rc in ms */
@@ -119,6 +128,8 @@ export interface TelemetryMetrics {
   messageCount: number;
   /** Successfully delivered messages this session */
   successCount: number;
+  /** Recent connection errors for debugging */
+  connectionErrors: ConnectionError[];
 }
 
 /** Entry in the Pip-Boy message history buffer */

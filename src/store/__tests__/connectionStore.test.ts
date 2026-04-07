@@ -29,6 +29,7 @@ function resetStore() {
       tokenUsage: 0,
       messageCount: 0,
       successCount: 0,
+      connectionErrors: [],
     },
     messageHistory: [],
     tools: [],

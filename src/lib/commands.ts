@@ -78,6 +78,8 @@ export function handleCommand(input: string, terminal: TerminalWriter | null): v
         normalizedUrl = normalizedUrl.replace(/^http/, 'ws');
       }
       terminal.writeln(`\x1b[2mConnecting to ${normalizedUrl}...\x1b[0m`);
+      terminal.writeln(`\x1b[2m  URL: ${normalizedUrl}\x1b[0m`);
+      terminal.writeln(`\x1b[2m  Anti-phishing: bypass enabled\x1b[0m`);
       connectionManager.connectFresh({ wsUrl: normalizedUrl, token, reconnect: true });
       break;
     }

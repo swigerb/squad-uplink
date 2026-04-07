@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import type {
   ConnectionState,
+  ConnectionError,
   TelemetryMetrics,
   StatusResponse,
   MessageHistoryEntry,
@@ -10,6 +11,7 @@ import type {
 
 const MAX_MESSAGE_HISTORY = 50;
 const MAX_COMMAND_HISTORY = 10;
+const MAX_CONNECTION_ERRORS = 10;
 
 export interface ConnectionStore {
   status: ConnectionState;
@@ -48,6 +50,7 @@ export interface ConnectionStore {
   setDrawerOpen: (open: boolean) => void;
   updateTelemetry: (partial: Partial<TelemetryMetrics>) => void;
   setStatusResponse: (response: StatusResponse) => void;
+  addConnectionError: (error: ConnectionError) => void;
 
   // Pip-Boy actions
   addMessageHistory: (entry: MessageHistoryEntry) => void;
@@ -77,6 +80,7 @@ const initialTelemetry: TelemetryMetrics = {
   tokenUsage: 0,
   messageCount: 0,
   successCount: 0,
+  connectionErrors: [],
 };
 
 export const useConnectionStore = create<ConnectionStore>((set) => ({
@@ -120,6 +124,13 @@ export const useConnectionStore = create<ConnectionStore>((set) => ({
         ...s.telemetry,
         statusResponse: response,
         statusFetchedAt: Date.now(),
+      },
+    })),
+  addConnectionError: (error) =>
+    set((s) => ({
+      telemetry: {
+        ...s.telemetry,
+        connectionErrors: [...s.telemetry.connectionErrors, error].slice(-MAX_CONNECTION_ERRORS),
       },
     })),
 

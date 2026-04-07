@@ -115,18 +115,39 @@ export class ConnectionManager {
 
       ws.onerror = () => {
         this.emitState('error');
+        useConnectionStore.getState().addConnectionError({
+          timestamp: Date.now(),
+          type: 'ws_error',
+          message: 'WebSocket error — check browser console for details',
+          url: wsUrl.replace(/access_token=[^&]+/, 'access_token=***'),
+        });
       };
 
-      ws.onclose = () => {
+      ws.onclose = (event) => {
         this.ws = null;
-        useConnectionStore.getState().updateTelemetry({
+        const store = useConnectionStore.getState();
+        store.updateTelemetry({
           lastDisconnectAt: new Date().toISOString(),
+        });
+        store.addConnectionError({
+          timestamp: Date.now(),
+          type: 'ws_close',
+          message: `WebSocket closed: ${event.code} ${event.reason || '(no reason)'}`,
+          code: event.code,
+          url: wsUrl.replace(/access_token=[^&]+/, 'access_token=***'),
         });
         this.stopMetricsTimer();
         this.scheduleReconnect();
       };
     } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
       console.error('[squad-uplink] Connection failed:', err);
+      useConnectionStore.getState().addConnectionError({
+        timestamp: Date.now(),
+        type: 'connect_failed',
+        message,
+        url: config.wsUrl?.replace(/access_token=[^&]+/, 'access_token=***'),
+      });
       this.emitState('error');
       this.scheduleReconnect();
     }
@@ -239,7 +260,13 @@ export class ConnectionManager {
 
       return data;
     } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
       console.error('[squad-uplink] /status fetch failed:', err);
+      useConnectionStore.getState().addConnectionError({
+        timestamp: Date.now(),
+        type: 'status_fetch_failed',
+        message,
+      });
       return null;
     }
   }

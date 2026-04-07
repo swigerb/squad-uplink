@@ -51,6 +51,10 @@ function resetStore() {
       lastDisconnectAt: null,
       statusResponse: null,
       statusFetchedAt: null,
+      tokenUsage: 0,
+      messageCount: 0,
+      successCount: 0,
+      connectionErrors: [],
     },
   });
 }

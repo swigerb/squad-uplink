@@ -1,10 +1,11 @@
 import { useEffect, useRef, useCallback, useState, type JSX } from 'react';
 import { useConnectionStore } from '@/store/connectionStore';
 import { connectionManager } from '@/lib/ConnectionManager';
-import type { StatusResponse } from '@/types/squad-rc';
+import type { StatusResponse, ConnectionError } from '@/types/squad-rc';
 import './TelemetryDrawer.css';
 
 const STATUS_REFRESH_INTERVAL = 30_000;
+const EMPTY_ERRORS: ConnectionError[] = [];
 
 function formatUptime(connectedAt: number | null): string {
   if (!connectedAt) return '—';
@@ -105,6 +106,7 @@ export function TelemetryDrawer() {
   const status = useConnectionStore((s) => s.status);
   const tunnelUrl = useConnectionStore((s) => s.tunnelUrl);
   const telemetry = useConnectionStore((s) => s.telemetry);
+  const connectionErrors = useConnectionStore((s) => s.telemetry.connectionErrors ?? EMPTY_ERRORS);
 
   const [uptimeDisplay, setUptimeDisplay] = useState('—');
   const [refreshing, setRefreshing] = useState(false);
@@ -306,6 +308,29 @@ export function TelemetryDrawer() {
             </div>
           </div>
 
+          {/* Connection errors */}
+          {connectionErrors.length > 0 && (
+            <div className="telemetry-section">
+              <h3 className="telemetry-section-title">Connection Log</h3>
+              <div className="telemetry-error-log">
+                {connectionErrors.slice().reverse().map((err, i) => (
+                  <div key={i} className="telemetry-error-entry">
+                    <span className="telemetry-error-time">
+                      {new Date(err.timestamp).toLocaleTimeString()}
+                    </span>
+                    <span className={`telemetry-error-type telemetry-error-type--${err.type}`}>
+                      {err.type}
+                    </span>
+                    <span className="telemetry-error-message">{err.message}</span>
+                    {err.url && (
+                      <span className="telemetry-error-url">{err.url}</span>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* Agent roster */}
           <div className="telemetry-section">
             <h3 className="telemetry-section-title">Agents</h3>
@@ -349,7 +374,11 @@ export function TelemetryDrawer() {
               <span className="telemetry-empty">
                 {status === 'connected'
                   ? 'Fetching…'
-                  : 'Connect to view status'}
+                  : status === 'reconnecting'
+                    ? `Reconnecting… (attempt ${telemetry.reconnectCount})`
+                    : status === 'error'
+                      ? 'Connection error — see log below'
+                      : 'Connect to view status'}
               </span>
             )}
             {telemetry.statusFetchedAt && (
