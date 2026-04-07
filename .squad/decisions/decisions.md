@@ -343,5 +343,38 @@ No code changes to manifest or audio hooks. Ready for sound designer to add `.mp
 
 ---
 
+## Win95 Boot Sound — File-Based, Play on Mount
+
+**By:** Woz (Lead Dev)  
+**Date:** 2026-04-07  
+**Status:** Implemented
+
+### Context
+
+Brian provided a royalty-free `boot.mp3` for the Win95 theme. The audio manifest already declared `boot: '/audio/win95/boot.mp3'` but no file existed — the system fell back to procedural sine-wave synthesis.
+
+### Decision
+
+1. **Placed the file** at `public/audio/win95/boot.mp3` and removed the `.gitkeep` placeholder.
+2. **Play on mount** — added `useAudio('win95')` + a one-shot `useEffect` with a ref guard to `Win95Layout` in `App.tsx`. The boot sound fires once when the Win95 layout renders (i.e., when the user switches to the Win95 theme).
+3. **No manifest changes needed** — the win95 boot entry was already there, along with entries for all other sound types. The audio system (`bufferCache.preloadSkin`) automatically fetches and caches the file on theme activation.
+
+### Why play-on-mount (not play-on-theme-change)
+
+The Apple IIe `disk_drive` sound is user-initiated (click the floppy). No theme currently plays boot on mount. But for Win95 the "Ta-Da" startup chime is iconic and expected on boot — it's the whole point of having the file. A ref guard ensures it only fires once per mount, avoiding replays on re-renders.
+
+### Alternatives Considered
+
+- **Play in ThemeProvider on theme change**: Would require threading audio through context or a global event bus. Too invasive for one sound.
+- **Don't auto-play, require user click**: Loses the Win95 startup feel. Browser autoplay policy is handled by the existing `AudioContext.resume()` call in `useAudio.play()`.
+
+### Verification
+
+- 509 tests pass
+- Build clean (0 TS errors, 0 lint warnings)
+- All 9 themes audio-ready (hybrid model supports both file-based and procedural fallback)
+
+---
+
 ## Archive Log
 (Post-release decisions logged here).
