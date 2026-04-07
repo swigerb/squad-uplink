@@ -110,6 +110,8 @@ export function TelemetryDrawer() {
   const [refreshing, setRefreshing] = useState(false);
   const refreshTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const uptimeTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const closeButtonRef = useRef<HTMLButtonElement>(null);
+  const previousFocusRef = useRef<HTMLElement | null>(null);
 
   // Uptime ticker — update every second when drawer is open
   useEffect(() => {
@@ -133,6 +135,24 @@ export function TelemetryDrawer() {
       }
     };
   }, [drawerOpen, telemetry.connectedAt]);
+
+  // Focus management: move focus to close button on open, restore on close
+  useEffect(() => {
+    if (drawerOpen) {
+      previousFocusRef.current = document.activeElement as HTMLElement | null;
+      // Defer focus to next frame so the drawer transition has started
+      requestAnimationFrame(() => {
+        closeButtonRef.current?.focus();
+      });
+    } else if (previousFocusRef.current) {
+      const el = previousFocusRef.current;
+      previousFocusRef.current = null;
+      // Restore focus to the element that opened the drawer
+      requestAnimationFrame(() => {
+        el?.focus();
+      });
+    }
+  }, [drawerOpen]);
 
   // Auto-refresh /status every 30s when drawer is open and connected
   useEffect(() => {
@@ -207,6 +227,7 @@ export function TelemetryDrawer() {
             onClick={toggleDrawer}
             aria-label="Close telemetry panel"
             data-testid="telemetry-close"
+            ref={closeButtonRef}
           >
             ×
           </button>
@@ -307,18 +328,8 @@ export function TelemetryDrawer() {
 
           {/* Raw status response */}
           <div className="telemetry-section">
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                marginBottom: 12,
-              }}
-            >
-              <h3
-                className="telemetry-section-title"
-                style={{ margin: 0 }}
-              >
+            <div className="telemetry-section-header">
+              <h3 className="telemetry-section-title telemetry-section-title--flush">
                 /status Response
               </h3>
               <button
@@ -342,14 +353,7 @@ export function TelemetryDrawer() {
               </span>
             )}
             {telemetry.statusFetchedAt && (
-              <div
-                style={{
-                  fontSize: 10,
-                  color: '#404060',
-                  marginTop: 6,
-                  textAlign: 'right',
-                }}
-              >
+              <div className="telemetry-timestamp">
                 Last fetched:{' '}
                 {new Date(telemetry.statusFetchedAt).toLocaleTimeString()}
               </div>

@@ -48,6 +48,8 @@ export function StatusBar() {
   const status = useConnectionStore((s) => s.status);
   const crtEnabled = useConnectionStore((s) => s.crtEnabled);
   const toggleCRT = useConnectionStore((s) => s.toggleCRT);
+  const drawerOpen = useConnectionStore((s) => s.drawerOpen);
+  const toggleDrawer = useConnectionStore((s) => s.toggleDrawer);
   const terminalFullscreen = useConnectionStore((s) => s.terminalFullscreen);
   const toggleFullscreen = useConnectionStore((s) => s.toggleFullscreen);
   const { themeId, theme, toggleTheme } = useTheme();
@@ -114,6 +116,18 @@ export function StatusBar() {
           📺
         </button>
       )}
+
+      {/* Telemetry drawer toggle */}
+      <button
+        className={`uplink-controls-btn ${drawerOpen ? 'uplink-controls-btn--active' : ''}`}
+        onClick={toggleDrawer}
+        title={drawerOpen ? 'Close telemetry' : 'Open telemetry'}
+        aria-label={drawerOpen ? 'Close telemetry panel' : 'Open telemetry panel'}
+        aria-pressed={drawerOpen}
+        data-testid="telemetry-toggle"
+      >
+        📡
+      </button>
 
       {/* Fullscreen toggle */}
       <button

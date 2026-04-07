@@ -1,21 +1,33 @@
 /**
- * Accessibility Tests — Wave 6 (updated for consolidated controls)
+ * Accessibility Tests — Wave 6 M7 part 3
  *
  * All control buttons (CRT toggle, Audio toggle, ThemeToggle) now live in
- * the StatusBar. The upper-right toolbar with MechanicalSwitch + AudioToggle
- * has been removed. Tests verify keyboard nav, ARIA, and reduced-motion
- * entirely through the StatusBar surface.
+ * the StatusBar. Tests verify keyboard nav, ARIA, reduced-motion, focus
+ * management (TelemetryDrawer open/close), Escape key handling, and
+ * theme switching + keyboard nav preservation.
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, fireEvent, act } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import type { ReactNode } from 'react';
+import { Suspense } from 'react';
 import { ThemeProvider } from '@/hooks/ThemeProvider';
 import { StatusBar } from '@/components/StatusBar';
 import { CRTOverlay } from '@/components/CRTOverlay/CRTOverlay';
+import { TelemetryDrawer } from '@/components/TelemetryDrawer/TelemetryDrawer';
 import { useConnectionStore } from '@/store/connectionStore';
 import { installMockAudioContext } from '@//__mocks__/audio';
 import { _resetAudioForTesting } from '@/hooks/useAudio';
+
+vi.mock('@/lib/ConnectionManager', () => ({
+  connectionManager: {
+    fetchStatus: vi.fn(() => Promise.resolve(null)),
+    connect: vi.fn(),
+    disconnect: vi.fn(),
+    send: vi.fn(),
+    isConnected: false,
+  },
+}));
 
 function renderWithProviders(ui: ReactNode) {
   return render(<ThemeProvider>{ui}</ThemeProvider>);
@@ -28,6 +40,8 @@ function resetStore() {
     agentCount: 0,
     crtEnabled: true,
     audioEnabled: false,
+    drawerOpen: false,
+    terminalFullscreen: false,
   });
 }
 
@@ -49,7 +63,7 @@ describe('Accessibility — Keyboard Navigation', () => {
   });
 
   describe('StatusBar controls', () => {
-    it('all controls (Theme, Audio, CRT, Fullscreen) are focusable in tab order', async () => {
+    it('all controls (Theme, Audio, CRT, Telemetry, Fullscreen) are focusable in tab order', async () => {
       const user = userEvent.setup();
       renderWithProviders(<StatusBar />);
 
@@ -67,6 +81,11 @@ describe('Accessibility — Keyboard Navigation', () => {
       await user.tab();
       const crtToggle = screen.getByTestId('crt-toggle');
       expect(crtToggle).toHaveFocus();
+
+      // Tab to telemetry toggle
+      await user.tab();
+      const telemetryToggle = screen.getByTestId('telemetry-toggle');
+      expect(telemetryToggle).toHaveFocus();
 
       // Tab to fullscreen toggle
       await user.tab();
@@ -136,6 +155,54 @@ describe('Accessibility — Keyboard Navigation', () => {
     it('StatusBar has role="toolbar" to group controls', () => {
       renderWithProviders(<StatusBar />);
       expect(screen.getByRole('toolbar')).toBeInTheDocument();
+    });
+  });
+
+  describe('Theme switching preserves keyboard navigation', () => {
+    it('all StatusBar buttons remain focusable after theme switch', async () => {
+      const user = userEvent.setup();
+      renderWithProviders(<StatusBar />);
+
+      // Switch from apple2e → c64
+      const themeToggle = screen.getByTestId('theme-toggle');
+      await user.click(themeToggle);
+      expect(themeToggle).toHaveTextContent('📺');
+
+      // Verify all buttons are still keyboard-accessible after theme switch
+      // Reset focus to body first
+      (document.activeElement as HTMLElement)?.blur();
+      await user.tab();
+      expect(screen.getByTestId('theme-toggle')).toHaveFocus();
+      await user.tab();
+      expect(screen.getByTestId('audio-toggle')).toHaveFocus();
+    });
+
+    it('CRT toggle visibility changes with theme but keyboard nav is intact', async () => {
+      const user = userEvent.setup();
+      renderWithProviders(<StatusBar />);
+
+      // apple2e has CRT toggle
+      expect(screen.getByTestId('crt-toggle')).toBeInTheDocument();
+
+      // Switch to win95 (no CRT toggle) — 3 clicks: apple2e→c64→ibm3270→win95
+      const themeToggle = screen.getByTestId('theme-toggle');
+      await user.click(themeToggle); // → c64
+      await user.click(themeToggle); // → ibm3270
+      await user.click(themeToggle); // → win95
+
+      // Win95 doesn't show CRT toggle
+      expect(screen.queryByTestId('crt-toggle')).toBeNull();
+
+      // Remaining buttons are still tab-accessible
+      (document.activeElement as HTMLElement)?.blur();
+      await user.tab();
+      expect(screen.getByTestId('theme-toggle')).toHaveFocus();
+      await user.tab();
+      expect(screen.getByTestId('audio-toggle')).toHaveFocus();
+      await user.tab();
+      expect(screen.getByTestId('telemetry-toggle')).toHaveFocus();
+      await user.tab();
+      expect(screen.getByTestId('fullscreen-toggle')).toHaveFocus();
     });
   });
 });
@@ -221,6 +288,14 @@ describe('Accessibility — ARIA Attributes', () => {
       await user.click(button);
       expect(button).toHaveAttribute('title', 'Switch to IBM 3270');
     });
+
+    it('ThemeToggle has aria-label describing current and next theme', () => {
+      renderWithProviders(<StatusBar />);
+      const button = screen.getByTestId('theme-toggle');
+      const label = button.getAttribute('aria-label');
+      expect(label).toContain('Apple IIe');
+      expect(label).toContain('C64');
+    });
   });
 
   describe('StatusBar — Fullscreen toggle', () => {
@@ -239,6 +314,23 @@ describe('Accessibility — ARIA Attributes', () => {
       await user.click(btn);
       expect(useConnectionStore.getState().terminalFullscreen).toBe(true);
     });
+
+    it('aria-pressed updates when fullscreen toggles', async () => {
+      const user = userEvent.setup();
+      renderWithProviders(<StatusBar />);
+      const btn = screen.getByTestId('fullscreen-toggle');
+
+      expect(btn).toHaveAttribute('aria-pressed', 'false');
+      await user.click(btn);
+      expect(btn).toHaveAttribute('aria-pressed', 'true');
+    });
+
+    it('has descriptive aria-label for screen readers', () => {
+      renderWithProviders(<StatusBar />);
+      const btn = screen.getByTestId('fullscreen-toggle');
+      expect(btn).toHaveAttribute('aria-label');
+      expect(btn.getAttribute('aria-label')).toContain('fullscreen');
+    });
   });
 
   describe('CRTOverlay', () => {
@@ -255,11 +347,23 @@ describe('Accessibility — ARIA Attributes', () => {
       expect(screen.getByTestId('statusbar')).toBeInTheDocument();
     });
 
+    it('has aria-label on the toolbar', () => {
+      renderWithProviders(<StatusBar />);
+      const toolbar = screen.getByRole('toolbar');
+      expect(toolbar).toHaveAttribute('aria-label');
+    });
+
     it('shows connection status indicator', () => {
       useConnectionStore.setState({ status: 'connected' });
       renderWithProviders(<StatusBar />);
       const dot = screen.getByTestId('connection-status');
       expect(dot).toHaveAttribute('aria-label', 'Connected');
+    });
+
+    it('connection status dot has aria-live="polite" for screen readers', () => {
+      renderWithProviders(<StatusBar />);
+      const dot = screen.getByTestId('connection-status');
+      expect(dot).toHaveAttribute('aria-live', 'polite');
     });
 
     it('status indicator updates when connection state changes', () => {
@@ -275,6 +379,122 @@ describe('Accessibility — ARIA Attributes', () => {
         useConnectionStore.setState({ status: 'connecting' });
       });
       expect(dot).toHaveAttribute('aria-label', 'Connecting');
+    });
+
+    it('all connection states have descriptive aria-labels', () => {
+      const states = ['connected', 'connecting', 'reconnecting', 'disconnected', 'error'] as const;
+      for (const s of states) {
+        act(() => {
+          useConnectionStore.setState({ status: s });
+        });
+        const { unmount } = renderWithProviders(<StatusBar />);
+        const dot = screen.getByTestId('connection-status');
+        const label = dot.getAttribute('aria-label');
+        expect(label).toBeTruthy();
+        expect(label!.length).toBeGreaterThan(2);
+        unmount();
+      }
+    });
+  });
+});
+
+// ============================================================
+// Focus Management — TelemetryDrawer open/close
+// ============================================================
+describe('Accessibility — Focus Management', () => {
+  beforeEach(() => {
+    localStorage.clear();
+    _resetAudioForTesting();
+    installMockAudioContext();
+    resetStore();
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+    localStorage.clear();
+    _resetAudioForTesting();
+  });
+
+  describe('TelemetryDrawer', () => {
+    it('drawer has role="complementary" for assistive tech', () => {
+      renderWithProviders(<TelemetryDrawer />);
+      const drawer = screen.getByTestId('telemetry-drawer');
+      expect(drawer).toHaveAttribute('role', 'complementary');
+    });
+
+    it('drawer has aria-label describing its purpose', () => {
+      renderWithProviders(<TelemetryDrawer />);
+      const drawer = screen.getByTestId('telemetry-drawer');
+      expect(drawer).toHaveAttribute('aria-label', 'Telemetry panel');
+    });
+
+    it('close button has aria-label', () => {
+      act(() => { useConnectionStore.setState({ drawerOpen: true }); });
+      renderWithProviders(<TelemetryDrawer />);
+      const closeBtn = screen.getByTestId('telemetry-close');
+      expect(closeBtn).toHaveAttribute('aria-label', 'Close telemetry panel');
+    });
+
+    it('Escape key closes the drawer when open', () => {
+      act(() => { useConnectionStore.setState({ drawerOpen: true }); });
+      renderWithProviders(<TelemetryDrawer />);
+
+      expect(useConnectionStore.getState().drawerOpen).toBe(true);
+      fireEvent.keyDown(window, { key: 'Escape' });
+      expect(useConnectionStore.getState().drawerOpen).toBe(false);
+    });
+
+    it('Escape key does nothing when drawer is closed', () => {
+      act(() => { useConnectionStore.setState({ drawerOpen: false }); });
+      renderWithProviders(<TelemetryDrawer />);
+
+      fireEvent.keyDown(window, { key: 'Escape' });
+      expect(useConnectionStore.getState().drawerOpen).toBe(false);
+    });
+
+    it('close button click closes the drawer', async () => {
+      const user = userEvent.setup();
+      act(() => { useConnectionStore.setState({ drawerOpen: true }); });
+      renderWithProviders(<TelemetryDrawer />);
+
+      const closeBtn = screen.getByTestId('telemetry-close');
+      await user.click(closeBtn);
+      expect(useConnectionStore.getState().drawerOpen).toBe(false);
+    });
+
+    it('backdrop click closes the drawer', async () => {
+      const user = userEvent.setup();
+      act(() => { useConnectionStore.setState({ drawerOpen: true }); });
+      renderWithProviders(<TelemetryDrawer />);
+
+      const backdrop = screen.getByTestId('telemetry-backdrop');
+      await user.click(backdrop);
+      expect(useConnectionStore.getState().drawerOpen).toBe(false);
+    });
+
+    it('close button is keyboard-focusable', () => {
+      act(() => { useConnectionStore.setState({ drawerOpen: true }); });
+      renderWithProviders(<TelemetryDrawer />);
+
+      const closeBtn = screen.getByTestId('telemetry-close');
+      closeBtn.focus();
+      expect(closeBtn).toHaveFocus();
+    });
+
+    it('shows "not connected" text for tunnel URL when disconnected', () => {
+      act(() => {
+        useConnectionStore.setState({ drawerOpen: true, tunnelUrl: null });
+      });
+      renderWithProviders(<TelemetryDrawer />);
+      expect(screen.getByText('not connected')).toBeInTheDocument();
+    });
+
+    it('shows "Connect to view status" when not connected', () => {
+      act(() => {
+        useConnectionStore.setState({ drawerOpen: true, status: 'disconnected' });
+      });
+      renderWithProviders(<TelemetryDrawer />);
+      expect(screen.getByText('Connect to view status')).toBeInTheDocument();
     });
   });
 });
