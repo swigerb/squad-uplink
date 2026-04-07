@@ -628,10 +628,10 @@
 [data-theme='pipboy'] .pipboy-hud-bar {
   height: 10px;
   position: absolute;
-  width: 295px;
-  bottom: 5px;
   left: 5px;
-  background: #000;
+  right: 5px;
+  bottom: 5px;
+  background: rgba(0, 0, 0, 0.5);
   color: #8df776;
   z-index: 96;
   font-size: 5pt;
@@ -700,33 +700,33 @@
 
 /* Codepen icon PNGs (replacing inline SVGs) */
 [data-theme='pipboy'] .pipboy-weapon {
-  width: 23px;
-  height: 14px;
+  width: 18px;
+  height: 11px;
   background: url("/images/pipboy/pipboy-gun2.png") no-repeat center/contain;
 }
 [data-theme='pipboy'] .pipboy-aim {
-  width: 14px;
-  height: 14px;
+  width: 11px;
+  height: 11px;
   background: url("/images/pipboy/pipboy-aim2.png") no-repeat center/contain;
 }
 [data-theme='pipboy'] .pipboy-helmet {
-  width: 23px;
-  height: 14px;
+  width: 18px;
+  height: 11px;
   background: url("/images/pipboy/pipboy-helmet2.png") no-repeat center/contain;
 }
 [data-theme='pipboy'] .pipboy-shield {
-  width: 14px;
-  height: 14px;
+  width: 11px;
+  height: 11px;
   background: url("/images/pipboy/pipboy-shield2.png") no-repeat center/contain;
 }
 [data-theme='pipboy'] .pipboy-voltage {
-  width: 14px;
-  height: 14px;
+  width: 11px;
+  height: 11px;
   background: url("/images/pipboy/pipboy-voltage2.png") no-repeat center/contain;
 }
 [data-theme='pipboy'] .pipboy-nuclear {
-  width: 14px;
-  height: 14px;
+  width: 11px;
+  height: 11px;
   background: url("/images/pipboy/pipboy-nuclear2.png") no-repeat center/contain;
 }
 
@@ -1322,8 +1322,8 @@
   background-size: contain;
   background-repeat: no-repeat;
   background-position: center top;
-  padding-top: 16px;
-  min-width: 14px;
+  padding-top: 12px;
+  min-width: 11px;
 }
 [data-theme='pipboy'] .pipboy-info-bar-inline > span p {
   margin: 0;
