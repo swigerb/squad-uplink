@@ -71,6 +71,16 @@ function Win95Layout({
   const [themeIconSelected, setThemeIconSelected] = useState(false);
   const status = useConnectionStore((s) => s.status);
   const { toggleTheme } = useTheme();
+  const { play } = useAudio('win95');
+  const bootPlayedRef = useRef(false);
+
+  // Play the Win95 startup sound once on mount
+  useEffect(() => {
+    if (!bootPlayedRef.current) {
+      bootPlayedRef.current = true;
+      play('boot');
+    }
+  }, [play]);
 
   // Taskbar clock — updates every minute
   const [clock, setClock] = useState(() => {
