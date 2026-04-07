@@ -1,34 +1,37 @@
-/* LCARS geometric panel layout
-   Inspired by Star Trek LCARS interface design.
-   Applied when [data-theme='lcars'] is active */
+/* ═══════════════════════════════════════════════════════════════
+   LCARS Authentic Panel Layout
+   Doug Drexler reference palette — screen-accurate TNG/DS9/VOY.
+   Font: LCARSGTJ3 (Helvetica Ultra Compressed recreation).
+   ═══════════════════════════════════════════════════════════════ */
 
 .lcars-layout {
   width: 100%;
   height: 100vh;
   display: grid;
-  grid-template-columns: 200px 1fr;
-  grid-template-rows: 72px 1fr 48px;
+  grid-template-columns: 220px 1fr;
+  grid-template-rows: 80px 1fr 52px;
   grid-template-areas:
     'sidebar header'
     'sidebar main'
     'sidebar footer';
-  gap: 4px;
+  gap: 5px;
   padding: 8px;
   background: #000000;
 }
 
-/* Top header bar */
+/* ── Header bar ───────────────────────────────────────────── */
+
 .lcars-header {
   grid-area: header;
   display: flex;
   align-items: stretch;
-  gap: 4px;
+  gap: 5px;
 }
 
 .lcars-header-elbow {
-  width: 120px;
-  background: #cc99cc;
-  border-radius: 0 0 32px 0;
+  width: 140px;
+  background: #c082a9;
+  border-radius: 0 0 44px 0;
   flex-shrink: 0;
 }
 
@@ -41,108 +44,122 @@
 }
 
 .lcars-header-pill {
-  height: 24px;
-  border-radius: 12px;
-  padding: 0 16px;
+  height: 28px;
+  border-radius: 14px;
+  padding: 0 20px;
   display: flex;
   align-items: center;
-  font-family: 'Trek', 'Helvetica Neue', sans-serif;
-  font-size: 13px;
+  font-family: 'LCARSGTJ3', 'Antonio', sans-serif;
+  font-size: 15px;
   color: #000000;
   text-transform: uppercase;
-  letter-spacing: 1px;
+  letter-spacing: 2px;
   white-space: nowrap;
 }
 
 .lcars-header-spacer {
   flex: 1;
-  height: 24px;
-  border-radius: 12px;
-  background: #9999ff;
+  height: 28px;
+  border-radius: 14px;
+  background: #8b72aa;
 }
 
 .lcars-header-endcap {
-  width: 80px;
-  background: #ff9900;
-  border-radius: 0 0 0 32px;
+  width: 90px;
+  background: #ec943a;
+  border-radius: 0 0 0 44px;
   flex-shrink: 0;
 }
 
-/* Left sidebar with pill-shaped buttons */
+/* ── Sidebar ──────────────────────────────────────────────── */
+
 .lcars-sidebar {
   grid-area: sidebar;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 5px;
 }
 
 .lcars-sidebar-top {
-  background: #cc99cc;
-  border-radius: 32px 0 0 0;
-  height: 68px;
+  background: #c082a9;
+  border-radius: 44px 0 0 0;
+  height: 76px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-family: 'Trek', 'Helvetica Neue', sans-serif;
-  font-size: 18px;
+  font-family: 'LCARSGTJ3', 'Antonio', sans-serif;
+  font-size: 22px;
   color: #000000;
   text-transform: uppercase;
-  letter-spacing: 2px;
+  letter-spacing: 3px;
 }
 
 .lcars-sidebar-pills {
   display: flex;
   flex-direction: column;
-  gap: 3px;
+  gap: 5px;
   flex: 1;
 }
 
 .lcars-pill {
-  height: 32px;
-  border-radius: 16px 0 0 16px;
-  padding: 0 16px;
+  height: 36px;
+  border-radius: 18px 0 0 18px;
+  padding: 0 18px;
   display: flex;
   align-items: center;
   justify-content: flex-end;
-  font-family: 'Trek', 'Helvetica Neue', sans-serif;
-  font-size: 12px;
+  font-family: 'LCARSGTJ3', 'Antonio', sans-serif;
+  font-size: 14px;
   color: #000000;
   text-transform: uppercase;
-  letter-spacing: 1px;
+  letter-spacing: 2px;
   cursor: default;
   user-select: none;
+  box-shadow: inset 0 0 12px rgba(255, 255, 255, 0.06);
 }
 
 .lcars-pill:hover {
-  filter: brightness(1.2);
+  filter: brightness(1.15);
+}
+
+.lcars-pill--tall {
+  height: 52px;
+}
+
+.lcars-pill--short {
+  height: 24px;
+  font-size: 11px;
 }
 
 .lcars-sidebar-bottom {
-  background: #ff9900;
-  border-radius: 0 0 0 32px;
-  height: 44px;
+  background: #ec943a;
+  border-radius: 0 0 0 44px;
+  height: 48px;
   flex-shrink: 0;
+  box-shadow: inset 0 0 12px rgba(255, 255, 255, 0.06);
 }
 
-/* Main terminal area */
+/* ── Main terminal area ───────────────────────────────────── */
+
 .lcars-main {
   grid-area: main;
   overflow: hidden;
   border-radius: 4px;
 }
 
-/* Footer status bar */
+/* ── Footer bar ───────────────────────────────────────────── */
+
 .lcars-footer {
   grid-area: footer;
   display: flex;
   align-items: stretch;
-  gap: 4px;
+  gap: 5px;
 }
 
 .lcars-footer-elbow {
-  width: 120px;
-  background: #ff9900;
-  border-radius: 0 32px 0 0;
+  width: 140px;
+  background: #ec943a;
+  border-radius: 0 44px 0 0;
   flex-shrink: 0;
 }
 
@@ -155,52 +172,54 @@
 }
 
 .lcars-footer-pill {
-  height: 20px;
-  border-radius: 10px;
-  padding: 0 12px;
+  height: 22px;
+  border-radius: 11px;
+  padding: 0 14px;
   display: flex;
   align-items: center;
-  font-family: 'Trek', 'Helvetica Neue', sans-serif;
-  font-size: 11px;
+  font-family: 'LCARSGTJ3', 'Antonio', sans-serif;
+  font-size: 12px;
   color: #000000;
   text-transform: uppercase;
-  letter-spacing: 1px;
+  letter-spacing: 2px;
   white-space: nowrap;
 }
 
 .lcars-footer-spacer {
   flex: 1;
-  height: 20px;
-  border-radius: 10px;
-  background: #ffcc66;
+  height: 22px;
+  border-radius: 11px;
+  background: #faa41b;
 }
 
 .lcars-footer-endcap {
-  width: 80px;
-  background: #cc99cc;
-  border-radius: 32px 0 0 0;
+  width: 90px;
+  background: #9c698a;
+  border-radius: 44px 0 0 0;
   flex-shrink: 0;
 }
 
-/* LCARS status text */
+/* ── Status text ──────────────────────────────────────────── */
+
 .lcars-status-text {
-  font-family: 'Trek', 'Helvetica Neue', sans-serif;
-  font-size: 11px;
-  color: #ff9900;
+  font-family: 'LCARSGTJ3', 'Antonio', sans-serif;
+  font-size: 12px;
+  color: #ec943a;
   text-transform: uppercase;
-  letter-spacing: 2px;
+  letter-spacing: 3px;
 }
 
-/* LCARS-specific scrollbar */
+/* ── Scrollbar ────────────────────────────────────────────── */
+
 [data-theme='lcars'] ::-webkit-scrollbar {
   width: 8px;
 }
 
 [data-theme='lcars'] ::-webkit-scrollbar-track {
-  background: #1a1a1a;
+  background: #090909;
 }
 
 [data-theme='lcars'] ::-webkit-scrollbar-thumb {
-  background: #ff9900;
+  background: #ec943a;
   border-radius: 4px;
 }

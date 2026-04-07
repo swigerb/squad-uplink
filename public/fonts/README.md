@@ -35,10 +35,17 @@ Download the following fonts and place the `.woff2` (and optionally `.woff`) fil
 - **License:** Creative Commons Attribution-ShareAlike 4.0
 - **Fallback:** 'Fixedsys', 'Courier New', monospace
 
-### Trek (LCARS theme)
+### Trek (LCARS theme — legacy fallback)
 - **Source:** Search for "Trek TNG" font or use Antonio from Google Fonts as alternative
 - **Files needed:** `Trek.woff2`, `Trek.woff`
 - **License:** Varies — verify before commercial use
+- **Fallback:** 'Antonio', sans-serif
+
+### LCARSGTJ3 (LCARS theme — primary, authentic)
+- **Source:** https://gtjlcars.de/LCARSindex/LCARSFONTS.htm
+- **Files needed:** `LCARSGTJ3.woff2`, `LCARSGTJ3.woff`
+- **License:** Freeware (free to download and use anywhere, may not be renamed/modified/sold)
+- **Note:** Contains UPPERCASE ONLY characters, authentic to LCARS style. This is a free recreation of the original Helvetica Ultra Compressed used in Star Trek TNG/DS9/VOY production screens.
 - **Fallback:** 'Antonio', sans-serif
 
 ## Converting fonts to WOFF2
@@ -68,3 +75,5 @@ Place these files in `public/fonts/`:
 - [ ] `W95FA.woff`
 - [ ] `Trek.woff2`
 - [ ] `Trek.woff`
+- [ ] `LCARSGTJ3.woff2`
+- [ ] `LCARSGTJ3.woff`

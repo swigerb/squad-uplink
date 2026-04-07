@@ -47,8 +47,8 @@ body {
 
 [data-theme='lcars'] body {
   background: #000000;
-  color: #ccccff;
-  font-family: 'Trek', 'Antonio', sans-serif;
+  color: #ff9900;
+  font-family: 'LCARSGTJ3', 'Antonio', sans-serif;
   -webkit-font-smoothing: auto;
   -moz-osx-font-smoothing: auto;
 }

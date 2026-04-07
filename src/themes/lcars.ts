@@ -1,15 +1,20 @@
 import type { TerminalTheme } from './index';
 
+/**
+ * Authentic LCARS theme — Doug Drexler reference palette.
+ * Colors sourced from screen-accurate TNG/DS9/Voyager captures (louh/lcars).
+ * Font: LCARSGTJ3 free recreation of Helvetica Ultra Compressed.
+ */
 export const lcarsTheme: TerminalTheme = {
   name: 'LCARS',
   id: 'lcars',
 
-  fg: '#ccccff',
+  fg: '#ff9900',
   bg: '#000000',
-  cursor: '#ff9900',
-  selection: 'rgba(153, 153, 255, 0.3)',
+  cursor: '#ec943a',
+  selection: 'rgba(236, 148, 58, 0.3)',
 
-  fontFamily: '"Trek", "Antonio", monospace',
+  fontFamily: '"LCARSGTJ3", "Antonio", sans-serif',
   fontSize: 14,
   cols: 80,
   rows: 24,
@@ -20,36 +25,38 @@ export const lcarsTheme: TerminalTheme = {
   layout: 'panel',
   crtEnabled: false,
   customCss: 'skin-lcars',
-  chromeFontFamily: '"Trek", "Antonio", sans-serif',
+  chromeFontFamily: '"LCARSGTJ3", "Antonio", sans-serif',
   accentColors: [
-    '#ff9900', // orange
-    '#cc99cc', // lavender
-    '#9999ff', // periwinkle
-    '#ffcc66', // gold
-    '#ff6666', // salmon
+    '#ec943a', // warm orange — primary navigation
+    '#c082a9', // mauve/pink — accent
+    '#8b72aa', // deep lavender/violet
+    '#faa41b', // golden yellow — highlights
+    '#d29a7f', // salmon
+    '#9c698a', // deep mauve
+    '#b6a5d1', // light lavender
   ],
 
   xtermTheme: {
-    foreground: '#ccccff',
+    foreground: '#ff9900',
     background: '#000000',
-    cursor: '#ff9900',
+    cursor: '#ec943a',
     cursorAccent: '#000000',
-    selectionBackground: 'rgba(153, 153, 255, 0.3)',
+    selectionBackground: 'rgba(236, 148, 58, 0.3)',
     black: '#000000',
-    red: '#ff6666',
-    green: '#99cc99',
-    yellow: '#ffcc66',
-    blue: '#9999ff',
-    magenta: '#cc99cc',
-    cyan: '#99ccff',
-    white: '#ffffff',
+    red: '#e76f51',
+    green: '#80ffdb',
+    yellow: '#faa41b',
+    blue: '#b6a5d1',
+    magenta: '#c082a9',
+    cyan: '#76c7f0',
+    white: '#f1df6f',
     brightBlack: '#666666',
-    brightRed: '#ff9999',
-    brightGreen: '#ccffcc',
-    brightYellow: '#ffee99',
-    brightBlue: '#ccccff',
-    brightMagenta: '#eeccee',
-    brightCyan: '#cceeff',
+    brightRed: '#eb9870',
+    brightGreen: '#80ffdb',
+    brightYellow: '#f4a261',
+    brightBlue: '#c19ee0',
+    brightMagenta: '#d29a7f',
+    brightCyan: '#99ccff',
     brightWhite: '#ffffff',
   },
 };

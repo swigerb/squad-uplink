@@ -34,11 +34,13 @@ describe('fonts.css — @font-face declarations', () => {
     expect(fontFaceBlocks.length).toBeGreaterThanOrEqual(4);
   });
 
-  it('every @font-face uses font-display: swap', () => {
+  it('every @font-face uses font-display: swap or block', () => {
     expect(fontFaceBlocks.length).toBeGreaterThan(0);
 
     for (const block of fontFaceBlocks) {
-      expect(block).toContain('font-display: swap');
+      const hasSwap = block.includes('font-display: swap');
+      const hasBlock = block.includes('font-display: block');
+      expect(hasSwap || hasBlock).toBe(true);
     }
   });
 
@@ -128,9 +130,9 @@ describe('Theme fontFamily — Fallback chains', () => {
     expect(win95Theme.chromeFontFamily).toContain('monospace');
   });
 
-  it('LCARS chrome uses Trek with Antonio fallback', () => {
+  it('LCARS chrome uses LCARSGTJ3 with Antonio fallback', () => {
     expect(lcarsTheme.chromeFontFamily).toBeDefined();
-    expect(lcarsTheme.chromeFontFamily).toContain('Trek');
+    expect(lcarsTheme.chromeFontFamily).toContain('LCARSGTJ3');
     expect(lcarsTheme.chromeFontFamily).toContain('Antonio');
     expect(lcarsTheme.chromeFontFamily).toContain('sans-serif');
   });

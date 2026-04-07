@@ -71,7 +71,7 @@ function Win95Layout({
   const [themeIconSelected, setThemeIconSelected] = useState(false);
   const status = useConnectionStore((s) => s.status);
   const { toggleTheme } = useTheme();
-  const { play, playWhenReady } = useAudio('win95');
+  const { playWhenReady } = useAudio('win95');
   const bootPlayedRef = useRef(false);
 
   // Play the Win95 startup sound once on mount — wait for buffer to load
@@ -597,13 +597,15 @@ function LcarsLayout({
       <div className="lcars-sidebar">
         <div className="lcars-sidebar-top">UPLINK</div>
         <div className="lcars-sidebar-pills">
-          <div className="lcars-pill" style={{ background: '#ff9900' }}>AGENTS</div>
-          <div className="lcars-pill" style={{ background: '#cc99cc' }}>STATUS</div>
-          <div className="lcars-pill" style={{ background: '#9999ff' }}>COMMS</div>
-          <div className="lcars-pill" style={{ background: '#ffcc66' }}>LOGS</div>
-          <div className="lcars-pill" style={{ background: '#ff6666' }}>ALERTS</div>
-          <div className="lcars-pill" style={{ background: '#ff9900' }}>CONFIG</div>
-          <div className="lcars-pill" style={{ background: '#cc99cc' }}>TASKS</div>
+          <div className="lcars-pill lcars-pill--tall" style={{ background: '#ec943a' }}>AGENTS</div>
+          <div className="lcars-pill" style={{ background: '#c082a9' }}>STATUS</div>
+          <div className="lcars-pill" style={{ background: '#8b72aa' }}>COMMS</div>
+          <div className="lcars-pill lcars-pill--tall" style={{ background: '#faa41b' }}>LOGS</div>
+          <div className="lcars-pill lcars-pill--short" style={{ background: '#d29a7f' }}>47-4521</div>
+          <div className="lcars-pill" style={{ background: '#ec943a' }}>ALERTS</div>
+          <div className="lcars-pill" style={{ background: '#9c698a' }}>CONFIG</div>
+          <div className="lcars-pill lcars-pill--short" style={{ background: '#b6a5d1' }}>09-8742</div>
+          <div className="lcars-pill" style={{ background: '#eb9870' }}>TASKS</div>
           <div style={{ flex: 1 }} />
         </div>
         <div className="lcars-sidebar-bottom" />
@@ -612,11 +614,11 @@ function LcarsLayout({
       <div className="lcars-header">
         <div className="lcars-header-elbow" />
         <div className="lcars-header-bar">
-          <div className="lcars-header-pill" style={{ background: '#ff9900' }}>
+          <div className="lcars-header-pill" style={{ background: '#ec943a' }}>
             SQUAD UPLINK
           </div>
-          <div className="lcars-header-pill" style={{ background: '#ffcc66' }}>
-            v0.1.0
+          <div className="lcars-header-pill" style={{ background: '#faa41b' }}>
+            47-4521
           </div>
           <div className="lcars-header-spacer" />
         </div>
@@ -628,14 +630,14 @@ function LcarsLayout({
       <div className="lcars-footer">
         <div className="lcars-footer-elbow" />
         <div className="lcars-footer-bar">
-          <div className="lcars-footer-pill" style={{ background: '#9999ff' }}>
+          <div className="lcars-footer-pill" style={{ background: '#b6a5d1' }}>
             CONNECTED
           </div>
-          <div className="lcars-footer-pill" style={{ background: '#ff6666' }}>
+          <div className="lcars-footer-pill" style={{ background: '#d29a7f' }}>
             ACTIVE
           </div>
           <div className="lcars-footer-spacer" />
-          <span className="lcars-status-text">STARDATE 2026.04</span>
+          <span className="lcars-status-text">STARDATE 2026.097</span>
         </div>
         <div className="lcars-footer-endcap" />
       </div>
