@@ -541,7 +541,7 @@
 
 /* ── Vault Boy (walking GIF) ───────────────────── */
 [data-theme='pipboy'] .pipboy-vaultboy {
-  background: url('/images/vaultboy2.gif');
+  background: url('/images/pipboy/vaultboy2.gif');
   background-size: 77px;
   background-position: 2px;
   background-repeat: no-repeat;
@@ -679,7 +679,7 @@
   overflow: hidden;
 }
 [data-theme='pipboy'] .pipboy-info-bar span {
-  background: rgba(0,255,0,0.02);
+  background-color: rgba(0,255,0,0.02);
   padding: 1px 2px;
   height: 14px;
   display: inline-block;
