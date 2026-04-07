@@ -25,7 +25,7 @@ const THEME_LABELS: Record<ThemeId, string> = {
   c64: '📺',
   ibm3270: '🖥️',
   win95: '🪟',
-  lcars: '🚀',
+  lcars: '🖖',
   pipboy: '☢️',
   muthur: '👽',
   wopr: '🎮',
