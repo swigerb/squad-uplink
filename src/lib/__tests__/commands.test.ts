@@ -121,7 +121,7 @@ describe('handleCommand', () => {
         }),
       );
       const output = terminal.lines.join('\n');
-      expect(output).toContain('anonymous/cookie auth');
+      expect(output).toContain('cookie (browser session)');
       spy.mockRestore();
     });
 

@@ -102,8 +102,10 @@ export function handleCommand(input: string, terminal: TerminalWriter | null): v
         normalizedUrl = normalizedUrl.replace(/^http/, 'ws');
       }
       terminal.writeln(`\x1b[2mConnecting to ${normalizedUrl}...\x1b[0m`);
-      terminal.writeln(`\x1b[2m  Token: ${token ? 'provided' : 'none (anonymous/cookie auth)'}\x1b[0m`);
-      terminal.writeln(`\x1b[2m  Anti-phishing: bypass enabled\x1b[0m`);
+      terminal.writeln(`\x1b[2m  Auth: ${token ? 'token (access_token param)' : 'cookie (browser session)'}\x1b[0m`);
+      if (!token) {
+        terminal.writeln(`\x1b[2m  Tip: Run /auth <url> first to sign in via Microsoft\x1b[0m`);
+      }
       connectionManager.connectFresh({ wsUrl: normalizedUrl, token: token || '', reconnect: true });
       break;
     }
