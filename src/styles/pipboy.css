@@ -1705,3 +1705,26 @@
   word-break: break-all;
   margin: 0;
 }
+
+/* ── DATA tab: hide HUD chrome, expand terminal ── */
+[data-theme='pipboy'] .pipboy-screen[data-active-tab='DATA'] .pipboy-supplies,
+[data-theme='pipboy'] .pipboy-screen[data-active-tab='DATA'] .pipboy-hud-bar {
+  display: none !important;
+}
+
+[data-theme='pipboy'] .pipboy-screen[data-active-tab='DATA'] .pipboy-screen-inner {
+  bottom: 2px;
+}
+
+/* Shrink xterm font inside Pip-Boy DATA terminal */
+[data-theme='pipboy'] .pipboy-terminal-wrap .xterm {
+  font-size: 7px !important;
+}
+
+[data-theme='pipboy'] .pipboy-terminal-wrap .xterm-viewport {
+  overflow-x: auto !important;
+}
+
+[data-theme='pipboy'] .pipboy-terminal-wrap .xterm-rows {
+  white-space: nowrap;
+}

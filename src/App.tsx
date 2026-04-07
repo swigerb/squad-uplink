@@ -409,7 +409,7 @@ function PipBoyLayout({
             <div className="pipboy-top-button" />
             <div className="pipboy-screw1" /><div className="pipboy-screw2" />
             <div className="pipboy-screen-border">
-              <div className="pipboy-screen">
+              <div className="pipboy-screen" data-active-tab={activeTab}>
                 <div className="pipboy-screen-reflection" />
                 <div className="pipboy-scan" />
                 <nav className="pipboy-nav" role="tablist" aria-label="Pip-Boy navigation">
