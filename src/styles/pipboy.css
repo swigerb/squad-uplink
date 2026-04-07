@@ -1727,9 +1727,18 @@
   bottom: 2px;
 }
 
-/* Shrink xterm font inside Pip-Boy DATA terminal */
+/* ── DATA tab — terminal flush-left, no wrapping, full height ── */
+[data-theme='pipboy'] .pipboy-terminal-wrap .terminal-container {
+  padding: 0;
+}
+
 [data-theme='pipboy'] .pipboy-terminal-wrap .xterm {
   font-size: 7px !important;
+  padding: 0 !important;
+}
+
+[data-theme='pipboy'] .pipboy-terminal-wrap .xterm-screen {
+  margin: 0 !important;
 }
 
 [data-theme='pipboy'] .pipboy-terminal-wrap .xterm-viewport {
@@ -1738,4 +1747,29 @@
 
 [data-theme='pipboy'] .pipboy-terminal-wrap .xterm-rows {
   white-space: nowrap;
+}
+
+/* ── MAP tab — right-align text with viewport ── */
+[data-theme='pipboy'] .pipboy-map {
+  text-align: right;
+  padding: 2px 4px;
+  box-sizing: border-box;
+}
+
+[data-theme='pipboy'] .pipboy-map-tree {
+  text-align: right;
+}
+
+[data-theme='pipboy'] .pipboy-map-header,
+[data-theme='pipboy'] .pipboy-map-footer {
+  text-align: right;
+}
+
+[data-theme='pipboy'] .pipboy-map-offline {
+  text-align: right;
+}
+
+/* ── RADIO tab — spacing between override button and input ── */
+[data-theme='pipboy'] .pipboy-radio-input-row {
+  margin-top: 4px;
 }

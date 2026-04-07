@@ -11,7 +11,7 @@ export const pipboyTheme: TerminalTheme = {
 
   fontFamily: '"VT323", "Share Tech Mono", monospace',
   fontSize: 7,
-  cols: 80,
+  cols: 40,
   rows: 24,
 
   glowColor: 'rgba(27, 255, 128, 0.7)',
