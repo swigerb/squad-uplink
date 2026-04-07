@@ -668,3 +668,56 @@ The Pip-Boy 3000 theme has two decorative dials from the Codepen port: a spiked 
 - All 399 tests passing
 
 ---
+
+### 2026-04-07: Decision — README TypeScript 6.0 + Theme Coverage + Shortcut Cleanup
+**By:** Woz
+**Status:** Implemented
+
+**Context**
+
+README.md had several stale references: TypeScript listed as 5.9 (actual: 6.0.2), only 6 of 9 themes documented, Ctrl+Shift+T shortcut conflicts with browser reopen-tab, and Pip-Boy section included implementation details (color palette, layout) better suited for code comments than user docs.
+
+**Decision**
+
+1. Updated all TypeScript version references to 6.0 (badges + tech stack line).
+2. Expanded theme table to all 9 skins with descriptions matching source theme definitions.
+3. Replaced Ctrl+Shift+T shortcut with reference to 📡 button in floating control bar.
+4. Stripped color palette table and layout description from Pip-Boy section (kept tab nav + special features).
+
+**Rationale**
+
+- README should reflect what's actually installed (	ypescript@^6.0.2).
+- All shipped themes deserve documentation — users shouldn't have to discover 3 themes by accident.
+- Browser shortcut conflicts are a UX trap; the 📡 button is the canonical telemetry toggle now.
+- Pip-Boy color palette and CSS layout details are implementation internals, not user-facing docs.
+
+---
+
+### 2026-04-07: Decision — Remove Ctrl+Shift+T Keyboard Shortcut for TelemetryDrawer
+**By:** Kare (Frontend Dev)
+**Status:** Implemented
+
+**Context**
+
+The TelemetryDrawer had a Ctrl+Shift+T keyboard shortcut to toggle it open/closed. This conflicts with the browser's native "reopen closed tab" shortcut — pressing it opens a new browser tab instead of toggling the drawer.
+
+**Decision**
+
+Removed the keyboard shortcut entirely rather than replacing it with an alternative. The 📡 button in the StatusBar floating control bar is now the sole way to toggle the TelemetryDrawer (plus Escape/backdrop to close).
+
+**Rationale**
+
+- Brian's preference: discoverability via UI button over hidden keyboard shortcuts
+- The 📡 button is always visible in the StatusBar across all themes
+- No need for a replacement shortcut — the button is more discoverable and avoids future browser conflicts
+- Fewer keybinding collisions = fewer user surprises
+
+**Changes**
+
+- App.tsx: Removed Ctrl+Shift+T handler from keydown listener, removed unused 	oggleDrawer binding
+- TelemetryDrawer.tsx: Footer text changed from "Ctrl+Shift+T to toggle" → "📡 button to toggle"
+- TelemetryDrawer.test.tsx: Updated docblock comment
+
+**Impact**
+
+None — Escape key still closes the drawer, 📡 button still toggles it, all 509 tests pass.
