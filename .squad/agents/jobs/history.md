@@ -23,3 +23,13 @@ Lead agent for squad-uplink. Responsible for architecture, code review, scope de
 - **Cut from scope:** Agent persona routing (theme ≠ work type), OAuth tunnel discovery (just use URL), Azure Monitor chart embedding (defer), multi-terminal tabs (never).
 - **MVP definition:** xterm.js + CRT effects + WebSocket to squad-rc + theme toggle + HITL switch. Five things. Nothing else ships in MVP.
 - **6 milestones defined:** M0 Scaffold → M1 Terminal Core → M2 Chassis → M3 Connection Resilience → M4 Audio → M5 Telemetry → M6 Ship. M2 and M3 can run in parallel.
+
+### 2026-04-05: Wave 4 (M5) TelemetryDrawer gap analysis
+- **Drawer is ~90% done.** Core functionality (sections, auto-refresh, keyboard shortcuts, tests, lazy-loading, z-index overlay) all solid. The "mask slips" modern design is BY DESIGN per architecture decision — do NOT theme it.
+- **3 gaps identified:** (1) No visible button in StatusBar to open drawer — critical discoverability hole. (2) Three inline `style={}` blocks in the component should be CSS classes. (3) No focus management on open/close for keyboard accessibility.
+- **Cut from scope:** Theme-responsive styling (architecture says no), additional metrics display (Pip-Boy territory), content animations (polish not substance), focus trapping (it's a sidebar not a modal).
+- **Decision written to:** `.squad/decisions/inbox/jobs-wave4-gaps.md`
+
+### 2026-04-07: Wave 4–6 batch orchestration
+- **Jobs' analysis finalized:** TelemetryDrawer gap analysis delivered to orchestration log. 3 gaps confirmed (StatusBar button CRITICAL, inline styles CODE QUALITY, focus management ACCESSIBILITY). Component ~90% feature-complete; ready for implementation wave. Gaps assigned: Woz (button + focus mgmt), Kare (CSS classes). Completion criteria: all 3 gaps closed = Wave 4 done.
+- **Cross-agent updates:** Woz delivered Wave 5 SWA deployment + CI pipeline refinement (418 tests passing). Kare delivered Wave 6 fonts/a11y (436 tests passing). Hertzfeld delivered Wave 6 test expansion (91 new tests, suite 509 total passing). All orchestration logs written. Decision inbox merged into decisions.md (6 new entries: Jobs gaps, Kare Apple2e overlays/CRT/C64/CSP, Woz audio). All inbox files deleted. Ready for next wave.

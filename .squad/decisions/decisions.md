@@ -187,5 +187,161 @@ The Apple IIe theme now manages its own CRT effect internally, scoped to the ter
 
 ---
 
+## Wave 4 TelemetryDrawer — Gap Analysis
+
+**By:** Jobs (Lead)  
+**Date:** 2026-04-07  
+**Status:** Gap analysis complete
+
+### Findings
+
+Component is ~90% complete. Core functionality solid (4 sections, 30s auto-refresh, escape/backdrop close, keyboard shortcut, lazy-loaded overlay). Three gaps identified:
+
+1. **CRITICAL — No StatusBar button** — Drawer only opens via Ctrl+Shift+T; hidden from UI. Needs 📡 button with toggle state, aria-label, data-testid.
+2. **CODE QUALITY — Inline styles** — Three `style={}` blocks inconsistent. Move to CSS classes: `.telemetry-section-header`, `.telemetry-section-title--inline`, `.telemetry-fetch-timestamp`.
+3. **ACCESSIBILITY — Focus management** — No focus movement on open/close. Open: focus close button. Close: restore previous focus. Not a modal (no trap needed).
+
+### Cut from Scope
+
+- Theme-responsive styling (arch says "mask slips" by design)
+- Additional metrics (tokenUsage/messageCount/successCount — Pip-Boy territory)
+- Content animations
+- Focus trapping
+- Mobile layout rework
+
+### Assignment
+
+- **GAP-1 (StatusBar button):** Woz
+- **GAP-2 (inline styles):** Kare
+- **GAP-3 (focus management):** Woz
+
+---
+
+## Apple IIe Theme — Decorative Screen Overlay Removal
+
+**By:** Kare (Frontend Dev)  
+**Date:** 2026-04-06  
+**Status:** Implemented
+
+### Decision
+
+Set `.a2e-monitor__screen` and all `.a2e-monitor__screen-2` variants to `display: none`. Terminal (z-index 10) is now topmost visible element. Structural bezel layers preserved for 3D depth. CRT scanlines handled by `.a2e-monitor__terminal::after` pseudo-element.
+
+### Rationale
+
+- Overlays are decorative and redundant with terminal's own scanline/phosphor effect
+- `display: none` preserves option to re-enable for future "demo mode"
+- No z-index juggling needed
+
+---
+
+## Apple IIe CRT Scoping — Self-Contained System
+
+**By:** Kare (Frontend Dev)  
+**Date:** 2026-04-06  
+**Status:** Implemented
+
+### Decision
+
+Apple IIe now manages CRT effects internally:
+
+1. Removed `<CRTOverlay>` rendering from `Apple2eLayout.tsx`
+2. Added `::after` pseudo-element on `.a2e-monitor__terminal` with scanlines (2px pitch) and green phosphor glow
+3. `pointer-events: none` for terminal interactivity
+4. `z-index: 20` above terminal content
+
+### Impact
+
+- `crtEnabled` prop still accepted for interface compatibility but unused
+- Other themes (C64, IBM 3270) still use shared `<CRTOverlay>` — this is Apple2e-specific
+- CRT toggle in StatusBar will appear but won't affect Apple2e layout (known cosmetic issue)
+
+### Layout Changes
+
+- Monitor: 66×47.25 → 76×54 vmin (centered)
+- Keyboard: scaled to 65% via CSS transform
+- Terminal: fills full dark screen area (61.15×47 vmin)
+- Scene: perspective-origin centered (50% 42%)
+
+---
+
+## C64 Theme Rework — Codepen Port Architecture
+
+**By:** Kare (Frontend Dev)  
+**Date:** 2026-04-06  
+**Status:** Implemented
+
+### Decision
+
+Follow Apple IIe pattern: new layout mode `'c64'`, dedicated CSS file (`c64-3d.css`), dedicated component directory (`src/components/C64/`), layout branch in `App.tsx`.
+
+### Key Choices
+
+1. CRT scanlines scoped to terminal `::after` — no global CRTOverlay
+2. `c64-` prefix (not `c64-3d-`) — shorter, consistent
+3. Keyboard is decorative only — purely visual chrome
+4. StatusBar floats at bottom — transparent overlay with blur
+5. No pulsating title (per Brady directive)
+6. Responsive via vmin units — monitor 80vmin, keyboard 85vmin, 600px breakpoint
+
+### Files
+
+**Created:**
+- `src/styles/c64-3d.css`
+- `src/components/C64/C64Layout.tsx`
+- `src/components/C64/C64Keyboard.tsx`
+- `src/components/C64/index.ts`
+
+**Modified:**
+- `src/themes/c64.ts` — layout `'fullscreen'` → `'c64'`
+- `src/themes/index.ts` — added `'c64'` to layout union
+- `src/App.tsx` — added import + layout branch
+
+---
+
+## Font Loading — CSP Compliance & Local-Only Requirement
+
+**By:** Kare (Frontend Dev)  
+**Date:** 2026-04-06  
+**Status:** Implemented
+
+### Decision
+
+All font loading MUST go through local `@font-face` declarations in `src/styles/fonts.css` only. No external `@import` for fonts.
+
+### Context
+
+`muthur.css` and `wopr.css` had `@import url('https://fonts.googleapis.com/...')` which violate CSP `font-src 'self'` policy in `staticwebapp.config.json` and would be blocked in production.
+
+### Impact
+
+- All themes now CSP-compliant for font loading
+- New themes MUST add fonts to `fonts.css` with local paths in `public/fonts/`
+- No runtime font loading failures in production
+
+---
+
+## Audio Folder Structure — Theme Scaffolding & Naming
+
+**By:** Woz (Lead Dev)  
+**Date:** 2026-04-07  
+**Status:** Implemented
+
+### Changes
+
+1. Updated `public/audio/README.md` — now covers all 9 themes and 12 sound types
+2. Created placeholder folders with `.gitkeep` for: c64, win95, lcars, pipboy, matrix, muthur, wopr, ibm3270
+3. Left apple2e alone (already has disk_drive.mp3)
+
+### Key Decision
+
+Theme folder names match `ThemeId` in code. Used `muthur/` (not `mothur/`) to match codebase and ensure manifest path convention `/audio/{themeId}/` works correctly.
+
+### Status
+
+No code changes to manifest or audio hooks. Ready for sound designer to add `.mp3`/`.wav`/`.ogg` files.
+
+---
+
 ## Archive Log
 (Post-release decisions logged here).
