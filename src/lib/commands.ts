@@ -11,6 +11,7 @@ const HELP_TEXT = `\x1b[1mAvailable commands:\x1b[0m
   /status      — Show connection state, tunnel URL, agent count
   /agents      — Request agent roster from squad-rc
   /connect     — Connect: /connect <url> [token]
+  /probe       — Check if Squad RC is running: /probe <url>
   /auth        — Open Dev Tunnel auth in browser: /auth <tunnel-url>
   /disconnect  — Disconnect from squad-rc
   /reset       — Clear terminal and reconnect
@@ -19,9 +20,11 @@ const HELP_TEXT = `\x1b[1mAvailable commands:\x1b[0m
   
 \x1b[2mTip: Prefix with @agentName to direct a message to a specific agent\x1b[0m
   
-\x1b[2mDevTunnel auth:
-  Cookie: /auth <url> → login → /connect <url>
-  Anonymous: devtunnel port create -p PORT --protocol https --allow-anonymous\x1b[0m`;
+\x1b[2mSquad RC auth:
+  1. Get the session token from squad rc output (printed at startup)
+  2. /connect http://localhost:PORT <token>
+  For Dev Tunnels: /auth <url> → login → /connect <url> <token>
+  Anonymous tunnels: devtunnel port create -p PORT --protocol https --allow-anonymous\x1b[0m`;
 
 export function handleCommand(input: string, terminal: TerminalWriter | null): void {
   if (!terminal) return;
@@ -86,7 +89,9 @@ export function handleCommand(input: string, terminal: TerminalWriter | null): v
       }
       terminal.writeln(`\x1b[2m  Auth: ${authLabel}\x1b[0m`);
       if (!token) {
-        terminal.writeln(`\x1b[2m  Tip: Run /auth <url> first to sign in via Microsoft\x1b[0m`);
+        terminal.writeln(`\x1b[33m  ⚠ No session token provided. Squad RC requires a token for WebSocket auth.\x1b[0m`);
+        terminal.writeln(`\x1b[2m  Get the token from squad rc startup output, then: /connect <url> <token>\x1b[0m`);
+        terminal.writeln(`\x1b[2m  Or run /probe ${wsUrl} to check if Squad RC is running.\x1b[0m`);
       }
       connectionManager.connectFresh({ wsUrl, token: token || '', reconnect: true });
       break;
@@ -133,6 +138,27 @@ export function handleCommand(input: string, terminal: TerminalWriter | null): v
       break;
     }
 
+    case '/probe': {
+      const probeUrl = parts[1];
+      if (!probeUrl) {
+        terminal.writeln('\x1b[31mUsage: /probe <url>\x1b[0m');
+        terminal.writeln('\x1b[2mChecks if a Squad RC instance is running at the given URL.\x1b[0m');
+        break;
+      }
+      const cleanProbeUrl = probeUrl.trim().replace(/\/+$/, '');
+      let parsedUrl: URL;
+      try {
+        parsedUrl = new URL(cleanProbeUrl);
+      } catch {
+        terminal.writeln(`\x1b[31mInvalid URL: ${cleanProbeUrl}\x1b[0m`);
+        terminal.writeln('\x1b[2mExpected format: http://localhost:35555\x1b[0m');
+        break;
+      }
+      terminal.writeln(`\x1b[2m🔍 Probing ${parsedUrl.origin}...\x1b[0m`);
+      probeSquadRc(parsedUrl.origin, terminal);
+      break;
+    }
+
     case '/clear': {
       terminal.clear();
       break;
@@ -145,3 +171,73 @@ export function handleCommand(input: string, terminal: TerminalWriter | null): v
     }
   }
 }
+
+/**
+ * Probe a URL to check if a Squad RC instance is running.
+ * Fetches the root page and looks for Squad RC HTML markers.
+ */
+async function probeSquadRc(origin: string, terminal: TerminalWriter): Promise<void> {
+  try {
+    const resp = await fetch(origin, {
+      signal: AbortSignal.timeout(5000),
+    });
+
+    if (!resp.ok) {
+      terminal.writeln(`\x1b[33m⚠ Server responded with ${resp.status} ${resp.statusText}\x1b[0m`);
+      terminal.writeln('\x1b[2mMay not be a Squad RC instance.\x1b[0m');
+      return;
+    }
+
+    const contentType = resp.headers.get('content-type') || '';
+    if (!contentType.includes('text/html')) {
+      terminal.writeln(`\x1b[33m⚠ Unexpected content-type: ${contentType}\x1b[0m`);
+      terminal.writeln('\x1b[2mSquad RC serves HTML at /. This may not be Squad RC.\x1b[0m');
+      return;
+    }
+
+    const html = await resp.text();
+    const isSquadRc = html.includes('squad') || html.includes('Squad') || html.includes('app.js');
+
+    if (isSquadRc) {
+      terminal.writeln(`\x1b[32m✓ Squad RC detected at ${origin}\x1b[0m`);
+      terminal.writeln('\x1b[2mAuth: Session token required for WebSocket connection.\x1b[0m');
+      terminal.writeln(`\x1b[2mUsage: /connect ${origin} <session-token>\x1b[0m`);
+      terminal.writeln('\x1b[2mThe session token UUID is printed by squad rc at startup.\x1b[0m');
+
+      // Try the status endpoint (will fail without token, but 401 confirms auth is needed)
+      try {
+        const statusResp = await fetch(`${origin}/status`, {
+          signal: AbortSignal.timeout(3000),
+        });
+        if (statusResp.ok) {
+          const data = await statusResp.json();
+          if (data.agents) {
+            terminal.writeln(`\x1b[32m  Agents: ${data.agents.length} registered\x1b[0m`);
+          }
+          if (data.version) {
+            terminal.writeln(`\x1b[2m  Version: ${data.version}\x1b[0m`);
+          }
+        }
+      } catch {
+        // Status endpoint may require auth — expected
+      }
+    } else {
+      terminal.writeln(`\x1b[33m⚠ Server is running but doesn't look like Squad RC.\x1b[0m`);
+      terminal.writeln('\x1b[2mSquad RC serves a PWA with app.js at /.\x1b[0m');
+    }
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    if (message.includes('abort') || message.includes('timeout') || message.includes('TimeoutError')) {
+      terminal.writeln(`\x1b[31m✗ Connection timed out (5s)\x1b[0m`);
+      terminal.writeln(`\x1b[2mNo server responding at ${origin}\x1b[0m`);
+    } else if (message.includes('Failed to fetch') || message.includes('NetworkError') || message.includes('fetch')) {
+      terminal.writeln(`\x1b[31m✗ Cannot reach ${origin}\x1b[0m`);
+      terminal.writeln('\x1b[2mIs Squad RC running? Start it with: squad rc --port PORT\x1b[0m');
+    } else {
+      terminal.writeln(`\x1b[31m✗ Probe failed: ${message}\x1b[0m`);
+    }
+  }
+}
+
+// Export for testing
+export { probeSquadRc as _probeSquadRc };

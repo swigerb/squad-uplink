@@ -438,9 +438,8 @@ describe('ConnectionManager', () => {
 
       const errors = useConnectionStore.getState().telemetry.connectionErrors;
       const lastError = errors[errors.length - 1];
-      expect(lastError.message).toContain('No auth token provided');
-      expect(lastError.message).toContain('/auth');
-      expect(lastError.message).toContain('allow-anonymous');
+      expect(lastError.message).toContain('Squad RC requires a session token');
+      expect(lastError.message).toContain('/probe');
     });
 
     it('adds token-expired hint after repeated 1006 closes (with token)', async () => {
@@ -460,8 +459,8 @@ describe('ConnectionManager', () => {
 
       const errors = useConnectionStore.getState().telemetry.connectionErrors;
       const lastError = errors[errors.length - 1];
-      expect(lastError.message).toContain('expired or invalid');
-      expect(lastError.message).toContain('/auth');
+      expect(lastError.message).toContain('invalid or expired');
+      expect(lastError.message).toContain('4hr TTL');
     });
   });
 

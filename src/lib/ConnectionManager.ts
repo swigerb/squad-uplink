@@ -154,12 +154,12 @@ export class ConnectionManager {
 
         let message = `WebSocket closed: ${event.code} ${event.reason || '(no reason)'}`;
 
-        // Add diagnostic hints for common devtunnel failure codes
+        // Add diagnostic hints for common failure codes
         if (event.code === 1006) {
           if (!config.token && this.retries >= 2) {
-            message += ' — No auth token provided. Run /auth <url> first to sign in via Microsoft Entra ID, then /connect <url>. Or use an anonymous tunnel: devtunnel port create -p PORT --protocol https --allow-anonymous';
+            message += ' — Squad RC requires a session token. Get the token UUID from squad rc startup output, then reconnect: /connect <url> <token>. Run /probe <url> to verify Squad RC is running.';
           } else if (config.token && this.retries >= 2) {
-            message += ' — Auth token may be expired or invalid. Try: (1) /auth <url> to re-authenticate, (2) copy a fresh token, (3) /connect <url> <new-token>';
+            message += ' — Session token may be invalid or expired (4hr TTL). Restart squad rc for a new token, then /connect <url> <new-token>';
           }
         }
 

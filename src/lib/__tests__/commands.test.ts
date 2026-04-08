@@ -415,4 +415,244 @@ describe('handleCommand', () => {
       expect(output).toContain('disconnected');
     });
   });
+
+  // --- /connect improvements ---
+  describe('/connect token warnings', () => {
+    it('warns when no token provided', () => {
+      vi.spyOn(connectionManager, 'connectFresh').mockResolvedValue();
+
+      handleCommand('/connect wss://tunnel.dev/ws', terminal);
+
+      const output = terminal.lines.join('\n');
+      expect(output).toContain('No session token');
+      expect(output).toContain('Squad RC requires a token');
+    });
+
+    it('suggests /probe when connecting without token', () => {
+      vi.spyOn(connectionManager, 'connectFresh').mockResolvedValue();
+
+      handleCommand('/connect http://localhost:35555', terminal);
+
+      const output = terminal.lines.join('\n');
+      expect(output).toContain('/probe');
+    });
+
+    it('does not warn when token is provided', () => {
+      vi.spyOn(connectionManager, 'connectFresh').mockResolvedValue();
+
+      handleCommand('/connect wss://tunnel.dev/ws my-token', terminal);
+
+      const output = terminal.lines.join('\n');
+      expect(output).not.toContain('No session token');
+    });
+  });
+
+  // --- /probe ---
+  describe('/probe', () => {
+    it('shows usage when no URL provided', () => {
+      handleCommand('/probe', terminal);
+
+      const output = terminal.lines.join('\n');
+      expect(output).toContain('Usage');
+      expect(output).toContain('/probe');
+    });
+
+    it('rejects invalid URLs', () => {
+      handleCommand('/probe not-a-url', terminal);
+
+      const output = terminal.lines.join('\n');
+      expect(output).toContain('Invalid URL');
+    });
+
+    it('shows probing message with valid URL', () => {
+      // Mock fetch to return a resolved promise (will resolve async)
+      vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+        new Response('<html><script src="app.js"></script></html>', {
+          status: 200,
+          headers: { 'content-type': 'text/html' },
+        }),
+      );
+
+      handleCommand('/probe http://localhost:35555', terminal);
+
+      const output = terminal.lines.join('\n');
+      expect(output).toContain('Probing');
+    });
+
+    it('appears in /help output', () => {
+      handleCommand('/help', terminal);
+
+      const output = terminal.lines.join('\n');
+      expect(output).toContain('/probe');
+    });
+
+    it('handles case-insensitive /PROBE command', () => {
+      vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+        new Response('<html>squad</html>', {
+          status: 200,
+          headers: { 'content-type': 'text/html' },
+        }),
+      );
+
+      handleCommand('/PROBE http://localhost:35555', terminal);
+
+      const output = terminal.lines.join('\n');
+      expect(output).toContain('Probing');
+    });
+
+    it('strips trailing slashes from probe URL', () => {
+      const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+        new Response('<html>squad</html>', {
+          status: 200,
+          headers: { 'content-type': 'text/html' },
+        }),
+      );
+
+      handleCommand('/probe http://localhost:35555/', terminal);
+
+      expect(fetchSpy).toHaveBeenCalledWith(
+        'http://localhost:35555',
+        expect.any(Object),
+      );
+    });
+  });
+});
+
+// --- probeSquadRc async tests ---
+describe('probeSquadRc', () => {
+  let terminal: ReturnType<typeof createMockTerminal>;
+
+  beforeEach(() => {
+    terminal = createMockTerminal();
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it('detects Squad RC when HTML contains "squad"', async () => {
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      new Response('<html><title>Squad Remote Control</title></html>', {
+        status: 200,
+        headers: { 'content-type': 'text/html' },
+      }),
+    );
+
+    const { _probeSquadRc } = await import('../commands');
+    await _probeSquadRc('http://localhost:35555', terminal);
+
+    const output = terminal.lines.join('\n');
+    expect(output).toContain('Squad RC detected');
+    expect(output).toContain('/connect');
+    expect(output).toContain('session-token');
+  });
+
+  it('detects Squad RC when HTML contains "app.js"', async () => {
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      new Response('<html><script src="app.js"></script></html>', {
+        status: 200,
+        headers: { 'content-type': 'text/html' },
+      }),
+    );
+
+    const { _probeSquadRc } = await import('../commands');
+    await _probeSquadRc('http://localhost:35555', terminal);
+
+    const output = terminal.lines.join('\n');
+    expect(output).toContain('Squad RC detected');
+  });
+
+  it('warns when server responds but is not Squad RC', async () => {
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      new Response('<html><title>My Web App</title><p>Hello world</p></html>', {
+        status: 200,
+        headers: { 'content-type': 'text/html' },
+      }),
+    );
+
+    const { _probeSquadRc } = await import('../commands');
+    await _probeSquadRc('http://localhost:35555', terminal);
+
+    const output = terminal.lines.join('\n');
+    expect(output).toContain("doesn't look like Squad RC");
+  });
+
+  it('reports non-200 status', async () => {
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      new Response('Not Found', { status: 404, statusText: 'Not Found' }),
+    );
+
+    const { _probeSquadRc } = await import('../commands');
+    await _probeSquadRc('http://localhost:35555', terminal);
+
+    const output = terminal.lines.join('\n');
+    expect(output).toContain('404');
+    expect(output).toContain('Not Found');
+  });
+
+  it('reports unexpected content-type', async () => {
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      new Response('{}', {
+        status: 200,
+        headers: { 'content-type': 'application/json' },
+      }),
+    );
+
+    const { _probeSquadRc } = await import('../commands');
+    await _probeSquadRc('http://localhost:35555', terminal);
+
+    const output = terminal.lines.join('\n');
+    expect(output).toContain('Unexpected content-type');
+    expect(output).toContain('application/json');
+  });
+
+  it('shows timeout error when server unreachable', async () => {
+    vi.spyOn(globalThis, 'fetch').mockRejectedValue(
+      new DOMException('The operation was aborted', 'TimeoutError'),
+    );
+
+    const { _probeSquadRc } = await import('../commands');
+    await _probeSquadRc('http://localhost:99999', terminal);
+
+    const output = terminal.lines.join('\n');
+    expect(output).toContain('timed out');
+  });
+
+  it('shows network error when fetch fails', async () => {
+    vi.spyOn(globalThis, 'fetch').mockRejectedValue(
+      new TypeError('Failed to fetch'),
+    );
+
+    const { _probeSquadRc } = await import('../commands');
+    await _probeSquadRc('http://localhost:35555', terminal);
+
+    const output = terminal.lines.join('\n');
+    expect(output).toContain('Cannot reach');
+    expect(output).toContain('squad rc --port');
+  });
+
+  it('shows agent count from status endpoint', async () => {
+    // First call returns HTML (root page), second call returns status JSON
+    vi.spyOn(globalThis, 'fetch')
+      .mockResolvedValueOnce(
+        new Response('<html>Squad RC</html>', {
+          status: 200,
+          headers: { 'content-type': 'text/html' },
+        }),
+      )
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify({ agents: [{ name: 'Woz' }, { name: 'Jobs' }], version: '0.9.1' }), {
+          status: 200,
+          headers: { 'content-type': 'application/json' },
+        }),
+      );
+
+    const { _probeSquadRc } = await import('../commands');
+    await _probeSquadRc('http://localhost:35555', terminal);
+
+    const output = terminal.lines.join('\n');
+    expect(output).toContain('Squad RC detected');
+    expect(output).toContain('2 registered');
+    expect(output).toContain('0.9.1');
+  });
 });
