@@ -71,7 +71,7 @@ function Win95Layout({
   const [themeIconSelected, setThemeIconSelected] = useState(false);
   const status = useConnectionStore((s) => s.status);
   const { toggleTheme } = useTheme();
-  const { play, playWhenReady } = useAudio('win95');
+  const { playWhenReady } = useAudio('win95');
   const bootPlayedRef = useRef(false);
 
   // Play the Win95 startup sound once on mount — wait for buffer to load
