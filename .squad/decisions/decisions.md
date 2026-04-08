@@ -531,5 +531,66 @@ Support two legitimate browser→devtunnel auth approaches:
 
 ---
 
+## DevTunnel Auth — Cookie Primary, Query Param Fallback, No Subprotocol
+
+**By:** Woz (Lead Dev)
+**Date:** 2026-04-08
+**Status:** Implemented
+**Supersedes:** "WebSocket Auth via Subprotocol for Dev Tunnel Compatibility" (2026-04-08T030500Z)
+
+### What
+
+Removed the `access_token-<JWT>` WebSocket subprotocol auth mechanism. Replaced with:
+1. **Cookie-based auth** (primary) — browser session cookie after `/auth` Entra ID login
+2. **Query param auth** (fallback) — `?access_token=<token>` when explicit token provided
+3. Only `squad-rc` subprotocol is sent (no `access_token-` prefix)
+
+### Why
+
+The `access_token-<JWT>` subprotocol is NOT a documented Microsoft Dev Tunnel auth mechanism. It was a Gemini suggestion that doesn't work — the Dev Tunnel relay rejects WebSocket upgrades with unrecognized subprotocols, causing infinite 1006 reconnect loops.
+
+Microsoft Dev Tunnels support two browser auth paths:
+- **Cookie-based:** Visit tunnel URL → Entra ID redirect → session cookie → all subsequent requests (including WebSocket) include cookie
+- **Anonymous:** `devtunnel port create -p PORT --protocol https --allow-anonymous`
+
+### Changes
+
+- `src/lib/ConnectionManager.ts`: Cookie/query-param auth, improved 1006 diagnostics, maskUrl() helper
+- `src/lib/commands.ts`: Fixed auth method display text
+- `src/lib/__tests__/ConnectionManager.test.ts`: 4 new tests, updated 13 existing
+- `src/lib/__tests__/commands.test.ts`: 1 new test
+
+### Risk
+
+Low. Cookie-based auth is the standard browser→DevTunnel flow. Query param is standard OAuth2 fallback. 569 tests pass.
+
+---
+
+## /auth Command — Terminal Auth Management
+
+**By:** Woz (Lead Dev)
+**Date:** 2026-04-08
+**Status:** Implemented
+
+### What
+
+Added `/auth` terminal command with two modes: status display (no args) and token update (with arg). Added `getAuthStatus()` and `reconnectWithToken(token)` public methods to ConnectionManager.
+
+### Why
+
+Users typing `/auth` got "unknown command". Auth token rotation required a full `/connect <url> <token>` — even when only the token changed. The new command lets users inspect auth state and hot-swap tokens without re-entering the tunnel URL.
+
+### Changes
+
+- `src/lib/ConnectionManager.ts`: Added `getAuthStatus()` (returns masked token, URL, auth method) and `reconnectWithToken(token)` (updates config, reconnects if connected).
+- `src/lib/commands.ts`: Added `/auth` case to switch statement and HELP_TEXT.
+- `src/lib/__tests__/commands.test.ts`: 14 new tests covering all branches.
+
+### Risk
+
+Low. No changes to existing connection flow. New methods are additive. `reconnectWithToken` reuses existing `connect()` path. Token never logged or exposed beyond last-4-char mask.
+
+---
+
 ## Archive Log
 (Post-release decisions logged here).
