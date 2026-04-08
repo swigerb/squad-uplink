@@ -286,6 +286,46 @@ describe('handleCommand', () => {
         '_blank',
       );
     });
+
+    it('preserves query parameters in URL', () => {
+      handleCommand('/auth https://tunnel.devtunnels.ms?foo=bar', terminal);
+
+      expect(windowOpenSpy).toHaveBeenCalledWith(
+        'https://tunnel.devtunnels.ms?foo=bar',
+        '_blank',
+      );
+    });
+
+    it('handles URL with port number', () => {
+      handleCommand('/auth https://tunnel.devtunnels.ms:8080', terminal);
+
+      expect(windowOpenSpy).toHaveBeenCalledWith(
+        'https://tunnel.devtunnels.ms:8080',
+        '_blank',
+      );
+    });
+
+    it('uses only first argument as URL, ignores extra args', () => {
+      handleCommand('/auth https://tunnel.devtunnels.ms extra-stuff', terminal);
+
+      expect(windowOpenSpy).toHaveBeenCalledWith(
+        'https://tunnel.devtunnels.ms',
+        '_blank',
+      );
+    });
+
+    it('calls window.open exactly once', () => {
+      handleCommand('/auth https://tunnel.devtunnels.ms', terminal);
+
+      expect(windowOpenSpy).toHaveBeenCalledTimes(1);
+    });
+
+    it('shows /connect hint after successful open', () => {
+      handleCommand('/auth https://tunnel.devtunnels.ms', terminal);
+
+      const output = terminal.lines.join('\n');
+      expect(output).toContain('/connect');
+    });
   });
 
   // --- Case insensitivity ---

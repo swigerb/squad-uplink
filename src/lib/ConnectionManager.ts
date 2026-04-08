@@ -207,6 +207,37 @@ export class ConnectionManager {
     return this.ws?.readyState === WebSocket.OPEN;
   }
 
+  /** Get current auth/config status for the /auth command */
+  getAuthStatus(): { hasToken: boolean; maskedToken: string | null; tunnelUrl: string | null; authMethod: string } {
+    const cfg = this.config;
+    if (!cfg) {
+      return { hasToken: false, maskedToken: null, tunnelUrl: null, authMethod: 'none' };
+    }
+    const masked = cfg.token
+      ? `****${cfg.token.slice(-4)}`
+      : null;
+    return {
+      hasToken: !!cfg.token,
+      maskedToken: masked,
+      tunnelUrl: cfg.wsUrl,
+      authMethod: 'subprotocol',
+    };
+  }
+
+  /** Update the stored token and reconnect if currently connected */
+  async reconnectWithToken(token: string): Promise<void> {
+    if (!this.config) return;
+    this.config = { ...this.config, token };
+    if (this.isConnected) {
+      this.retries = 0;
+      this.reconnectCount = 0;
+      useConnectionStore.getState().updateTelemetry({
+        reconnectCount: 0,
+      });
+      return this.connect(this.config);
+    }
+  }
+
   /**
    * Fetch the /status endpoint from squad-rc.
    * Measures round-trip latency and pushes results to the telemetry store.

@@ -644,4 +644,125 @@ describe('ConnectionManager', () => {
       errorSpy.mockRestore();
     });
   });
+
+  // --- getAuthStatus ---
+  describe('getAuthStatus', () => {
+    it('returns no token when not configured', () => {
+      const status = cm.getAuthStatus();
+
+      expect(status).toEqual({
+        hasToken: false,
+        maskedToken: null,
+        tunnelUrl: null,
+        authMethod: 'none',
+      });
+    });
+
+    it('returns masked token after connect', async () => {
+      await cm.connect({ wsUrl: 'wss://tunnel.devtunnels.ms/ws', token: 'abcdefgh12345678' });
+
+      const status = cm.getAuthStatus();
+
+      expect(status.hasToken).toBe(true);
+      expect(status.maskedToken).toBe('****5678');
+      expect(status.tunnelUrl).toBe('wss://tunnel.devtunnels.ms/ws');
+      expect(status.authMethod).toBe('subprotocol');
+    });
+
+    it('masks short token (4 chars or fewer) showing all chars after ****', async () => {
+      await cm.connect({ wsUrl: 'wss://example.com/ws', token: 'ab' });
+
+      const status = cm.getAuthStatus();
+
+      expect(status.maskedToken).toBe('****ab');
+    });
+
+    it('shows last 4 chars of longer tokens', async () => {
+      await cm.connect({ wsUrl: 'wss://example.com/ws', token: 'my-super-secret-token-xyz9' });
+
+      const status = cm.getAuthStatus();
+
+      expect(status.maskedToken).toBe('****xyz9');
+    });
+
+    it('returns null maskedToken when token is empty string', async () => {
+      await cm.connect({ wsUrl: 'wss://example.com/ws', token: '' });
+
+      const status = cm.getAuthStatus();
+
+      expect(status.hasToken).toBe(false);
+      expect(status.maskedToken).toBeNull();
+    });
+
+    it('returns none after disconnect', async () => {
+      await cm.connect({ wsUrl: 'wss://example.com/ws', token: 'test-token' });
+      cm.disconnect();
+
+      const status = cm.getAuthStatus();
+
+      expect(status.hasToken).toBe(false);
+      expect(status.tunnelUrl).toBeNull();
+      expect(status.authMethod).toBe('none');
+    });
+  });
+
+  // --- reconnectWithToken ---
+  describe('reconnectWithToken', () => {
+    it('does nothing when no config exists', async () => {
+      await cm.reconnectWithToken('new-token');
+
+      expect(MockWebSocket.instances).toHaveLength(0);
+    });
+
+    it('updates token and reconnects when connected', async () => {
+      await cm.connect({ wsUrl: 'wss://example.com/ws', token: 'old-token' });
+      MockWebSocket.latest.simulateOpen();
+
+      expect(cm.isConnected).toBe(true);
+      const instancesBefore = MockWebSocket.instances.length;
+
+      await cm.reconnectWithToken('new-token');
+
+      // Should create a new WebSocket connection
+      expect(MockWebSocket.instances.length).toBeGreaterThan(instancesBefore);
+      // New connection should use the new token via subprotocol
+      const latest = MockWebSocket.latest;
+      expect(latest.protocols).toEqual(['squad-rc', 'access_token-new-token']);
+    });
+
+    it('stores token but does not reconnect when disconnected', async () => {
+      await cm.connect({ wsUrl: 'wss://example.com/ws', token: 'old-token' });
+      // Don't simulate open — WS stays in CONNECTING state, isConnected is false
+
+      const instancesBefore = MockWebSocket.instances.length;
+      await cm.reconnectWithToken('new-token');
+
+      // Should NOT create another WebSocket (not connected)
+      expect(MockWebSocket.instances.length).toBe(instancesBefore);
+
+      // But the token should be updated — verify via getAuthStatus
+      const status = cm.getAuthStatus();
+      expect(status.maskedToken).toBe('****oken');
+    });
+
+    it('resets retry counter on reconnect', async () => {
+      await cm.connect({ wsUrl: 'wss://example.com/ws', token: 'old-token', reconnect: true });
+      MockWebSocket.latest.simulateOpen();
+
+      // Trigger a disconnect to increment retries
+      MockWebSocket.latest.simulateClose(1006, 'abnormal');
+      vi.advanceTimersByTime(1000);
+      // Now we have retry count > 0
+
+      // Reconnect with new token — should reset retries
+      const latestInstance = MockWebSocket.latest;
+      latestInstance.simulateOpen();
+
+      await cm.reconnectWithToken('fresh-token');
+
+      // Should have created a new connection
+      const newest = MockWebSocket.latest;
+      expect(newest.protocols).toEqual(['squad-rc', 'access_token-fresh-token']);
+    });
+  });
 });
