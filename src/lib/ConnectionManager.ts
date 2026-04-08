@@ -3,6 +3,7 @@ import type {
   ConnectionState,
   OutboundMessage,
   InboundMessage,
+  TicketResponse,
   StatusResponse,
   MessageHistoryEntry,
 } from '@/types/squad-rc';
@@ -389,6 +390,21 @@ export class ConnectionManager {
       clearInterval(this.heartbeatTimer);
       this.heartbeatTimer = null;
     }
+  }
+
+  private async exchangeTicket(baseUrl: string, token: string): Promise<string> {
+    const resp = await fetch(`${baseUrl}/api/auth/ticket`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+    });
+    if (!resp.ok) {
+      throw new Error(`Ticket exchange failed: ${resp.status} ${resp.statusText}`);
+    }
+    const data: TicketResponse = await resp.json();
+    return data.token;
   }
 
   private scheduleReconnect(): void {

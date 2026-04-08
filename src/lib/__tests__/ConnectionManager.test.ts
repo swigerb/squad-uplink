@@ -361,23 +361,16 @@ describe('ConnectionManager', () => {
     });
   });
 
-  // --- Protocol normalization & DevTunnel params ---
+  // --- Protocol normalization & subprotocol auth ---
   describe('protocol normalization', () => {
-    it('normalizes https:// to wss:// and sets access_token + anti-phishing param', async () => {
-      await cm.connect({ wsUrl: 'https://tunnel.example.com', token: 'bearer-abc' });
+    it('uses subprotocol auth on direct wss:// URLs', async () => {
+      await cm.connect({ wsUrl: 'wss://tunnel.example.com/ws', token: 'bearer-abc' });
 
+      // Token should be in subprotocol, not query params
+      expect(MockWebSocket.latest.protocols).toEqual(['squad-rc', 'access_token-bearer-abc']);
       const wsUrl = new URL(MockWebSocket.latest.url);
-      expect(wsUrl.protocol).toBe('wss:');
-      expect(wsUrl.searchParams.get('access_token')).toBe('bearer-abc');
-      expect(wsUrl.searchParams.get('X-Tunnel-Skip-AntiPhishing-Page')).toBe('true');
-    });
-
-    it('normalizes http:// to ws://', async () => {
-      await cm.connect({ wsUrl: 'http://localhost:3000', token: 'local-tok' });
-
-      const wsUrl = new URL(MockWebSocket.latest.url);
-      expect(wsUrl.protocol).toBe('ws:');
-      expect(wsUrl.searchParams.get('access_token')).toBe('local-tok');
+      expect(wsUrl.searchParams.get('access_token')).toBeNull();
+      expect(wsUrl.searchParams.get('X-Tunnel-Skip-AntiPhishing-Page')).toBeNull();
     });
 
     it('preserves wss:// URLs as-is', async () => {
@@ -387,11 +380,10 @@ describe('ConnectionManager', () => {
       expect(wsUrl.protocol).toBe('wss:');
     });
 
-    it('always includes X-Tunnel-Skip-AntiPhishing-Page param', async () => {
-      await cm.connect({ wsUrl: 'wss://example.com/ws', token: 't' });
+    it('sends squad-rc subprotocol even without token', async () => {
+      await cm.connect({ wsUrl: 'wss://example.com/ws', token: '' });
 
-      const wsUrl = new URL(MockWebSocket.latest.url);
-      expect(wsUrl.searchParams.get('X-Tunnel-Skip-AntiPhishing-Page')).toBe('true');
+      expect(MockWebSocket.latest.protocols).toEqual(['squad-rc']);
     });
   });
 
