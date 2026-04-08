@@ -108,7 +108,7 @@ describe('handleCommand', () => {
       expect(output).toContain('Usage');
     });
 
-    it('connects without token for anonymous/cookie auth', () => {
+    it('connects without token for anonymous auth', () => {
       const spy = vi.spyOn(connectionManager, 'connectFresh').mockResolvedValue();
 
       handleCommand('/connect wss://tunnel.dev/ws', terminal);
@@ -121,7 +121,7 @@ describe('handleCommand', () => {
         }),
       );
       const output = terminal.lines.join('\n');
-      expect(output).toContain('cookie (browser session)');
+      expect(output).toContain('none (anonymous)');
       spy.mockRestore();
     });
 
@@ -134,7 +134,7 @@ describe('handleCommand', () => {
       expect(output).toContain('Connecting');
     });
 
-    it('shows token query param auth method when token provided', () => {
+    it('shows token query param auth method when token provided with ws URL', () => {
       vi.spyOn(connectionManager, 'connectFresh').mockResolvedValue();
 
       handleCommand('/connect wss://x.com/ws my-token', terminal);
@@ -143,35 +143,56 @@ describe('handleCommand', () => {
       expect(output).toContain('token (query param)');
     });
 
-    it('normalizes https:// to wss:// before connecting', () => {
+    it('passes https:// URLs as-is to ConnectionManager (no conversion)', () => {
       const spy = vi.spyOn(connectionManager, 'connectFresh').mockResolvedValue();
 
       handleCommand('/connect https://tunnel.dev my-token', terminal);
 
       expect(spy).toHaveBeenCalledWith(
         expect.objectContaining({
-          wsUrl: 'wss://tunnel.dev',
+          wsUrl: 'https://tunnel.dev',
           token: 'my-token',
           reconnect: true,
         }),
       );
 
       const output = terminal.lines.join('\n');
-      expect(output).toContain('wss://tunnel.dev');
+      expect(output).toContain('https://tunnel.dev');
+      expect(output).toContain('ticket exchange');
       spy.mockRestore();
     });
 
-    it('normalizes http:// to ws:// before connecting', () => {
+    it('passes http:// URLs as-is to ConnectionManager (no conversion)', () => {
       const spy = vi.spyOn(connectionManager, 'connectFresh').mockResolvedValue();
 
       handleCommand('/connect http://localhost:3000 tok', terminal);
 
       expect(spy).toHaveBeenCalledWith(
         expect.objectContaining({
-          wsUrl: 'ws://localhost:3000',
+          wsUrl: 'http://localhost:3000',
         }),
       );
+      const output = terminal.lines.join('\n');
+      expect(output).toContain('ticket exchange');
       spy.mockRestore();
+    });
+
+    it('shows ticket exchange auth for http URL with token', () => {
+      vi.spyOn(connectionManager, 'connectFresh').mockResolvedValue();
+
+      handleCommand('/connect http://localhost:35555 my-uuid-token', terminal);
+
+      const output = terminal.lines.join('\n');
+      expect(output).toContain('ticket exchange');
+    });
+
+    it('shows anonymous auth for http URL without token', () => {
+      vi.spyOn(connectionManager, 'connectFresh').mockResolvedValue();
+
+      handleCommand('/connect http://localhost:35555', terminal);
+
+      const output = terminal.lines.join('\n');
+      expect(output).toContain('none (anonymous)');
     });
   });
 

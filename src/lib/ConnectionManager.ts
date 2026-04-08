@@ -64,13 +64,13 @@ export class ConnectionManager {
       // Strip trailing slashes — Dev Tunnel relay treats them as HTTP GET
       let wsUrl = config.wsUrl.trim().replace(/\/+$/, '');
 
-      // Auth strategy:
-      // 1. Cookie-based (primary): after /auth, browser has session cookie on *.devtunnels.ms
-      // 2. Token as query param (fallback): when user provides explicit token via /connect
-      // The access_token-<JWT> subprotocol does NOT work with Microsoft Dev Tunnel relay.
-      const protocols: string[] = ['squad-rc'];
+      // Auth strategy (matches Squad RC's actual protocol):
+      // 1. HTTP(S) URL + token → ticket exchange (POST /api/auth/ticket with Bearer token),
+      //    then convert to ws:// and connect with ?ticket=<short-lived-ticket>
+      // 2. WS(S) URL + token → direct connect with ?token=<session-token>
+      // 3. No token → anonymous connect (no query params)
+      // Squad RC does NOT use WebSocket subprotocols.
 
-      // If the URL is HTTP(S), do ticket exchange first
       if (wsUrl.startsWith('http')) {
         const ticket = await this.exchangeTicket(wsUrl, config.token);
         const base = wsUrl.replace(/^http/, 'ws');
@@ -81,12 +81,12 @@ export class ConnectionManager {
         // Direct WS path: append token as query param if provided
         if (config.token) {
           const url = new URL(wsUrl);
-          url.searchParams.set('access_token', config.token);
+          url.searchParams.set('token', config.token);
           wsUrl = url.toString();
         }
       }
 
-      const ws = new WebSocket(wsUrl, protocols);
+      const ws = new WebSocket(wsUrl);
       this.ws = ws;
 
       ws.onopen = () => {
@@ -259,11 +259,15 @@ export class ConnectionManager {
     const masked = cfg.token
       ? `****${cfg.token.slice(-4)}`
       : null;
+    let authMethod = 'none';
+    if (cfg.token) {
+      authMethod = cfg.wsUrl.startsWith('http') ? 'ticket' : 'token_param';
+    }
     return {
       hasToken: !!cfg.token,
       maskedToken: masked,
       tunnelUrl: cfg.wsUrl,
-      authMethod: cfg.token ? 'query_param' : 'cookie',
+      authMethod,
     };
   }
 
@@ -500,7 +504,7 @@ export class ConnectionManager {
   /** Mask sensitive query params in URLs for logging */
   private maskUrl(url: string | undefined): string | undefined {
     if (!url) return url;
-    return url.replace(/access_token=[^&]+/, 'access_token=***');
+    return url.replace(/(?:access_token|token)=[^&]+/, 'token=***');
   }
 
   private cleanup(): void {

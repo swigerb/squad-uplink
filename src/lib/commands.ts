@@ -71,19 +71,24 @@ export function handleCommand(input: string, terminal: TerminalWriter | null): v
         terminal.writeln('\x1b[2mOr set VITE_TUNNEL_URL env var\x1b[0m');
         break;
       }
-      // Normalize protocol for browser WebSocket compatibility
-      let normalizedUrl = wsUrl;
-      if (normalizedUrl.startsWith('https://')) {
-        normalizedUrl = normalizedUrl.replace(/^https/, 'wss');
-      } else if (normalizedUrl.startsWith('http://')) {
-        normalizedUrl = normalizedUrl.replace(/^http/, 'ws');
+      // Pass raw URL to ConnectionManager — it handles protocol conversion
+      // and auth strategy (ticket exchange for HTTP, token param for WS)
+      terminal.writeln(`\x1b[2mConnecting to ${wsUrl}...\x1b[0m`);
+      let authLabel: string;
+      if (token) {
+        if (wsUrl.startsWith('https://') || wsUrl.startsWith('http://')) {
+          authLabel = 'ticket exchange';
+        } else {
+          authLabel = 'token (query param)';
+        }
+      } else {
+        authLabel = 'none (anonymous)';
       }
-      terminal.writeln(`\x1b[2mConnecting to ${normalizedUrl}...\x1b[0m`);
-      terminal.writeln(`\x1b[2m  Auth: ${token ? 'token (query param)' : 'cookie (browser session)'}\x1b[0m`);
+      terminal.writeln(`\x1b[2m  Auth: ${authLabel}\x1b[0m`);
       if (!token) {
         terminal.writeln(`\x1b[2m  Tip: Run /auth <url> first to sign in via Microsoft\x1b[0m`);
       }
-      connectionManager.connectFresh({ wsUrl: normalizedUrl, token: token || '', reconnect: true });
+      connectionManager.connectFresh({ wsUrl, token: token || '', reconnect: true });
       break;
     }
 
