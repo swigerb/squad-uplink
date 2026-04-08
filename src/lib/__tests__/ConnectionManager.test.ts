@@ -461,4 +461,187 @@ describe('ConnectionManager', () => {
       expect(cm.isConnected).toBe(false);
     });
   });
+
+  // --- Subprotocol auth ---
+  describe('subprotocol auth', () => {
+    it('sends squad-rc and access_token subprotocols when token is provided', async () => {
+      await cm.connect({ wsUrl: 'wss://example.com/ws', token: 'my-secret-token' });
+
+      expect(MockWebSocket.latest.protocols).toEqual([
+        'squad-rc',
+        'access_token-my-secret-token',
+      ]);
+    });
+
+    it('sends only squad-rc subprotocol when no token is provided', async () => {
+      await cm.connect({ wsUrl: 'wss://example.com/ws', token: '' });
+
+      expect(MockWebSocket.latest.protocols).toEqual(['squad-rc']);
+    });
+
+    it('does not include token as URL query parameter', async () => {
+      await cm.connect({ wsUrl: 'wss://example.com/ws', token: 'secret' });
+
+      const url = new URL(MockWebSocket.latest.url);
+      expect(url.searchParams.has('token')).toBe(false);
+      expect(url.search).not.toContain('secret');
+    });
+  });
+
+  // --- Trailing slash stripping ---
+  describe('trailing slash stripping', () => {
+    it('removes a single trailing slash from wsUrl', async () => {
+      await cm.connect({ wsUrl: 'wss://example.com/ws/', token: 't' });
+
+      expect(MockWebSocket.latest.url).toBe('wss://example.com/ws');
+    });
+
+    it('removes multiple trailing slashes from wsUrl', async () => {
+      await cm.connect({ wsUrl: 'wss://example.com/ws///', token: 't' });
+
+      expect(MockWebSocket.latest.url).toBe('wss://example.com/ws');
+    });
+
+    it('leaves URLs without trailing slashes unchanged', async () => {
+      await cm.connect({ wsUrl: 'wss://example.com/ws', token: 't' });
+
+      expect(MockWebSocket.latest.url).toBe('wss://example.com/ws');
+    });
+  });
+
+  // --- Trailing whitespace handling ---
+  describe('whitespace handling', () => {
+    it('trims leading whitespace from wsUrl', async () => {
+      await cm.connect({ wsUrl: '   wss://example.com/ws', token: 't' });
+
+      expect(MockWebSocket.latest.url).toBe('wss://example.com/ws');
+    });
+
+    it('trims trailing whitespace from wsUrl', async () => {
+      await cm.connect({ wsUrl: 'wss://example.com/ws   ', token: 't' });
+
+      expect(MockWebSocket.latest.url).toBe('wss://example.com/ws');
+    });
+
+    it('trims both whitespace and trailing slashes', async () => {
+      await cm.connect({ wsUrl: '  wss://example.com/ws/  ', token: 't' });
+
+      expect(MockWebSocket.latest.url).toBe('wss://example.com/ws');
+    });
+  });
+
+  // --- Ticket path still uses query params ---
+  describe('ticket path with subprotocol', () => {
+    it('uses ticket as query param AND token as subprotocol on HTTP URLs', async () => {
+      const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+        new Response(JSON.stringify({ token: 'ticket-abc', expiresAt: '2026-12-31' }), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        }),
+      );
+
+      await cm.connect({ wsUrl: 'https://tunnel.example.com', token: 'bearer-token' });
+
+      // Ticket should be in query params
+      const wsUrl = new URL(MockWebSocket.latest.url);
+      expect(wsUrl.searchParams.get('ticket')).toBe('ticket-abc');
+
+      // Token should also be in subprotocol
+      expect(MockWebSocket.latest.protocols).toEqual([
+        'squad-rc',
+        'access_token-bearer-token',
+      ]);
+
+      fetchSpy.mockRestore();
+    });
+
+    it('sends only squad-rc subprotocol when ticket path has no token', async () => {
+      const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+        new Response(JSON.stringify({ token: 'ticket-abc', expiresAt: '2026-12-31' }), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        }),
+      );
+
+      await cm.connect({ wsUrl: 'https://tunnel.example.com', token: '' });
+
+      expect(MockWebSocket.latest.protocols).toEqual(['squad-rc']);
+
+      fetchSpy.mockRestore();
+    });
+  });
+
+  // --- Close code diagnostics ---
+  describe('close code diagnostics', () => {
+    it('logs close event code, reason, and wasClean', async () => {
+      const logSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+
+      await cm.connect({ wsUrl: 'wss://example.com/ws', token: 't', reconnect: false });
+      MockWebSocket.latest.simulateOpen();
+      MockWebSocket.latest.simulateClose(1006, 'abnormal closure');
+
+      expect(logSpy).toHaveBeenCalledWith(
+        expect.stringContaining('code: 1006'),
+      );
+      expect(logSpy).toHaveBeenCalledWith(
+        expect.stringContaining('abnormal closure'),
+      );
+      expect(logSpy).toHaveBeenCalledWith(
+        expect.stringContaining('clean: false'),
+      );
+
+      logSpy.mockRestore();
+    });
+
+    it('logs (none) when close reason is empty', async () => {
+      const logSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+
+      await cm.connect({ wsUrl: 'wss://example.com/ws', token: 't', reconnect: false });
+      MockWebSocket.latest.simulateOpen();
+      MockWebSocket.latest.simulateClose(1000, '');
+
+      expect(logSpy).toHaveBeenCalledWith(
+        expect.stringContaining('reason: (none)'),
+      );
+      expect(logSpy).toHaveBeenCalledWith(
+        expect.stringContaining('clean: true'),
+      );
+
+      logSpy.mockRestore();
+    });
+
+    it('logs clean: true for normal close (code 1000)', async () => {
+      const logSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+
+      await cm.connect({ wsUrl: 'wss://example.com/ws', token: 't', reconnect: false });
+      MockWebSocket.latest.simulateOpen();
+      MockWebSocket.latest.simulateClose(1000, 'going away');
+
+      expect(logSpy).toHaveBeenCalledWith(
+        expect.stringContaining('code: 1000'),
+      );
+      expect(logSpy).toHaveBeenCalledWith(
+        expect.stringContaining('clean: true'),
+      );
+
+      logSpy.mockRestore();
+    });
+  });
+
+  // --- Error logging ---
+  describe('error event logging', () => {
+    it('logs the error event object', async () => {
+      const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+      await cm.connect({ wsUrl: 'wss://example.com/ws', token: 't' });
+      MockWebSocket.latest.simulateError();
+
+      expect(errorSpy).toHaveBeenCalledWith(
+        '[squad-uplink] WebSocket error:',
+        expect.any(Event),
+      );
+
+      errorSpy.mockRestore();
+    });
+  });
 });
