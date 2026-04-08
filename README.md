@@ -154,4 +154,4 @@ See `public/audio/README.md` for sourcing instructions and recommended search te
 
 ## Related
 
-- [Squad Remote Control docs](https://bradygaster.github.io/squad/docs/features/remote-control/) — official feature documentation
+- [Squad Remote Control docs](https://bradygaster.github.io/squad/docs/features/squad-rc/) — official feature documentation
