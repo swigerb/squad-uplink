@@ -202,6 +202,92 @@ describe('handleCommand', () => {
     });
   });
 
+  // --- /auth ---
+  describe('/auth', () => {
+    let windowOpenSpy: ReturnType<typeof vi.spyOn>;
+
+    beforeEach(() => {
+      windowOpenSpy = vi.spyOn(window, 'open').mockImplementation(() => null);
+    });
+
+    afterEach(() => {
+      windowOpenSpy.mockRestore();
+    });
+
+    it('shows usage when no URL provided', () => {
+      handleCommand('/auth', terminal);
+
+      const output = terminal.lines.join('\n');
+      expect(output).toContain('Usage');
+      expect(output).toContain('/auth');
+      expect(output).toContain('devtunnel-url');
+      expect(windowOpenSpy).not.toHaveBeenCalled();
+    });
+
+    it('opens browser tab with valid Dev Tunnel URL', () => {
+      handleCommand('/auth https://5r3d84qj-35555.use2.devtunnels.ms', terminal);
+
+      expect(windowOpenSpy).toHaveBeenCalledWith(
+        'https://5r3d84qj-35555.use2.devtunnels.ms',
+        '_blank',
+      );
+      const output = terminal.lines.join('\n');
+      expect(output).toContain('Opening Dev Tunnel auth');
+      expect(output).toContain('5r3d84qj-35555.use2.devtunnels.ms');
+    });
+
+    it('strips trailing slashes from URL', () => {
+      handleCommand('/auth https://tunnel.devtunnels.ms/', terminal);
+
+      expect(windowOpenSpy).toHaveBeenCalledWith(
+        'https://tunnel.devtunnels.ms',
+        '_blank',
+      );
+    });
+
+    it('strips multiple trailing slashes', () => {
+      handleCommand('/auth https://tunnel.devtunnels.ms///', terminal);
+
+      expect(windowOpenSpy).toHaveBeenCalledWith(
+        'https://tunnel.devtunnels.ms',
+        '_blank',
+      );
+    });
+
+    it('rejects invalid URLs', () => {
+      handleCommand('/auth not-a-url', terminal);
+
+      const output = terminal.lines.join('\n');
+      expect(output).toContain('Invalid URL');
+      expect(windowOpenSpy).not.toHaveBeenCalled();
+    });
+
+    it('shows Entra ID hint after opening', () => {
+      handleCommand('/auth https://tunnel.devtunnels.ms', terminal);
+
+      const output = terminal.lines.join('\n');
+      expect(output).toContain('Entra ID');
+      expect(output).toContain('/connect');
+    });
+
+    it('appears in /help output', () => {
+      handleCommand('/help', terminal);
+
+      const output = terminal.lines.join('\n');
+      expect(output).toContain('/auth');
+      expect(output).toContain('Dev Tunnel');
+    });
+
+    it('handles case-insensitive /AUTH command', () => {
+      handleCommand('/AUTH https://tunnel.devtunnels.ms', terminal);
+
+      expect(windowOpenSpy).toHaveBeenCalledWith(
+        'https://tunnel.devtunnels.ms',
+        '_blank',
+      );
+    });
+  });
+
   // --- Case insensitivity ---
   describe('case handling', () => {
     it('handles uppercase commands', () => {
