@@ -60,26 +60,31 @@ export class ConnectionManager {
     this.emitState('connecting');
 
     try {
-      let wsUrl = config.wsUrl;
+      // Strip trailing slashes — Dev Tunnel relay treats them as HTTP GET
+      let wsUrl = config.wsUrl.trim().replace(/\/+$/, '');
 
-      // Normalize protocol: https→wss, http→ws for browser WebSocket compatibility
-      if (wsUrl.startsWith('https://')) {
-        wsUrl = wsUrl.replace(/^https/, 'wss');
-      } else if (wsUrl.startsWith('http://')) {
-        wsUrl = wsUrl.replace(/^http/, 'ws');
+      // Build subprotocol list for auth (more reliable than query params through proxies)
+      let protocols: string[] | undefined;
+
+      // If the URL is HTTP(S), do ticket exchange first
+      if (wsUrl.startsWith('http')) {
+        const ticket = await this.exchangeTicket(wsUrl, config.token);
+        const base = wsUrl.replace(/^http/, 'ws');
+        const url = new URL(base);
+        url.searchParams.set('ticket', ticket);
+        wsUrl = url.toString();
+        // Ticket path: token goes via subprotocol, ticket via query param
+        protocols = config.token
+          ? ['squad-rc', `access_token-${config.token}`]
+          : ['squad-rc'];
+      } else {
+        // Direct WS path: auth exclusively via subprotocol (not query param)
+        protocols = config.token
+          ? ['squad-rc', `access_token-${config.token}`]
+          : ['squad-rc'];
       }
 
-      // Build WebSocket URL with optional auth token
-      const url = new URL(wsUrl);
-      if (config.token) {
-        url.searchParams.set('access_token', config.token);
-        // Anti-phishing bypass only needed for programmatic token auth
-        // For cookie auth (no token), the browser cookie handles auth + anti-phishing skip
-        url.searchParams.set('X-Tunnel-Skip-AntiPhishing-Page', 'true');
-      }
-      wsUrl = url.toString();
-
-      const ws = new WebSocket(wsUrl);
+      const ws = new WebSocket(wsUrl, protocols);
       this.ws = ws;
 
       ws.onopen = () => {
@@ -124,7 +129,8 @@ export class ConnectionManager {
         }
       };
 
-      ws.onerror = () => {
+      ws.onerror = (event) => {
+        console.error('[squad-uplink] WebSocket error:', event);
         this.emitState('error');
         useConnectionStore.getState().addConnectionError({
           timestamp: Date.now(),
@@ -135,6 +141,9 @@ export class ConnectionManager {
       };
 
       ws.onclose = (event) => {
+        console.log(
+          `[squad-uplink] WebSocket closed — code: ${event.code}, reason: ${event.reason || '(none)'}, clean: ${event.wasClean}`
+        );
         this.ws = null;
         const store = useConnectionStore.getState();
         store.updateTelemetry({
@@ -233,6 +242,37 @@ export class ConnectionManager {
   /** Check if the WebSocket is currently connected */
   get isConnected(): boolean {
     return this.ws?.readyState === WebSocket.OPEN;
+  }
+
+  /** Get current auth/config status for the /auth command */
+  getAuthStatus(): { hasToken: boolean; maskedToken: string | null; tunnelUrl: string | null; authMethod: string } {
+    const cfg = this.config;
+    if (!cfg) {
+      return { hasToken: false, maskedToken: null, tunnelUrl: null, authMethod: 'none' };
+    }
+    const masked = cfg.token
+      ? `****${cfg.token.slice(-4)}`
+      : null;
+    return {
+      hasToken: !!cfg.token,
+      maskedToken: masked,
+      tunnelUrl: cfg.wsUrl,
+      authMethod: 'subprotocol',
+    };
+  }
+
+  /** Update the stored token and reconnect if currently connected */
+  async reconnectWithToken(token: string): Promise<void> {
+    if (!this.config) return;
+    this.config = { ...this.config, token };
+    if (this.isConnected) {
+      this.retries = 0;
+      this.reconnectCount = 0;
+      useConnectionStore.getState().updateTelemetry({
+        reconnectCount: 0,
+      });
+      return this.connect(this.config);
+    }
   }
 
   /**

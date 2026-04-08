@@ -13,6 +13,7 @@ export class MockWebSocket {
   readonly CLOSED = 3;
 
   url: string;
+  protocols: string | string[] | undefined;
   readyState: number = MockWebSocket.CONNECTING;
   onopen: ((ev: Event) => void) | null = null;
   onclose: ((ev: CloseEvent) => void) | null = null;
@@ -20,8 +21,9 @@ export class MockWebSocket {
   onerror: ((ev: Event) => void) | null = null;
   sentMessages: string[] = [];
 
-  constructor(url: string) {
+  constructor(url: string, protocols?: string | string[]) {
     this.url = url;
+    this.protocols = protocols;
     MockWebSocket.instances.push(this);
   }
 

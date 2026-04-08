@@ -14,6 +14,7 @@ const HELP_TEXT = `\x1b[1mAvailable commands:\x1b[0m
   /auth        — Authenticate: /auth <tunnel-url> (opens Microsoft login)
   /disconnect  — Disconnect from squad-rc
   /stop        — Disconnect from squad-rc (alias)
+  /auth        — Open Dev Tunnel auth in browser: /auth <tunnelUrl>
   /reset       — Clear terminal and reconnect
   /clear       — Clear terminal
   /help        — Show this help message
@@ -128,6 +129,29 @@ export function handleCommand(input: string, terminal: TerminalWriter | null): v
       if (wasConnected) {
         terminal.writeln('Use /connect to re-establish connection.');
       }
+      break;
+    }
+
+    case '/auth': {
+      const tunnelUrl = parts[1];
+      if (!tunnelUrl) {
+        terminal.writeln('\x1b[31mUsage: /auth <devtunnel-url>\x1b[0m');
+        terminal.writeln('\x1b[2mOpens the Dev Tunnel URL in a new browser tab for Entra ID authentication.\x1b[0m');
+        break;
+      }
+      // Strip trailing slashes — Dev Tunnel relay is sensitive to these
+      const cleanUrl = tunnelUrl.trim().replace(/\/+$/, '');
+      try {
+        new URL(cleanUrl); // validate URL
+      } catch {
+        terminal.writeln(`\x1b[31mInvalid URL: ${cleanUrl}\x1b[0m`);
+        terminal.writeln('\x1b[2mExpected format: https://<id>.use2.devtunnels.ms\x1b[0m');
+        break;
+      }
+      window.open(cleanUrl, '_blank');
+      terminal.writeln(`\x1b[32m🔐 Opening Dev Tunnel auth in browser...\x1b[0m`);
+      terminal.writeln(`\x1b[2m   ${cleanUrl}\x1b[0m`);
+      terminal.writeln(`\x1b[2mComplete Entra ID sign-in, then use /connect to establish the WebSocket.\x1b[0m`);
       break;
     }
 
