@@ -21,15 +21,15 @@ describe('ConnectionManager', () => {
 
   // --- Connection lifecycle ---
   describe('connection lifecycle', () => {
-    it('creates WebSocket with token via subprotocol (not query params)', async () => {
+    it('creates WebSocket with token via query param (not subprotocol)', async () => {
       await cm.connect({ wsUrl: 'wss://tunnel.example.com/ws', token: 'abc-123' });
 
       expect(MockWebSocket.instances).toHaveLength(1);
       const url = new URL(MockWebSocket.latest.url);
-      // Token should NOT be in query params (Dev Tunnel strips them)
-      expect(url.searchParams.get('token')).toBeNull();
-      // Token should be in subprotocol list
-      expect(MockWebSocket.latest.protocols).toEqual(['squad-rc', 'access_token-abc-123']);
+      // Token should be in query params for Dev Tunnel relay compatibility
+      expect(url.searchParams.get('access_token')).toBe('abc-123');
+      // Only squad-rc subprotocol (no access_token- subprotocol)
+      expect(MockWebSocket.latest.protocols).toEqual(['squad-rc']);
     });
 
     it('transitions disconnected → connecting on connect()', async () => {
@@ -363,14 +363,13 @@ describe('ConnectionManager', () => {
 
   // --- Protocol normalization & subprotocol auth ---
   describe('protocol normalization', () => {
-    it('uses subprotocol auth on direct wss:// URLs', async () => {
+    it('uses query param auth on direct wss:// URLs', async () => {
       await cm.connect({ wsUrl: 'wss://tunnel.example.com/ws', token: 'bearer-abc' });
 
-      // Token should be in subprotocol, not query params
-      expect(MockWebSocket.latest.protocols).toEqual(['squad-rc', 'access_token-bearer-abc']);
+      // Token should be in query param, not subprotocol
+      expect(MockWebSocket.latest.protocols).toEqual(['squad-rc']);
       const wsUrl = new URL(MockWebSocket.latest.url);
-      expect(wsUrl.searchParams.get('access_token')).toBeNull();
-      expect(wsUrl.searchParams.get('X-Tunnel-Skip-AntiPhishing-Page')).toBeNull();
+      expect(wsUrl.searchParams.get('access_token')).toBe('bearer-abc');
     });
 
     it('preserves wss:// URLs as-is', async () => {
@@ -422,10 +421,10 @@ describe('ConnectionManager', () => {
       expect(states).toContain('error');
     });
 
-    it('adds devtunnel diagnostic hint after repeated 1006 closes', async () => {
+    it('adds devtunnel diagnostic hint after repeated 1006 closes (no token)', async () => {
       const { useConnectionStore } = await import('@/store/connectionStore');
 
-      await cm.connect({ wsUrl: 'wss://example.com/ws', token: 't', reconnect: true, maxRetries: 10 });
+      await cm.connect({ wsUrl: 'wss://example.com/ws', token: '', reconnect: true, maxRetries: 10 });
       MockWebSocket.latest.simulateOpen();
 
       // First two 1006 closes — no diagnostic yet (retries < 2 at time of close)
@@ -439,8 +438,30 @@ describe('ConnectionManager', () => {
 
       const errors = useConnectionStore.getState().telemetry.connectionErrors;
       const lastError = errors[errors.length - 1];
-      expect(lastError.message).toContain('DevTunnel browser auth');
+      expect(lastError.message).toContain('No auth token provided');
+      expect(lastError.message).toContain('/auth');
       expect(lastError.message).toContain('allow-anonymous');
+    });
+
+    it('adds token-expired hint after repeated 1006 closes (with token)', async () => {
+      const { useConnectionStore } = await import('@/store/connectionStore');
+
+      await cm.connect({ wsUrl: 'wss://example.com/ws', token: 'my-jwt', reconnect: true, maxRetries: 10 });
+      MockWebSocket.latest.simulateOpen();
+
+      // Accumulate retries
+      MockWebSocket.latest.simulateClose(1006);
+      vi.advanceTimersByTime(1000);
+      MockWebSocket.latest.simulateClose(1006);
+      vi.advanceTimersByTime(2000);
+
+      // Third 1006 close — retries >= 2
+      MockWebSocket.latest.simulateClose(1006);
+
+      const errors = useConnectionStore.getState().telemetry.connectionErrors;
+      const lastError = errors[errors.length - 1];
+      expect(lastError.message).toContain('expired or invalid');
+      expect(lastError.message).toContain('/auth');
     });
   });
 
@@ -464,15 +485,12 @@ describe('ConnectionManager', () => {
     });
   });
 
-  // --- Subprotocol auth ---
-  describe('subprotocol auth', () => {
-    it('sends squad-rc and access_token subprotocols when token is provided', async () => {
+  // --- Auth method: query param for token, squad-rc subprotocol only ---
+  describe('auth method', () => {
+    it('sends only squad-rc subprotocol even when token is provided', async () => {
       await cm.connect({ wsUrl: 'wss://example.com/ws', token: 'my-secret-token' });
 
-      expect(MockWebSocket.latest.protocols).toEqual([
-        'squad-rc',
-        'access_token-my-secret-token',
-      ]);
+      expect(MockWebSocket.latest.protocols).toEqual(['squad-rc']);
     });
 
     it('sends only squad-rc subprotocol when no token is provided', async () => {
@@ -481,31 +499,37 @@ describe('ConnectionManager', () => {
       expect(MockWebSocket.latest.protocols).toEqual(['squad-rc']);
     });
 
-    it('does not include token as URL query parameter', async () => {
+    it('includes token as access_token query parameter', async () => {
       await cm.connect({ wsUrl: 'wss://example.com/ws', token: 'secret' });
 
       const url = new URL(MockWebSocket.latest.url);
-      expect(url.searchParams.has('token')).toBe(false);
-      expect(url.search).not.toContain('secret');
+      expect(url.searchParams.get('access_token')).toBe('secret');
+    });
+
+    it('does not include access_token query param when no token provided', async () => {
+      await cm.connect({ wsUrl: 'wss://example.com/ws', token: '' });
+
+      const url = new URL(MockWebSocket.latest.url);
+      expect(url.searchParams.has('access_token')).toBe(false);
     });
   });
 
   // --- Trailing slash stripping ---
   describe('trailing slash stripping', () => {
     it('removes a single trailing slash from wsUrl', async () => {
-      await cm.connect({ wsUrl: 'wss://example.com/ws/', token: 't' });
+      await cm.connect({ wsUrl: 'wss://example.com/ws/', token: '' });
 
       expect(MockWebSocket.latest.url).toBe('wss://example.com/ws');
     });
 
     it('removes multiple trailing slashes from wsUrl', async () => {
-      await cm.connect({ wsUrl: 'wss://example.com/ws///', token: 't' });
+      await cm.connect({ wsUrl: 'wss://example.com/ws///', token: '' });
 
       expect(MockWebSocket.latest.url).toBe('wss://example.com/ws');
     });
 
     it('leaves URLs without trailing slashes unchanged', async () => {
-      await cm.connect({ wsUrl: 'wss://example.com/ws', token: 't' });
+      await cm.connect({ wsUrl: 'wss://example.com/ws', token: '' });
 
       expect(MockWebSocket.latest.url).toBe('wss://example.com/ws');
     });
@@ -514,27 +538,35 @@ describe('ConnectionManager', () => {
   // --- Trailing whitespace handling ---
   describe('whitespace handling', () => {
     it('trims leading whitespace from wsUrl', async () => {
-      await cm.connect({ wsUrl: '   wss://example.com/ws', token: 't' });
+      await cm.connect({ wsUrl: '   wss://example.com/ws', token: '' });
 
       expect(MockWebSocket.latest.url).toBe('wss://example.com/ws');
     });
 
     it('trims trailing whitespace from wsUrl', async () => {
-      await cm.connect({ wsUrl: 'wss://example.com/ws   ', token: 't' });
+      await cm.connect({ wsUrl: 'wss://example.com/ws   ', token: '' });
 
       expect(MockWebSocket.latest.url).toBe('wss://example.com/ws');
     });
 
     it('trims both whitespace and trailing slashes', async () => {
-      await cm.connect({ wsUrl: '  wss://example.com/ws/  ', token: 't' });
+      await cm.connect({ wsUrl: '  wss://example.com/ws/  ', token: '' });
 
       expect(MockWebSocket.latest.url).toBe('wss://example.com/ws');
     });
+
+    it('trims whitespace and slashes with token in query param', async () => {
+      await cm.connect({ wsUrl: '  wss://example.com/ws/  ', token: 'tok' });
+
+      const url = new URL(MockWebSocket.latest.url);
+      expect(url.pathname).toBe('/ws');
+      expect(url.searchParams.get('access_token')).toBe('tok');
+    });
   });
 
-  // --- Ticket path still uses query params ---
-  describe('ticket path with subprotocol', () => {
-    it('uses ticket as query param AND token as subprotocol on HTTP URLs', async () => {
+  // --- Ticket path uses query params for ticket only ---
+  describe('ticket path with query param auth', () => {
+    it('uses ticket as query param on HTTP URLs, no token subprotocol', async () => {
       const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue(
         new Response(JSON.stringify({ token: 'ticket-abc', expiresAt: '2026-12-31' }), {
           status: 200,
@@ -548,11 +580,8 @@ describe('ConnectionManager', () => {
       const wsUrl = new URL(MockWebSocket.latest.url);
       expect(wsUrl.searchParams.get('ticket')).toBe('ticket-abc');
 
-      // Token should also be in subprotocol
-      expect(MockWebSocket.latest.protocols).toEqual([
-        'squad-rc',
-        'access_token-bearer-token',
-      ]);
+      // Only squad-rc subprotocol (no access_token- subprotocol)
+      expect(MockWebSocket.latest.protocols).toEqual(['squad-rc']);
 
       fetchSpy.mockRestore();
     });
@@ -668,7 +697,7 @@ describe('ConnectionManager', () => {
       expect(status.hasToken).toBe(true);
       expect(status.maskedToken).toBe('****5678');
       expect(status.tunnelUrl).toBe('wss://tunnel.devtunnels.ms/ws');
-      expect(status.authMethod).toBe('subprotocol');
+      expect(status.authMethod).toBe('query_param');
     });
 
     it('masks short token (4 chars or fewer) showing all chars after ****', async () => {
@@ -694,6 +723,7 @@ describe('ConnectionManager', () => {
 
       expect(status.hasToken).toBe(false);
       expect(status.maskedToken).toBeNull();
+      expect(status.authMethod).toBe('cookie');
     });
 
     it('returns none after disconnect', async () => {
@@ -727,9 +757,11 @@ describe('ConnectionManager', () => {
 
       // Should create a new WebSocket connection
       expect(MockWebSocket.instances.length).toBeGreaterThan(instancesBefore);
-      // New connection should use the new token via subprotocol
+      // New connection should use the new token via query param
       const latest = MockWebSocket.latest;
-      expect(latest.protocols).toEqual(['squad-rc', 'access_token-new-token']);
+      expect(latest.protocols).toEqual(['squad-rc']);
+      const url = new URL(latest.url);
+      expect(url.searchParams.get('access_token')).toBe('new-token');
     });
 
     it('stores token but does not reconnect when disconnected', async () => {
@@ -764,7 +796,9 @@ describe('ConnectionManager', () => {
 
       // Should have created a new connection
       const newest = MockWebSocket.latest;
-      expect(newest.protocols).toEqual(['squad-rc', 'access_token-fresh-token']);
+      expect(newest.protocols).toEqual(['squad-rc']);
+      const url = new URL(newest.url);
+      expect(url.searchParams.get('access_token')).toBe('fresh-token');
     });
   });
 });

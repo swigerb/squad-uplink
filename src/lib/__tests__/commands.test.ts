@@ -134,6 +134,15 @@ describe('handleCommand', () => {
       expect(output).toContain('Connecting');
     });
 
+    it('shows token query param auth method when token provided', () => {
+      vi.spyOn(connectionManager, 'connectFresh').mockResolvedValue();
+
+      handleCommand('/connect wss://x.com/ws my-token', terminal);
+
+      const output = terminal.lines.join('\n');
+      expect(output).toContain('token (query param)');
+    });
+
     it('normalizes https:// to wss:// before connecting', () => {
       const spy = vi.spyOn(connectionManager, 'connectFresh').mockResolvedValue();
 

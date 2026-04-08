@@ -64,8 +64,11 @@ export class ConnectionManager {
       // Strip trailing slashes — Dev Tunnel relay treats them as HTTP GET
       let wsUrl = config.wsUrl.trim().replace(/\/+$/, '');
 
-      // Build subprotocol list for auth (more reliable than query params through proxies)
-      let protocols: string[] | undefined;
+      // Auth strategy:
+      // 1. Cookie-based (primary): after /auth, browser has session cookie on *.devtunnels.ms
+      // 2. Token as query param (fallback): when user provides explicit token via /connect
+      // The access_token-<JWT> subprotocol does NOT work with Microsoft Dev Tunnel relay.
+      const protocols: string[] = ['squad-rc'];
 
       // If the URL is HTTP(S), do ticket exchange first
       if (wsUrl.startsWith('http')) {
@@ -74,15 +77,13 @@ export class ConnectionManager {
         const url = new URL(base);
         url.searchParams.set('ticket', ticket);
         wsUrl = url.toString();
-        // Ticket path: token goes via subprotocol, ticket via query param
-        protocols = config.token
-          ? ['squad-rc', `access_token-${config.token}`]
-          : ['squad-rc'];
       } else {
-        // Direct WS path: auth exclusively via subprotocol (not query param)
-        protocols = config.token
-          ? ['squad-rc', `access_token-${config.token}`]
-          : ['squad-rc'];
+        // Direct WS path: append token as query param if provided
+        if (config.token) {
+          const url = new URL(wsUrl);
+          url.searchParams.set('access_token', config.token);
+          wsUrl = url.toString();
+        }
       }
 
       const ws = new WebSocket(wsUrl, protocols);
@@ -137,7 +138,7 @@ export class ConnectionManager {
           timestamp: Date.now(),
           type: 'ws_error',
           message: 'WebSocket error — check browser console for details',
-          url: wsUrl.replace(/access_token=[^&]+/, 'access_token=***'),
+          url: this.maskUrl(wsUrl),
         });
       };
 
@@ -153,9 +154,13 @@ export class ConnectionManager {
 
         let message = `WebSocket closed: ${event.code} ${event.reason || '(no reason)'}`;
 
-        // Add diagnostic hint for common devtunnel auth failure
-        if (event.code === 1006 && this.retries >= 2) {
-          message += ' — DevTunnel browser auth may require: (1) anonymous tunnel access via `devtunnel port create -p PORT --protocol https --allow-anonymous`, or (2) visit tunnel URL in browser first to authenticate via Microsoft login';
+        // Add diagnostic hints for common devtunnel failure codes
+        if (event.code === 1006) {
+          if (!config.token && this.retries >= 2) {
+            message += ' — No auth token provided. Run /auth <url> first to sign in via Microsoft Entra ID, then /connect <url>. Or use an anonymous tunnel: devtunnel port create -p PORT --protocol https --allow-anonymous';
+          } else if (config.token && this.retries >= 2) {
+            message += ' — Auth token may be expired or invalid. Try: (1) /auth <url> to re-authenticate, (2) copy a fresh token, (3) /connect <url> <new-token>';
+          }
         }
 
         store.addConnectionError({
@@ -163,7 +168,7 @@ export class ConnectionManager {
           type: 'ws_close',
           message,
           code: event.code,
-          url: wsUrl.replace(/access_token=[^&]+/, 'access_token=***'),
+          url: this.maskUrl(wsUrl),
         });
         this.stopHeartbeat();
         this.stopMetricsTimer();
@@ -176,7 +181,7 @@ export class ConnectionManager {
         timestamp: Date.now(),
         type: 'connect_failed',
         message,
-        url: config.wsUrl?.replace(/access_token=[^&]+/, 'access_token=***'),
+        url: this.maskUrl(config.wsUrl),
       });
       this.emitState('error');
       this.scheduleReconnect();
@@ -258,7 +263,7 @@ export class ConnectionManager {
       hasToken: !!cfg.token,
       maskedToken: masked,
       tunnelUrl: cfg.wsUrl,
-      authMethod: 'subprotocol',
+      authMethod: cfg.token ? 'query_param' : 'cookie',
     };
   }
 
@@ -490,6 +495,12 @@ export class ConnectionManager {
       raw: msg,
     };
     useConnectionStore.getState().addMessageHistory(entry);
+  }
+
+  /** Mask sensitive query params in URLs for logging */
+  private maskUrl(url: string | undefined): string | undefined {
+    if (!url) return url;
+    return url.replace(/access_token=[^&]+/, 'access_token=***');
   }
 
   private cleanup(): void {
