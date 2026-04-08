@@ -21,12 +21,15 @@ describe('ConnectionManager', () => {
 
   // --- Connection lifecycle ---
   describe('connection lifecycle', () => {
-    it('creates WebSocket with token in URL query params', async () => {
+    it('creates WebSocket with token via subprotocol (not query params)', async () => {
       await cm.connect({ wsUrl: 'wss://tunnel.example.com/ws', token: 'abc-123' });
 
       expect(MockWebSocket.instances).toHaveLength(1);
       const url = new URL(MockWebSocket.latest.url);
-      expect(url.searchParams.get('token')).toBe('abc-123');
+      // Token should NOT be in query params (Dev Tunnel strips them)
+      expect(url.searchParams.get('token')).toBeNull();
+      // Token should be in subprotocol list
+      expect(MockWebSocket.latest.protocols).toEqual(['squad-rc', 'access_token-abc-123']);
     });
 
     it('transitions disconnected → connecting on connect()', async () => {

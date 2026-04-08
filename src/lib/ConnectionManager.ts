@@ -57,7 +57,11 @@ export class ConnectionManager {
     this.emitState('connecting');
 
     try {
-      let wsUrl = config.wsUrl;
+      // Strip trailing slashes — Dev Tunnel relay treats them as HTTP GET
+      let wsUrl = config.wsUrl.trim().replace(/\/+$/, '');
+
+      // Build subprotocol list for auth (more reliable than query params through proxies)
+      let protocols: string[] | undefined;
 
       // If the URL is HTTP(S), do ticket exchange first
       if (wsUrl.startsWith('http')) {
@@ -66,13 +70,18 @@ export class ConnectionManager {
         const url = new URL(base);
         url.searchParams.set('ticket', ticket);
         wsUrl = url.toString();
+        // Ticket path: token goes via subprotocol, ticket via query param
+        protocols = config.token
+          ? ['squad-rc', `access_token-${config.token}`]
+          : ['squad-rc'];
       } else {
-        const url = new URL(wsUrl);
-        url.searchParams.set('token', config.token);
-        wsUrl = url.toString();
+        // Direct WS path: auth exclusively via subprotocol (not query param)
+        protocols = config.token
+          ? ['squad-rc', `access_token-${config.token}`]
+          : ['squad-rc'];
       }
 
-      const ws = new WebSocket(wsUrl);
+      const ws = new WebSocket(wsUrl, protocols);
       this.ws = ws;
 
       ws.onopen = () => {
@@ -113,11 +122,15 @@ export class ConnectionManager {
         }
       };
 
-      ws.onerror = () => {
+      ws.onerror = (event) => {
+        console.error('[squad-uplink] WebSocket error:', event);
         this.emitState('error');
       };
 
-      ws.onclose = () => {
+      ws.onclose = (event) => {
+        console.log(
+          `[squad-uplink] WebSocket closed — code: ${event.code}, reason: ${event.reason || '(none)'}, clean: ${event.wasClean}`
+        );
         this.ws = null;
         useConnectionStore.getState().updateTelemetry({
           lastDisconnectAt: new Date().toISOString(),
