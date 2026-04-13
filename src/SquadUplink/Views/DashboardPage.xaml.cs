@@ -2,6 +2,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.UI.Text;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using Serilog;
 using SquadUplink.Controls;
 using SquadUplink.Models;
 using SquadUplink.ViewModels;
@@ -16,6 +17,7 @@ public sealed partial class DashboardPage : Page
     {
         ViewModel = App.Services.GetRequiredService<DashboardViewModel>();
         InitializeComponent();
+        Log.Debug("DashboardPage initialized");
     }
 
     // Helper functions for x:Bind in DataTemplates

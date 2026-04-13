@@ -92,6 +92,7 @@ public partial class DashboardViewModel : ObservableObject
         _sessionManager = sessionManager;
         _dataService = dataService;
         _squadDetector = squadDetector;
+        Log.Debug("DashboardViewModel created");
         UpdateStats();
         Sessions.CollectionChanged += (_, _) => UpdateStats();
         _ = LoadRecentSessionsAsync();

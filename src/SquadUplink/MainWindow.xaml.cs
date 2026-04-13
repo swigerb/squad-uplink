@@ -1,9 +1,9 @@
-using CommunityToolkit.Mvvm.ComponentModel;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Input;
 using Microsoft.UI.Xaml.Media;
+using Serilog;
 using SquadUplink.Contracts;
 using SquadUplink.ViewModels;
 using SquadUplink.Views;
@@ -47,6 +47,7 @@ public sealed partial class MainWindow : Window
 
     public MainWindow()
     {
+        Log.Debug("MainWindow constructor entered");
         InitializeComponent();
 
         // Mica backdrop for modern Windows 11 feel
@@ -64,6 +65,7 @@ public sealed partial class MainWindow : Window
         NavView.SelectedItem = NavView.MenuItems[0];
 
         UpdateStatus();
+        Log.Information("MainWindow initialized, navigated to Dashboard");
     }
 
     private void NavView_SelectionChanged(NavigationView sender, NavigationViewSelectionChangedEventArgs args)
@@ -71,6 +73,7 @@ public sealed partial class MainWindow : Window
         if (args.IsSettingsSelected)
         {
             ContentFrame.Navigate(typeof(SettingsPage));
+            Log.Debug("Navigated to Settings");
             return;
         }
 
@@ -84,6 +87,7 @@ public sealed partial class MainWindow : Window
                 _ => typeof(DashboardPage)
             };
             ContentFrame.Navigate(pageType);
+            Log.Debug("Navigated to {Page}", tag);
         }
     }
 

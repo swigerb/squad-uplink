@@ -4,6 +4,7 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:local="using:SquadUplink"
     xmlns:views="using:SquadUplink.Views"
+    xmlns:auto="using:Microsoft.UI.Xaml.Automation"
     Title="Squad Uplink">
 
     <Grid>
@@ -50,7 +51,8 @@
         </Grid.RowDefinitions>
 
         <!-- Custom Title Bar -->
-        <Grid x:Name="AppTitleBar" Grid.Row="0" Padding="16,0">
+        <Grid x:Name="AppTitleBar" Grid.Row="0" Padding="16,0"
+              auto:AutomationProperties.Name="Application title bar">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="Auto" />
                 <ColumnDefinition Width="Auto" />
@@ -61,17 +63,19 @@
 
             <FontIcon Grid.Column="0" Glyph="&#xE774;" FontSize="18"
                        Foreground="{StaticResource SquadAccentGreenBrush}"
-                       VerticalAlignment="Center" Margin="0,0,8,0" />
+                       VerticalAlignment="Center" Margin="0,0,8,0"
+                       auto:AutomationProperties.AccessibilityView="Raw" />
             <TextBlock Grid.Column="1" Text="Squad Uplink"
                        Style="{StaticResource CaptionTextBlockStyle}"
                        FontWeight="SemiBold" FontSize="13"
-                       VerticalAlignment="Center" />
-            <!-- Session count badge (replaced InfoBadge — it causes TypeLoadException
-                 during CLR type init on Windows App SDK 1.7 preview) -->
+                       VerticalAlignment="Center"
+                       auto:AutomationProperties.HeadingLevel="Level1" />
+            <!-- Session count badge -->
             <Border Grid.Column="2" CornerRadius="8" MinWidth="20"
                     Padding="5,2" Margin="8,0,0,0"
                     VerticalAlignment="Center" HorizontalAlignment="Left"
-                    Background="{StaticResource SquadAccentGreenBrush}">
+                    Background="{StaticResource SquadAccentGreenBrush}"
+                    auto:AutomationProperties.Name="Active session count">
                 <TextBlock Text="{x:Bind SessionCountDisplay, Mode=OneWay}"
                            FontSize="11" FontWeight="SemiBold"
                            Foreground="White" HorizontalAlignment="Center" />

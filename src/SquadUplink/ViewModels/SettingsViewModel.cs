@@ -101,6 +101,7 @@ public partial class SettingsViewModel : ObservableObject
         _themeService = themeService;
         _dataService = dataService;
         VersionText = $"v{typeof(App).Assembly.GetName().Version}";
+        Log.Debug("SettingsViewModel created");
 
         InitializeBrushes();
         _ = LoadSettingsAsync();
