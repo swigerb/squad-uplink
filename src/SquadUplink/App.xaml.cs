@@ -3,7 +3,6 @@ using Microsoft.UI.Xaml;
 using Serilog;
 using Serilog.Sinks.InMemory;
 using SquadUplink.Helpers;
-using Velopack;
 
 namespace SquadUplink;
 
@@ -18,103 +17,70 @@ public partial class App : Application
         
         try
         {
+            Log.Debug("Calling InitializeComponent...");
             InitializeComponent();
+            Log.Debug("InitializeComponent succeeded");
+            
+            Log.Debug("Calling ConfigureServices...");
+            Services = ConfigureServices();
+            Log.Debug("ConfigureServices succeeded");
         }
         catch (Exception ex)
         {
-            Log.Fatal(ex, "FATAL: InitializeComponent() failed — {Type}: {Message}",
+            Log.Fatal(ex, "FATAL: App constructor failed — {Type}: {Message}",
                 ex.GetType().FullName, ex.Message);
-            if (ex is TypeLoadException tle)
-                Log.Fatal("TypeLoadException.TypeName = {TypeName}", tle.TypeName);
-            var inner = ex.InnerException;
-            while (inner is not null)
-            {
-                Log.Fatal(inner, "Inner: {Type}: {Message}", inner.GetType().FullName, inner.Message);
-                if (inner is TypeLoadException tle2)
-                    Log.Fatal("Inner TypeLoadException.TypeName = {TypeName}", tle2.TypeName);
-                inner = inner.InnerException;
-            }
+            LogTypeLoadDetails(ex);
             Log.CloseAndFlush();
             throw;
         }
+    }
+
+    private static void LogTypeLoadDetails(Exception ex)
+    {
+        if (ex is TypeLoadException tle)
+            Log.Fatal("TypeLoadException.TypeName = {TypeName}", tle.TypeName);
         
-        Services = ConfigureServices();
-    }
-
-    protected override async void OnLaunched(LaunchActivatedEventArgs args)
-    {
-        try
-        {
-            await LaunchCoreAsync(args);
-        }
-        catch (Exception ex)
-        {
-            LogFatalException(ex);
-        }
-    }
-
-    private async Task LaunchCoreAsync(LaunchActivatedEventArgs args)
-    {
-        // Velopack update check (non-blocking)
-        try
-        {
-            VelopackApp.Build().Run();
-            Log.Information("Velopack bootstrap complete");
-        }
-        catch (Exception ex)
-        {
-            Log.Warning(ex, "Velopack bootstrap failed — continuing launch");
-        }
-
-        // Initialize data service
-        Log.Debug("Resolving IDataService...");
-        var dataService = Services.GetRequiredService<Contracts.IDataService>();
-        await dataService.InitializeAsync();
-        Log.Debug("IDataService initialized");
-
-        // Initialize notification service
-        Log.Debug("Resolving INotificationService...");
-        var notificationService = Services.GetRequiredService<Contracts.INotificationService>();
-        await notificationService.InitializeAsync();
-        Log.Debug("INotificationService initialized");
-
-        Log.Debug("Creating MainWindow...");
-        MainWindow = new MainWindow();
-        Log.Debug("MainWindow created, activating...");
-        MainWindow.Activate();
-        Log.Debug("MainWindow activated");
-    }
-
-    private static void LogFatalException(Exception ex)
-    {
-        Log.Fatal(ex, "FATAL: Unhandled exception during launch — {Type}: {Message}",
-            ex.GetType().FullName, ex.Message);
-
-        // Walk the inner exception chain
         var inner = ex.InnerException;
-        var depth = 1;
+        var depth = 0;
         while (inner is not null)
         {
-            Log.Fatal(inner, "FATAL: Inner exception [{Depth}] — {Type}: {Message}",
-                depth, inner.GetType().FullName, inner.Message);
-            inner = inner.InnerException;
             depth++;
+            Log.Fatal(inner, "Inner [{Depth}]: {Type}: {Message}", depth, inner.GetType().FullName, inner.Message);
+            if (inner is TypeLoadException tle2)
+                Log.Fatal("Inner TypeLoadException.TypeName = {TypeName}", tle2.TypeName);
+            inner = inner.InnerException;
         }
+    }
 
-        // TypeLoadException has extra info
-        if (ex is TypeLoadException tle)
+    protected override void OnLaunched(LaunchActivatedEventArgs args)
+    {
+        // MINIMAL LAUNCH — just show a window to prove the app can start
+        try
         {
-            Log.Fatal("TypeLoadException.TypeName = {TypeName}", tle.TypeName);
-        }
-        if (ex is System.Reflection.ReflectionTypeLoadException rtle)
-        {
-            foreach (var loaderEx in rtle.LoaderExceptions ?? [])
+            Log.Debug("OnLaunched — creating minimal window...");
+            MainWindow = new Window();
+            MainWindow.Title = "Squad Uplink";
+            var panel = new Microsoft.UI.Xaml.Controls.StackPanel
             {
-                Log.Fatal(loaderEx, "Loader exception: {Message}", loaderEx?.Message);
-            }
+                HorizontalAlignment = Microsoft.UI.Xaml.HorizontalAlignment.Center,
+                VerticalAlignment = Microsoft.UI.Xaml.VerticalAlignment.Center
+            };
+            panel.Children.Add(new Microsoft.UI.Xaml.Controls.TextBlock 
+            { 
+                Text = "🚀 Squad Uplink — Loading...",
+                FontSize = 24
+            });
+            MainWindow.Content = panel;
+            MainWindow.Activate();
+            Log.Information("Minimal window launched successfully");
         }
-
-        Log.CloseAndFlush();
+        catch (Exception ex)
+        {
+            Log.Fatal(ex, "FATAL: OnLaunched failed — {Type}: {Message}",
+                ex.GetType().FullName, ex.Message);
+            LogTypeLoadDetails(ex);
+            Log.CloseAndFlush();
+        }
     }
 
     public Window? MainWindow { get; private set; }
