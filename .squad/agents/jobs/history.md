@@ -33,3 +33,13 @@ Lead agent for squad-uplink. Responsible for architecture, code review, scope de
 ### 2026-04-07: Wave 4–6 batch orchestration
 - **Jobs' analysis finalized:** TelemetryDrawer gap analysis delivered to orchestration log. 3 gaps confirmed (StatusBar button CRITICAL, inline styles CODE QUALITY, focus management ACCESSIBILITY). Component ~90% feature-complete; ready for implementation wave. Gaps assigned: Woz (button + focus mgmt), Kare (CSS classes). Completion criteria: all 3 gaps closed = Wave 4 done.
 - **Cross-agent updates:** Woz delivered Wave 5 SWA deployment + CI pipeline refinement (418 tests passing). Kare delivered Wave 6 fonts/a11y (436 tests passing). Hertzfeld delivered Wave 6 test expansion (91 new tests, suite 509 total passing). All orchestration logs written. Decision inbox merged into decisions.md (6 new entries: Jobs gaps, Kare Apple2e overlays/CRT/C64/CSP, Woz audio). All inbox files deleted. Ready for next wave.
+
+### 2026-04-13: GitHub Copilot CLI Remote Feature—Architectural Pivot Required
+- **Context:** GitHub shipped `copilot --remote` (native remote CLI access) today. Completely eliminates squad-uplink's Remote Control value prop. No custom UI hook—GitHub.com owns the viewer. DevTunnel/JWT auth infrastructure is now obsolete.
+- **Research findings:** (1) GitHub handles all auth/tunneling natively—`ConnectionManager` subprotocol auth nightmares irrelevant. (2) No documented API—cannot hook our xterm.js into GitHub's viewer. (3) Enterprise policy OFF by default. (4) Local session chrome remains strategic asset.
+- **Obsolete code identified:** `ConnectionManager.ts`, `commands.ts`, `squad-rc.ts`, `squad-rc-launch.mjs` no longer have function. Delete.
+- **Retained code:** xterm.js, theme engine, audio, TelemetryDrawer (repurpose to local process metrics).
+- **Pivot path selected:** Option 1 (Launcher/Dashboard). squad-uplink becomes retro-themed **session launcher** for `copilot --remote`. Users start sessions in our UI, monitor on GitHub. Preserves 100% UI investment, 2-week MVP.
+- **Alternative paths evaluated:** Option 2 (reverse-engineer GitHub's streaming endpoint) rejected—undocumented, fragile, policy risk. Option 3 (wait for public API) rejected—product becomes dead in water for 3–6 months.
+- **Decision inbox entry:** `.squad/decisions/inbox/jobs-copilot-cli-remote-pivot.md` captures full analysis, options with pros/cons, recommendation, execution plan.
+- **Action items:** (1) Delete obsolete remote-control code. (2) Implement LocalProcessManager for `copilot` CLI spawning. (3) Add dashboard panel for session launching/monitoring. (4) Update marketing positioning. (5) Confirm with Brady: Remote Control policy enabled in GitHub org?

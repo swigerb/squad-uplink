@@ -889,3 +889,274 @@ Used a module-level `EMPTY_ERRORS` constant instead of inline `?? []` for the Zu
 - `src/store/__tests__/connectionStore.test.ts` — Added `connectionErrors` to telemetry fixture
 - `src/components/__tests__/TelemetryDrawer.test.tsx` — Added `connectionErrors` to telemetry fixture
 - `src/components/__tests__/PipBoyLayout.test.tsx` — Added `connectionErrors` to telemetry fixture
+
+
+---
+
+# Decision: Architectural Pivot — GitHub Copilot CLI Remote vs Squad RC
+
+**By:** Jobs (Lead)  
+**Date:** 2026-04-13  
+**Status:** Inbox — Pending Team Review  
+**Impact:** Foundational—Reframes entire product positioning from Remote Control tool to Dashboard/Launcher
+
+---
+
+## Executive Summary
+
+GitHub shipped a native `copilot --remote` feature today (April 13, 2026) that provides real-time remote access to CLI sessions via `github.com/OWNER/REPO/tasks/TASK_ID`. This **eliminates the core value prop of squad-uplink's current Remote Control architecture**, but it **preserves the retro terminal UI as a strategic asset**. We must pivot immediately to remain relevant.
+
+**Recommendation:** Pursue **Option 1 (Launcher/Dashboard)** as the primary path forward. It preserves our UI investment, delivers immediate value to users, and positions us to support GitHub's ecosystem natively.
+
+---
+
+## Research Findings: GitHub Copilot CLI Remote Feature
+
+### What It Does
+
+- **Command:** `copilot --remote` or `/remote` slash command streams CLI session to GitHub
+- **UI Location:** Real-time interface at `github.com/OWNER/REPO/tasks/TASK_ID`
+- **Session Model:** Session runs **locally** on developer's machine; remote is viewer/controller only
+- **Mobile Support:** Works on GitHub Mobile (iOS/Android beta)
+- **Permission Model:** User can monitor, steer, approve system access, send prompts, switch modes
+- **Privacy:** Private to session owner only (no sharing model yet)
+- **Enterprise Policy:** For Copilot Business/Enterprise, "Remote Control" policy is **OFF by default**—admin must explicitly enable
+
+### Critical Limitations
+
+1. **No Custom UI Hook:** GitHub streams to its own interface only. No documented API or WebSocket endpoint for custom frontends.
+2. **xterm.js Terminal Cannot Overlay:** Our retro UI (Apple IIe / Commodore 64 themes, xterm.js) cannot hook into GitHub.com's viewer to provide a themed terminal overlay.
+3. **DevTunnel WebSocket Auth Obsolete:** The entire `ConnectionManager.ts` authentication nightmare (subprotocol JWT handling, relay proxies, trailing-slash stripping) is irrelevant. GitHub handles auth natively.
+4. **Policy Risk for Enterprise:** Brady's GitHub org may not have the Remote Control policy enabled yet. We cannot assume access.
+
+### Strategic Value
+
+- GitHub's remote feature **solves the auth/tunneling/relay problem** that consumed months of our engineering effort.
+- Our retro terminal UI is **not redundant**—it is a differentiator for local session chrome/dashboarding/launching/monitoring.
+- The remote feature **validates the market** for CLI session observation and control.
+
+---
+
+## What's Obsolete in Current Codebase
+
+### Tier 1: Remove Immediately
+
+These components **no longer have a function** in the new architecture:
+
+1. **`src/lib/ConnectionManager.ts`** — WebSocket connection to Squad RC via DevTunnels
+   - Was: Handled auth handshake, reconnection, replay buffer, rate limiting
+   - Now: GitHub handles all auth and stream delivery natively
+   - Action: Delete or pivot to manage local process connections instead
+
+2. **`src/lib/commands.ts`** — `/connect`, `/auth`, `/probe` commands
+   - Was: User-driven authentication and tunnel discovery
+   - Now: Not applicable—GitHub provides session URIs directly
+   - Action: Delete
+
+3. **`src/types/squad-rc.ts`** — Squad RC message type definitions
+   - Was: Message contract for WebSocket protocol
+   - Now: Not applicable
+   - Action: Delete
+
+4. **`scripts/squad-rc-launch.mjs`** — Squad RC launch helper
+   - Was: Bootstrapped the squad-rc connection
+   - Now: Not applicable
+   - Action: Delete
+
+### Tier 2: Repurpose for New Architecture
+
+These components **remain valuable** if retargeted:
+
+1. **`src/components/TerminalView.tsx` + xterm.js integration** — Keep
+   - Still displays CLI sessions locally or from GitHub task URLs
+   - Repurpose to embed GitHub session viewer or display local `copilot --remote` output
+
+2. **`src/themes/AppleIIe.ts` + `src/themes/C64.ts`** — Keep
+   - Retro UI is now a **differentiator for local dashboard**, not just a remote control viewer
+   - C64's 40-column constraint remains relevant for terminal history panels
+
+3. **`src/components/TelemetryDrawer.tsx`** — Keep but repurpose
+   - Current: Displays Azure Monitor metrics for remote session
+   - New: Displays local process metrics, pending task queue, session history
+
+4. **`src/lib/AudioEngine.ts`** — Keep
+   - Procedural Web Audio API is efficient and delightful for UI feedback
+   - Works in dashboard context (task completed = SID buzz, etc.)
+
+---
+
+## Pivot Options Analysis
+
+### Option 1: Launcher/Dashboard (RECOMMENDED)
+
+**Positioning:** squad-uplink becomes a retro-themed **launcher and dashboard** for GitHub Copilot CLI sessions. Users start `copilot --remote` sessions from our UI and monitor them via GitHub's native viewer (embedded in a webview or linked).
+
+**Scope:**
+- Replace `ConnectionManager` with a local process manager (`LocalProcessManager`) that spawns and monitors `copilot` CLI processes
+- Add a "My Sessions" dashboard panel showing active tasks, recent sessions, pending approvals
+- Embed GitHub task viewer in a webview (e.g., `<iframe src="github.com/OWNER/REPO/tasks/TASK_ID">`) or deep-link to it
+- Repurpose `TelemetryDrawer` to show local process status, memory, CPU
+- Keep all retro UI/theme logic intact
+
+**Pros:**
+- ✅ Preserves 100% of existing UI/theme investment (xterm.js, scanlines, glow, audio)
+- ✅ Ships immediately—minimal new code required
+- ✅ Increases user engagement—users stay in our UI to launch and monitor
+- ✅ Differentiator: No other tool offers a retro CLI dashboard for `copilot`
+- ✅ GitHub native—no auth risk, no policy blocker
+- ✅ Positions us as the **local session chrome** for Copilot CLI
+
+**Cons:**
+- ❌ Webview/iframe embedding may have CSP/auth restrictions on GitHub.com
+- ❌ Requires new process spawning/monitoring code (small scope, medium risk)
+- ❌ Less "wowza remote control"—repositioning needed in marketing
+
+**Implementation Cost:** ~2 weeks (LocalProcessManager + dashboard + process monitoring)
+
+---
+
+### Option 2: API Investigation (Exploratory)
+
+**Positioning:** Reverse-engineer the GitHub task streaming endpoint to connect our xterm.js terminal directly to GitHub's session stream, bypassing GitHub's UI entirely.
+
+**Scope:**
+- Analyze network traffic to `github.com/OWNER/REPO/tasks/TASK_ID` to find WebSocket/EventSource endpoint
+- Implement xterm.js client to consume GitHub's session stream
+- Maintain full retro UI with our theme engine
+- Customers use squad-uplink as the "premium terminal" for remote sessions
+
+**Pros:**
+- ✅ Keeps retro UI as the primary interface (no GitHub.com UI in iframe)
+- ✅ Highest differentiation—we're the *only* themed terminal for Copilot remote sessions
+- ✅ Customers never leave our UI
+- ✅ If GitHub ships an official API, we're already integrated
+
+**Cons:**
+- ❌ **GitHub has not documented the endpoint.** Reverse-engineering is brittle—GitHub can change the protocol without notice.
+- ❌ Breaking changes = product breaks for our users (unacceptable for production)
+- ❌ Policy risk: GitHub may explicitly forbid reverse-engineering in ToS
+- ❌ High execution risk: Unknown timeline, unknown complexity
+- ❌ **Cannot guarantee enterprise org access** (policy must be enabled by admin)
+- ❌ Implementation cost: 4–6 weeks if spec is discoverable; undefined if not
+
+**Recommendation:** Do NOT pursue this path unless GitHub publishes an official API. Too much technical debt and user-facing risk.
+
+---
+
+### Option 3: Pause and Wait for Public API
+
+**Positioning:** Hold the current architecture in maintenance mode while GitHub stabilizes the remote feature and publishes an official API/SDK.
+
+**Scope:**
+- Freeze feature development on squad-uplink
+- Maintain current deployments (Azure SWA)
+- Monitor GitHub's documentation and announcements
+- Revisit once API lands (target: Q2 2026?)
+
+**Pros:**
+- ✅ Zero risk of building on undocumented/changing interfaces
+- ✅ Allows GitHub to stabilize the feature
+- ✅ Official API will be higher quality and supported
+
+**Cons:**
+- ❌ Squad-uplink becomes **irrelevant for 3–6 months** (product is dead in the water)
+- ❌ Team context/momentum lost—code rot, technical debt accumulation
+- ❌ Competitor opportunity: Another team ships a Dashboard/Launcher first
+- ❌ Sunk cost on Squad RC architecture is never recouped
+- ❌ User frustration: "Why does squad-uplink still exist?" (no clear value prop)
+
+**Recommendation:** Do NOT pursue this path. The market has moved; we must move too.
+
+---
+
+## Architectural Recommendation: Option 1 (Launcher/Dashboard)
+
+### Why This Path
+
+1. **Immediate Relevance:** Users get value on day 1—a retro-themed launcher for `copilot --remote` sessions.
+2. **Minimal Rework:** We keep the entire visual layer (xterm.js, themes, audio). We delete obsolete remote-control code and add simple process management.
+3. **De-Risks User Adoption:** Users are already in our UI. Clicking "Launch Remote Session" is natural and preserves context.
+4. **Differentiator:** No other tool provides a retro CLI dashboard for Copilot. This is marketing gold.
+5. **Positions Us for GitHub Integration:** When GitHub publishes an API, we're already positioned as a premium dashboard—Option 2 becomes a natural extension.
+6. **Respects Resource Constraints:** 2-week MVP vs. 4–6 week exploratory API path.
+
+### Execution Plan (High Level)
+
+**Phase 1: Cleanup (Days 1–2)**
+- Delete `ConnectionManager.ts`, `commands.ts`, `squad-rc.ts`, `squad-rc-launch.mjs`
+- Remove Squad RC auth/tunneling tests
+- Update `TerminalView` to accept local process input instead of WebSocket
+- All tests pass, zero regressions
+
+**Phase 2: Local Process Manager (Days 3–5)**
+- Implement `LocalProcessManager` class to spawn/monitor `copilot` CLI processes
+- Handle process lifecycle (spawn, kill, cleanup)
+- Capture stdout/stderr and push to Zustand store
+- Implement basic error handling and reconnection
+
+**Phase 3: Dashboard Panel (Days 6–7)**
+- Add "My Sessions" card to main UI
+- List active processes, process status (running/idle/completed)
+- "Launch New Session" button
+- GitHub task URL deep-linking or webview embedding
+
+**Phase 4: Integration & Polish (Days 8–10)**
+- Repurpose `TelemetryDrawer` to show process metrics
+- Audio feedback for process state changes
+- Update documentation and marketing copy
+- QA and regression testing
+
+**Phase 5: Rollout & Monitoring (Days 11–14)**
+- Deploy to Azure SWA staging
+- Smoke tests in production-like environment
+- Release notes emphasizing new positioning
+- Monitor adoption and user feedback
+
+### Risk Mitigation
+
+- **Webview CSP Issues:** Test iframe embedding early (Phase 3). Fallback is simple URL deep-linking (no embed).
+- **Process Spawning Edge Cases:** Implement comprehensive error handling and process cleanup. Test on Windows + macOS + Linux.
+- **User Confusion:** Marketing must clearly position this as "Local Session Launcher" not "Remote Control Tool."
+
+---
+
+## Decision
+
+**Squad-uplink is pivoting from Remote Control Tool to Launcher/Dashboard for GitHub Copilot CLI Sessions.**
+
+- **Obsolete Code:** Delete `ConnectionManager.ts`, `commands.ts`, `squad-rc.ts`, `squad-rc-launch.mjs`
+- **Retained Code:** Keep all xterm.js, theme engine, audio engine, telemetry drawer (repurposed)
+- **New Code:** LocalProcessManager, dashboard panel, process monitoring
+- **Timeline:** 2 weeks for MVP, Gates-style shipping
+- **Success Metric:** Users launch `copilot --remote` sessions from squad-uplink, monitor them on GitHub, and perceive squad-uplink as the **premium retro dashboard** for Copilot CLI
+
+**Approval Required From:**
+- Brady (Product/Vision)
+- Woz (Feasibility & Dev Lead)
+- Team (Consensus)
+
+---
+
+## Appendix: Why Not Option 2?
+
+**Short answer:** Until GitHub publishes an official API, reverse-engineering is a liability masquerading as a feature.
+
+The `github.com/OWNER/REPO/tasks/TASK_ID` endpoint (if it exists) is:
+- Undocumented
+- Subject to change without notice (GitHub can reorganize their UI anytime)
+- Potentially against ToS
+- Unknown complexity—could be REST, GraphQL, WebSocket, Server-Sent Events, or proprietary
+
+**If GitHub publishes an official API (e.g., REST endpoint to fetch session stream), we pivot to Option 2 immediately.** Until then, this path is a sinkhole.
+
+---
+
+## Appendix: Org Policy Check
+
+**Action Item:** Confirm with Brady whether the GitHub org has "Remote Control" policy enabled.
+
+- If **YES**: Copilot Business/Enterprise users get native remote feature. squad-uplink Dashboard becomes a **local launching/monitoring surface**.
+- If **NO** (default): Policy must be enabled by org admin. squad-uplink Dashboard still provides value as a local session manager—we just market it differently.
+
+Either way, **Option 1 (Launcher/Dashboard) remains the path forward.**
+
