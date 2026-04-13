@@ -1,0 +1,33 @@
+name: CI (WinUI 3 / .NET 10)
+
+on:
+  push:
+    branches: [master, main]
+  pull_request:
+    branches: [master, main]
+
+jobs:
+  build-and-test:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup .NET 10
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+      
+      - name: Restore dependencies
+        run: dotnet restore SquadUplink.sln
+      
+      - name: Build
+        run: dotnet build SquadUplink.sln -p:Platform=x64 --configuration Release --no-restore
+      
+      - name: Test with coverage
+        run: dotnet test SquadUplink.sln -p:Platform=x64 --configuration Release --no-build --collect:"XPlat Code Coverage" --results-directory ./coverage
+      
+      - name: Upload coverage
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: ./coverage/**/coverage.cobertura.xml

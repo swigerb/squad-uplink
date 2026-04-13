@@ -1,4 +1,5 @@
-name: CI
+# Legacy v1 CI for React/Node.js app
+name: CI (React v1)
 
 on:
   push:

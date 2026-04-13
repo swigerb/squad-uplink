@@ -1,0 +1,150 @@
+﻿<ResourceDictionary
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <!-- ═══════════════════════════════════════════════════════════════ -->
+    <!-- Squad Uplink — Fluent 2 / Cockpit Theme Resources             -->
+    <!-- Supports Windows 11 light/dark mode via ThemeResource          -->
+    <!-- ═══════════════════════════════════════════════════════════════ -->
+
+    <!-- Brand Colors -->
+    <Color x:Key="SquadAccentGreen">#00C853</Color>
+    <Color x:Key="SquadAccentBlue">#2196F3</Color>
+    <Color x:Key="SquadWarningYellow">#FFC107</Color>
+    <Color x:Key="SquadErrorRed">#F44336</Color>
+    <Color x:Key="SquadNeutralGray">#9E9E9E</Color>
+    <Color x:Key="SquadSurfaceDark">#1A1A2E</Color>
+    <Color x:Key="SquadSurfaceMid">#16213E</Color>
+    <Color x:Key="SquadPanelBackground">#0F3460</Color>
+
+    <SolidColorBrush x:Key="SquadAccentGreenBrush" Color="{StaticResource SquadAccentGreen}" />
+    <SolidColorBrush x:Key="SquadAccentBlueBrush" Color="{StaticResource SquadAccentBlue}" />
+    <SolidColorBrush x:Key="SquadWarningYellowBrush" Color="{StaticResource SquadWarningYellow}" />
+    <SolidColorBrush x:Key="SquadErrorRedBrush" Color="{StaticResource SquadErrorRed}" />
+    <SolidColorBrush x:Key="SquadNeutralGrayBrush" Color="{StaticResource SquadNeutralGray}" />
+
+    <!-- ═══ Status Badge Styles ═══ -->
+    <!-- Running = green -->
+    <Style x:Key="StatusBadgeRunning" TargetType="Border">
+        <Setter Property="Background" Value="{StaticResource SquadAccentGreenBrush}" />
+        <Setter Property="CornerRadius" Value="4" />
+        <Setter Property="Padding" Value="8,3" />
+    </Style>
+    <!-- Idle = yellow -->
+    <Style x:Key="StatusBadgeIdle" TargetType="Border">
+        <Setter Property="Background" Value="{StaticResource SquadWarningYellowBrush}" />
+        <Setter Property="CornerRadius" Value="4" />
+        <Setter Property="Padding" Value="8,3" />
+    </Style>
+    <!-- Error = red -->
+    <Style x:Key="StatusBadgeError" TargetType="Border">
+        <Setter Property="Background" Value="{StaticResource SquadErrorRedBrush}" />
+        <Setter Property="CornerRadius" Value="4" />
+        <Setter Property="Padding" Value="8,3" />
+    </Style>
+    <!-- Completed = gray -->
+    <Style x:Key="StatusBadgeCompleted" TargetType="Border">
+        <Setter Property="Background" Value="{StaticResource SquadNeutralGrayBrush}" />
+        <Setter Property="CornerRadius" Value="4" />
+        <Setter Property="Padding" Value="8,3" />
+    </Style>
+
+    <!-- ═══ Session Card Style — status-colored border via converter ═══ -->
+    <Style x:Key="SessionCardStyle" TargetType="Border">
+        <Setter Property="Background" Value="{ThemeResource CardBackgroundFillColorDefaultBrush}" />
+        <Setter Property="CornerRadius" Value="8" />
+        <Setter Property="Padding" Value="16" />
+        <Setter Property="BorderBrush" Value="{ThemeResource CardStrokeColorDefaultBrush}" />
+        <Setter Property="BorderThickness" Value="1" />
+    </Style>
+
+    <!-- Launch Card Style (dashed border effect) -->
+    <Style x:Key="LaunchCardStyle" TargetType="Border">
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="CornerRadius" Value="8" />
+        <Setter Property="Padding" Value="16" />
+        <Setter Property="BorderBrush" Value="{ThemeResource TextFillColorSecondaryBrush}" />
+        <Setter Property="BorderThickness" Value="2" />
+    </Style>
+
+    <!-- Panel Style — card elevation via corner radius + border -->
+    <Style x:Key="CockpitPanelStyle" TargetType="Border">
+        <Setter Property="Background" Value="{ThemeResource CardBackgroundFillColorDefaultBrush}" />
+        <Setter Property="CornerRadius" Value="8" />
+        <Setter Property="Padding" Value="16" />
+        <Setter Property="BorderBrush" Value="{ThemeResource CardStrokeColorDefaultBrush}" />
+        <Setter Property="BorderThickness" Value="1" />
+    </Style>
+
+    <!-- ═══ Typography Hierarchy ═══ -->
+
+    <!-- Title — 24px, SemiBold -->
+    <Style x:Key="SquadTitleStyle" TargetType="TextBlock"
+           BasedOn="{StaticResource TitleTextBlockStyle}">
+        <Setter Property="FontSize" Value="24" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+    </Style>
+
+    <!-- Subtitle — 18px, SemiBold -->
+    <Style x:Key="SquadSubtitleStyle" TargetType="TextBlock"
+           BasedOn="{StaticResource SubtitleTextBlockStyle}">
+        <Setter Property="FontSize" Value="18" />
+    </Style>
+
+    <!-- Body — 14px, Normal -->
+    <Style x:Key="SquadBodyStyle" TargetType="TextBlock"
+           BasedOn="{StaticResource BodyTextBlockStyle}">
+        <Setter Property="FontSize" Value="14" />
+    </Style>
+
+    <!-- Caption — 12px, secondary color -->
+    <Style x:Key="SquadCaptionStyle" TargetType="TextBlock"
+           BasedOn="{StaticResource CaptionTextBlockStyle}">
+        <Setter Property="FontSize" Value="12" />
+        <Setter Property="Foreground" Value="{ThemeResource TextFillColorSecondaryBrush}" />
+    </Style>
+
+    <!-- Stat counters -->
+    <Style x:Key="StatCounterTextStyle" TargetType="TextBlock">
+        <Setter Property="FontSize" Value="36" />
+        <Setter Property="FontWeight" Value="Bold" />
+        <Setter Property="HorizontalAlignment" Value="Center" />
+    </Style>
+
+    <Style x:Key="StatLabelTextStyle" TargetType="TextBlock">
+        <Setter Property="FontSize" Value="12" />
+        <Setter Property="Foreground" Value="{ThemeResource TextFillColorSecondaryBrush}" />
+        <Setter Property="HorizontalAlignment" Value="Center" />
+        <Setter Property="Margin" Value="0,4,0,0" />
+    </Style>
+
+    <Style x:Key="SectionHeaderStyle" TargetType="TextBlock"
+           BasedOn="{StaticResource BodyStrongTextBlockStyle}">
+        <Setter Property="FontSize" Value="14" />
+        <Setter Property="Margin" Value="0,0,0,8" />
+    </Style>
+
+    <Style x:Key="MonoTextStyle" TargetType="TextBlock">
+        <Setter Property="FontFamily" Value="Cascadia Code,Cascadia Mono,Consolas,monospace" />
+        <Setter Property="FontSize" Value="12" />
+    </Style>
+
+    <!-- ═══ Accent colors for interactive elements ═══ -->
+    <SolidColorBrush x:Key="SquadInteractiveHoverBrush" Color="#33FFFFFF" />
+    <SolidColorBrush x:Key="SquadInteractivePressedBrush" Color="#22FFFFFF" />
+
+    <!-- Gauge Ring Style -->
+    <Style x:Key="GaugeRingStyle" TargetType="ProgressRing">
+        <Setter Property="Width" Value="64" />
+        <Setter Property="Height" Value="64" />
+        <Setter Property="IsIndeterminate" Value="False" />
+    </Style>
+
+    <!-- Settings Section Style -->
+    <Style x:Key="SettingsSectionStyle" TargetType="StackPanel">
+        <Setter Property="Spacing" Value="12" />
+        <Setter Property="Margin" Value="0,0,0,8" />
+    </Style>
+
+</ResourceDictionary>
+
