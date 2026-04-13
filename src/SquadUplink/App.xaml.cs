@@ -13,8 +13,31 @@ public partial class App : Application
 
     public App()
     {
-        InitializeComponent();
+        // Configure logging FIRST, before anything else
         ConfigureLogging();
+        
+        try
+        {
+            InitializeComponent();
+        }
+        catch (Exception ex)
+        {
+            Log.Fatal(ex, "FATAL: InitializeComponent() failed — {Type}: {Message}",
+                ex.GetType().FullName, ex.Message);
+            if (ex is TypeLoadException tle)
+                Log.Fatal("TypeLoadException.TypeName = {TypeName}", tle.TypeName);
+            var inner = ex.InnerException;
+            while (inner is not null)
+            {
+                Log.Fatal(inner, "Inner: {Type}: {Message}", inner.GetType().FullName, inner.Message);
+                if (inner is TypeLoadException tle2)
+                    Log.Fatal("Inner TypeLoadException.TypeName = {TypeName}", tle2.TypeName);
+                inner = inner.InnerException;
+            }
+            Log.CloseAndFlush();
+            throw;
+        }
+        
         Services = ConfigureServices();
     }
 
