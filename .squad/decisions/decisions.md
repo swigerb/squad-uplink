@@ -592,5 +592,60 @@ Low. No changes to existing connection flow. New methods are additive. `reconnec
 
 ---
 
+---
+
+## 2026-04-13T200600Z: Architectural pivot — Native Windows app
+
+**By:** Brian Swiger (via Copilot)  
+**Status:** Implemented
+
+### What
+
+Squad-uplink is pivoting from a React/Vite web app to a native Windows 11 desktop application using WinUI 3, .NET 10, C# 14, Fluent 2. Multi-session dashboard that discovers, launches, and monitors multiple copilot --remote sessions and Squad/SubSquad hierarchies. Stack: CommunityToolkit.Mvvm, Serilog, SQLite, Velopack, WebView2+xterm.js, xUnit+Moq+Coverlet.
+
+### Why
+
+User decision — GitHub Copilot CLI remote feature replaces Squad RC; native app enables local process scanning and launching that web apps cannot do.
+
+---
+
+## 2026-04-08: WinUI 3 / .NET 10 Desktop Scaffold
+
+**By:** Woz (Lead Dev)  
+**Status:** Implemented
+
+### What
+
+Created complete WinUI 3 / .NET 10 / C# 14 project scaffold for Squad Uplink as a native Windows 11 desktop application, replacing the React/Vite web app.
+
+### Why
+
+Brian directed a platform pivot from web (Azure Static Web Apps + devtunnel) to native desktop. A native Windows app provides:
+- Direct process management (spawn/monitor copilot CLI sessions)
+- No WebSocket relay needed — direct stdout/stderr capture
+- System tray integration, native notifications, file system access
+- Velopack auto-update instead of SWA deploy pipeline
+
+### Key Decisions
+
+1. **Unpackaged deployment** (`WindowsPackageType=None`) — Velopack handles distribution, no MSIX packaging needed for development or release
+2. **Directory.Build.props** — `AppxMSBuildToolsPath` pointed at VS 18 Enterprise build tools; required because .NET 10 SDK CLI doesn't ship PRI tasks
+3. **Field-based [ObservableProperty]** — partial property source gen not yet reliable with .NET 10 + Windows App SDK 1.7; MVVMTK0045 warning suppressed
+4. **WebView2 + xterm.js** for terminal rendering — preserves the retro terminal aesthetic from the web app
+5. **SQLite** for local settings + session history persistence
+
+### Structure
+
+- `SquadUplink.sln` — 3 projects (app, core, tests)
+- `src/SquadUplink/` — WinUI 3 app with MVVM, DI, 7 service contracts
+- `src/SquadUplink.Core/` — Shared logic, no UI dependency
+- `tests/SquadUplink.Tests/` — xUnit + Moq, 17 tests passing
+
+### Risk
+
+Low. Scaffold only — all service implementations are stubs. Real logic comes next.
+
+---
+
 ## Archive Log
 (Post-release decisions logged here).
