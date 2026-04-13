@@ -30,6 +30,8 @@ public sealed partial class MainWindow : Window
         }
     }
 
+    public string SessionCountDisplay => _sessionCount.ToString();
+
     public string StatusMessage
     {
         get => _statusMessage;

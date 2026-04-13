@@ -66,10 +66,16 @@
                        Style="{StaticResource CaptionTextBlockStyle}"
                        FontWeight="SemiBold" FontSize="13"
                        VerticalAlignment="Center" />
-            <InfoBadge Grid.Column="2" x:Name="SessionCountBadge"
-                       Value="{x:Bind SessionCount, Mode=OneWay}"
-                       Margin="8,0,0,0" VerticalAlignment="Center"
-                       Style="{ThemeResource AttentionIconInfoBadgeStyle}" />
+            <!-- Session count badge (replaced InfoBadge — it causes TypeLoadException
+                 during CLR type init on Windows App SDK 1.7 preview) -->
+            <Border Grid.Column="2" CornerRadius="8" MinWidth="20"
+                    Padding="5,2" Margin="8,0,0,0"
+                    VerticalAlignment="Center" HorizontalAlignment="Left"
+                    Background="{StaticResource SquadAccentGreenBrush}">
+                <TextBlock Text="{x:Bind SessionCountDisplay, Mode=OneWay}"
+                           FontSize="11" FontWeight="SemiBold"
+                           Foreground="White" HorizontalAlignment="Center" />
+            </Border>
             <TextBlock Grid.Column="4" x:Name="StatusText"
                        Text="{x:Bind StatusMessage, Mode=OneWay}"
                        Style="{StaticResource CaptionTextBlockStyle}"
