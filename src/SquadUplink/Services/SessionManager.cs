@@ -1,0 +1,287 @@
+using System.Collections.ObjectModel;
+using Serilog;
+using SquadUplink.Contracts;
+using SquadUplink.Models;
+
+namespace SquadUplink.Services;
+
+public class SessionManager : ISessionManager
+{
+    private readonly IProcessScanner _scanner;
+    private readonly IProcessLauncher _launcher;
+    private readonly ISquadDetector _squadDetector;
+    private readonly IDataService _dataService;
+    private readonly INotificationService _notificationService;
+    private readonly ILogger _logger;
+    private readonly object _sessionsLock = new();
+    private readonly int _scanIntervalMs;
+
+    public ObservableCollection<SessionState> Sessions { get; } = [];
+
+    public SessionManager(
+        IProcessScanner scanner,
+        IProcessLauncher launcher,
+        ISquadDetector squadDetector,
+        IDataService dataService,
+        INotificationService notificationService)
+        : this(scanner, launcher, squadDetector, dataService, notificationService, Log.Logger)
+    {
+    }
+
+    public SessionManager(
+        IProcessScanner scanner,
+        IProcessLauncher launcher,
+        ISquadDetector squadDetector,
+        IDataService dataService,
+        INotificationService notificationService,
+        ILogger logger,
+        int scanIntervalSeconds = 5)
+    {
+        _scanner = scanner;
+        _launcher = launcher;
+        _squadDetector = squadDetector;
+        _dataService = dataService;
+        _notificationService = notificationService;
+        _logger = logger;
+        _scanIntervalMs = scanIntervalSeconds * 1000;
+    }
+
+    public async Task StartScanningAsync(CancellationToken ct = default)
+    {
+        _logger.Information("Starting session scanning (interval: {Interval}ms)", _scanIntervalMs);
+
+        while (!ct.IsCancellationRequested)
+        {
+            try
+            {
+                await ScanAndMergeAsync(ct);
+                await PruneExitedSessionsAsync();
+            }
+            catch (OperationCanceledException)
+            {
+                break;
+            }
+            catch (Exception ex)
+            {
+                _logger.Error(ex, "Session scan cycle failed");
+            }
+
+            try { await Task.Delay(_scanIntervalMs, ct); }
+            catch (OperationCanceledException) { break; }
+        }
+
+        _logger.Information("Session scanning stopped");
+    }
+
+    internal async Task ScanAndMergeAsync(CancellationToken ct)
+    {
+        var discovered = await _scanner.ScanAsync(ct);
+
+        foreach (var session in discovered)
+        {
+            bool alreadyTracked;
+            lock (_sessionsLock)
+            {
+                alreadyTracked = Sessions.Any(s => s.ProcessId == session.ProcessId);
+            }
+
+            if (alreadyTracked)
+                continue;
+
+            try
+            {
+                session.Squad = await _squadDetector.DetectAsync(session.WorkingDirectory, ct);
+            }
+            catch (Exception ex)
+            {
+                _logger.Warning(ex, "Squad detection failed for session {Id}", session.Id);
+            }
+
+            lock (_sessionsLock)
+            {
+                // Double-check after async gap
+                if (!Sessions.Any(s => s.ProcessId == session.ProcessId))
+                {
+                    Sessions.Add(session);
+                    _logger.Information("Discovered session {Id} (PID {Pid}) in {Dir}",
+                        session.Id, session.ProcessId, session.WorkingDirectory);
+                }
+            }
+
+            // Notify about discovered session
+            try
+            {
+                await _notificationService.ShowSessionDiscoveredAsync(
+                    session.RepositoryName ?? Path.GetFileName(session.WorkingDirectory),
+                    session.Id);
+            }
+            catch (Exception ex)
+            {
+                _logger.Warning(ex, "Failed to send discovery notification for {Id}", session.Id);
+            }
+        }
+    }
+
+    private async Task PruneExitedSessionsAsync()
+    {
+        List<SessionState> toRemove;
+        lock (_sessionsLock)
+        {
+            toRemove = new List<SessionState>();
+            foreach (var session in Sessions)
+            {
+                if (session.Status is not (SessionStatus.Running or SessionStatus.Idle or SessionStatus.Launching))
+                    continue;
+
+                try
+                {
+                    using var proc = System.Diagnostics.Process.GetProcessById(session.ProcessId);
+                    if (proc.HasExited)
+                    {
+                        session.Status = SessionStatus.Completed;
+                        toRemove.Add(session);
+                    }
+                }
+                catch (ArgumentException)
+                {
+                    session.Status = SessionStatus.Completed;
+                    toRemove.Add(session);
+                }
+                catch (Exception ex)
+                {
+                    _logger.Warning(ex, "Error checking process status for session {Id}", session.Id);
+                }
+            }
+
+            foreach (var session in toRemove)
+            {
+                Sessions.Remove(session);
+                _logger.Information("Pruned completed session {Id}", session.Id);
+            }
+        }
+
+        // Auto-save history and notify for pruned (completed) sessions
+        foreach (var session in toRemove)
+        {
+            await SaveCompletedSessionAsync(session);
+        }
+    }
+
+    private async Task SaveCompletedSessionAsync(SessionState session)
+    {
+        try
+        {
+            var duration = DateTime.UtcNow - session.StartedAt;
+            await _dataService.SaveSessionHistoryAsync(new SessionHistoryEntry
+            {
+                SessionId = session.Id,
+                RepositoryName = session.RepositoryName,
+                WorkingDirectory = session.WorkingDirectory,
+                FinalStatus = session.Status,
+                StartedAt = session.StartedAt,
+                EndedAt = DateTime.UtcNow,
+                DurationSeconds = (int)duration.TotalSeconds,
+                ProcessId = session.ProcessId,
+                GitHubTaskUrl = session.GitHubTaskUrl
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.Warning(ex, "Failed to save session history for {Id}", session.Id);
+        }
+
+        try
+        {
+            var elapsed = DateTime.UtcNow - session.StartedAt;
+            var repoName = session.RepositoryName ?? Path.GetFileName(session.WorkingDirectory);
+            if (session.Status == SessionStatus.Error)
+            {
+                await _notificationService.ShowErrorAsync(repoName, "Session ended with an error");
+            }
+            else
+            {
+                await _notificationService.ShowSessionCompletedAsync(repoName, elapsed);
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.Warning(ex, "Failed to send completion notification for {Id}", session.Id);
+        }
+    }
+
+    public async Task<SessionState> LaunchSessionAsync(string workingDirectory, string? initialPrompt = null)
+    {
+        _logger.Information("Launching session in {Dir}", workingDirectory);
+
+        var session = await _launcher.LaunchAsync(workingDirectory, initialPrompt);
+
+        try
+        {
+            session.Squad = await _squadDetector.DetectAsync(workingDirectory);
+        }
+        catch (Exception ex)
+        {
+            _logger.Warning(ex, "Squad detection failed for new session");
+        }
+
+        lock (_sessionsLock)
+        {
+            Sessions.Add(session);
+        }
+
+        try
+        {
+            await _dataService.SaveSessionHistoryAsync(new SessionHistoryEntry
+            {
+                SessionId = session.Id,
+                RepositoryName = session.RepositoryName,
+                WorkingDirectory = session.WorkingDirectory,
+                FinalStatus = session.Status,
+                StartedAt = session.StartedAt,
+                ProcessId = session.ProcessId,
+                GitHubTaskUrl = session.GitHubTaskUrl
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.Warning(ex, "Failed to save session history for {Id}", session.Id);
+        }
+
+        return session;
+    }
+
+    public async Task StopSessionAsync(string sessionId)
+    {
+        SessionState? session;
+        lock (_sessionsLock)
+        {
+            session = Sessions.FirstOrDefault(s => s.Id == sessionId);
+        }
+
+        if (session is null)
+        {
+            _logger.Warning("Attempted to stop unknown session {Id}", sessionId);
+            return;
+        }
+
+        try
+        {
+            using var process = System.Diagnostics.Process.GetProcessById(session.ProcessId);
+            process.Kill(entireProcessTree: true);
+            session.Status = SessionStatus.Completed;
+            _logger.Information("Stopped session {Id} (PID {Pid})", sessionId, session.ProcessId);
+        }
+        catch (ArgumentException)
+        {
+            session.Status = SessionStatus.Completed;
+            _logger.Debug("Process for session {Id} already exited", sessionId);
+        }
+        catch (Exception ex)
+        {
+            _logger.Warning(ex, "Failed to stop process for session {Id}", sessionId);
+            session.Status = SessionStatus.Error;
+        }
+
+        await SaveCompletedSessionAsync(session);
+    }
+}

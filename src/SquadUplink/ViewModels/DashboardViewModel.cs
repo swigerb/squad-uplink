@@ -72,7 +72,7 @@ public partial class DashboardViewModel : ObservableObject
     private bool _isGridSizeSelectorVisible;
 
     [ObservableProperty]
-    private int _selectedGridSizeIndex;
+    private int _selectedGridSizeIndex = 3; // 2x2 default
 
     [ObservableProperty]
     private bool _isFocusedMode;

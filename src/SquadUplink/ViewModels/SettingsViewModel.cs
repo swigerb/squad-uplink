@@ -26,16 +26,16 @@ public partial class SettingsViewModel : ObservableObject
     private double _fontSize = 13;
 
     [ObservableProperty]
-    private SolidColorBrush _previewAccentBrush = new(ColorHelper.FromArgb(255, 0, 200, 83));
+    private SolidColorBrush? _previewAccentBrush;
 
     [ObservableProperty]
-    private SolidColorBrush _previewBackgroundBrush = new(ColorHelper.FromArgb(255, 26, 26, 46));
+    private SolidColorBrush? _previewBackgroundBrush;
 
     [ObservableProperty]
-    private SolidColorBrush _previewSurfaceBrush = new(ColorHelper.FromArgb(255, 22, 33, 62));
+    private SolidColorBrush? _previewSurfaceBrush;
 
     [ObservableProperty]
-    private SolidColorBrush _previewTextBrush = new(Colors.White);
+    private SolidColorBrush? _previewTextBrush;
 
     // Scanning
     [ObservableProperty]
@@ -64,6 +64,19 @@ public partial class SettingsViewModel : ObservableObject
     [ObservableProperty]
     private int _selectedSoundPackIndex;
 
+    // Notifications
+    [ObservableProperty]
+    private bool _notifySessionCompleted = true;
+
+    [ObservableProperty]
+    private bool _notifyPermissionRequest = true;
+
+    [ObservableProperty]
+    private bool _notifyError = true;
+
+    [ObservableProperty]
+    private bool _notifySessionDiscovered = true;
+
     // Logs
     [ObservableProperty]
     private int _selectedLogLevelIndex = 2; // Information
@@ -71,9 +84,15 @@ public partial class SettingsViewModel : ObservableObject
     [ObservableProperty]
     private string _logOutput = string.Empty;
 
-    // About
+    // About / Updates
     [ObservableProperty]
     private string _versionText = string.Empty;
+
+    [ObservableProperty]
+    private string _updateStatusText = string.Empty;
+
+    [ObservableProperty]
+    private bool _isCheckingForUpdates;
 
     public ObservableCollection<string> LogEntries { get; } = [];
 
@@ -83,10 +102,26 @@ public partial class SettingsViewModel : ObservableObject
         _dataService = dataService;
         VersionText = $"v{typeof(App).Assembly.GetName().Version}";
 
+        InitializeBrushes();
         _ = LoadSettingsAsync();
     }
 
-    private async Task LoadSettingsAsync()
+    private void InitializeBrushes()
+    {
+        try
+        {
+            PreviewAccentBrush = new SolidColorBrush(ColorHelper.FromArgb(255, 0, 200, 83));
+            PreviewBackgroundBrush = new SolidColorBrush(ColorHelper.FromArgb(255, 26, 26, 46));
+            PreviewSurfaceBrush = new SolidColorBrush(ColorHelper.FromArgb(255, 22, 33, 62));
+            PreviewTextBrush = new SolidColorBrush(Colors.White);
+        }
+        catch (System.Runtime.InteropServices.COMException)
+        {
+            // WinUI runtime not available (unit tests)
+        }
+    }
+
+    internal async Task LoadSettingsAsync()
     {
         try
         {
@@ -100,6 +135,10 @@ public partial class SettingsViewModel : ObservableObject
             CrtEffectsEnabled = settings.CrtEffectsEnabled;
             FontSize = settings.FontSize;
             Volume = settings.Volume;
+            NotifySessionCompleted = settings.NotifySessionCompleted;
+            NotifyPermissionRequest = settings.NotifyPermissionRequest;
+            NotifyError = settings.NotifyError;
+            NotifySessionDiscovered = settings.NotifySessionDiscovered;
             UpdateThemePreview();
         }
         catch (Exception ex)
@@ -126,6 +165,10 @@ public partial class SettingsViewModel : ObservableObject
     partial void OnFontSizeChanged(double value) => _ = SaveSettingsAsync();
     partial void OnVolumeChanged(double value) => _ = SaveSettingsAsync();
     partial void OnAlwaysUseRemoteChanged(bool value) => _ = SaveSettingsAsync();
+    partial void OnNotifySessionCompletedChanged(bool value) => _ = SaveSettingsAsync();
+    partial void OnNotifyPermissionRequestChanged(bool value) => _ = SaveSettingsAsync();
+    partial void OnNotifyErrorChanged(bool value) => _ = SaveSettingsAsync();
+    partial void OnNotifySessionDiscoveredChanged(bool value) => _ = SaveSettingsAsync();
 
     private void UpdateThemePreview()
     {
@@ -133,45 +176,51 @@ public partial class SettingsViewModel : ObservableObject
             ? _themeService.AvailableThemes[SelectedThemeIndex]
             : "FluentDark";
 
-        (PreviewAccentBrush, PreviewBackgroundBrush, PreviewSurfaceBrush, PreviewTextBrush) = themeId switch
+        try
         {
-            "FluentLight" => (
-                new SolidColorBrush(ColorHelper.FromArgb(255, 0, 120, 212)),
-                new SolidColorBrush(ColorHelper.FromArgb(255, 243, 243, 243)),
-                new SolidColorBrush(ColorHelper.FromArgb(255, 255, 255, 255)),
-                new SolidColorBrush(ColorHelper.FromArgb(255, 0, 0, 0))),
-            "FluentDark" => (
-                new SolidColorBrush(ColorHelper.FromArgb(255, 0, 200, 83)),
-                new SolidColorBrush(ColorHelper.FromArgb(255, 26, 26, 46)),
-                new SolidColorBrush(ColorHelper.FromArgb(255, 22, 33, 62)),
-                new SolidColorBrush(Colors.White)),
-            "AppleIIe" => (
-                new SolidColorBrush(ColorHelper.FromArgb(255, 51, 255, 51)),
-                new SolidColorBrush(ColorHelper.FromArgb(255, 0, 0, 0)),
-                new SolidColorBrush(ColorHelper.FromArgb(255, 20, 20, 20)),
-                new SolidColorBrush(ColorHelper.FromArgb(255, 51, 255, 51))),
-            "C64" => (
-                new SolidColorBrush(ColorHelper.FromArgb(255, 134, 122, 222)),
-                new SolidColorBrush(ColorHelper.FromArgb(255, 64, 50, 133)),
-                new SolidColorBrush(ColorHelper.FromArgb(255, 80, 69, 155)),
-                new SolidColorBrush(ColorHelper.FromArgb(255, 134, 122, 222))),
-            "PipBoy" => (
-                new SolidColorBrush(ColorHelper.FromArgb(255, 18, 255, 128)),
-                new SolidColorBrush(ColorHelper.FromArgb(255, 10, 20, 10)),
-                new SolidColorBrush(ColorHelper.FromArgb(255, 15, 30, 15)),
-                new SolidColorBrush(ColorHelper.FromArgb(255, 18, 255, 128))),
-            _ => (
-                new SolidColorBrush(ColorHelper.FromArgb(255, 0, 200, 83)),
-                new SolidColorBrush(ColorHelper.FromArgb(255, 26, 26, 46)),
-                new SolidColorBrush(ColorHelper.FromArgb(255, 22, 33, 62)),
-                new SolidColorBrush(Colors.White)),
-        };
+            (PreviewAccentBrush, PreviewBackgroundBrush, PreviewSurfaceBrush, PreviewTextBrush) = themeId switch
+            {
+                "FluentLight" => (
+                    new SolidColorBrush(ColorHelper.FromArgb(255, 0, 120, 212)),
+                    new SolidColorBrush(ColorHelper.FromArgb(255, 243, 243, 243)),
+                    new SolidColorBrush(ColorHelper.FromArgb(255, 255, 255, 255)),
+                    new SolidColorBrush(ColorHelper.FromArgb(255, 0, 0, 0))),
+                "FluentDark" => (
+                    new SolidColorBrush(ColorHelper.FromArgb(255, 0, 200, 83)),
+                    new SolidColorBrush(ColorHelper.FromArgb(255, 26, 26, 46)),
+                    new SolidColorBrush(ColorHelper.FromArgb(255, 22, 33, 62)),
+                    new SolidColorBrush(Colors.White)),
+                "AppleIIe" => (
+                    new SolidColorBrush(ColorHelper.FromArgb(255, 51, 255, 51)),
+                    new SolidColorBrush(ColorHelper.FromArgb(255, 0, 0, 0)),
+                    new SolidColorBrush(ColorHelper.FromArgb(255, 20, 20, 20)),
+                    new SolidColorBrush(ColorHelper.FromArgb(255, 51, 255, 51))),
+                "C64" => (
+                    new SolidColorBrush(ColorHelper.FromArgb(255, 134, 122, 222)),
+                    new SolidColorBrush(ColorHelper.FromArgb(255, 64, 50, 133)),
+                    new SolidColorBrush(ColorHelper.FromArgb(255, 80, 69, 155)),
+                    new SolidColorBrush(ColorHelper.FromArgb(255, 134, 122, 222))),
+                "PipBoy" => (
+                    new SolidColorBrush(ColorHelper.FromArgb(255, 18, 255, 128)),
+                    new SolidColorBrush(ColorHelper.FromArgb(255, 10, 20, 10)),
+                    new SolidColorBrush(ColorHelper.FromArgb(255, 15, 30, 15)),
+                    new SolidColorBrush(ColorHelper.FromArgb(255, 18, 255, 128))),
+                _ => (
+                    new SolidColorBrush(ColorHelper.FromArgb(255, 0, 200, 83)),
+                    new SolidColorBrush(ColorHelper.FromArgb(255, 26, 26, 46)),
+                    new SolidColorBrush(ColorHelper.FromArgb(255, 22, 33, 62)),
+                    new SolidColorBrush(Colors.White)),
+            };
+        }
+        catch (System.Runtime.InteropServices.COMException)
+        {
+            // WinUI runtime not available (unit tests)
+        }
     }
 
     [RelayCommand]
     private Task BrowseDirectoryAsync()
     {
-        // TODO: Show FolderPicker dialog
         Log.Debug("Browse directory requested");
         return Task.CompletedTask;
     }
@@ -210,18 +259,43 @@ public partial class SettingsViewModel : ObservableObject
     [RelayCommand]
     private void ExportLogs()
     {
-        // TODO: Show SaveFilePicker and write logs
         Log.Debug("Export logs requested");
     }
 
     [RelayCommand]
-    private void CheckForUpdates()
+    private async Task CheckForUpdatesAsync()
     {
+        IsCheckingForUpdates = true;
+        UpdateStatusText = "Checking for updates...";
         Log.Information("Checking for updates via Velopack...");
-        // TODO: Velopack update check
+
+        try
+        {
+            var mgr = new Velopack.UpdateManager("https://github.com/swigerb/squad-uplink/releases");
+            var updateInfo = await mgr.CheckForUpdatesAsync();
+            if (updateInfo is not null)
+            {
+                UpdateStatusText = $"Update available: v{updateInfo.TargetFullRelease.Version}";
+                Log.Information("Update available: {Version}", updateInfo.TargetFullRelease.Version);
+            }
+            else
+            {
+                UpdateStatusText = "You're up to date!";
+                Log.Information("No updates available");
+            }
+        }
+        catch (Exception ex)
+        {
+            UpdateStatusText = "Update check failed";
+            Log.Warning(ex, "Velopack update check failed");
+        }
+        finally
+        {
+            IsCheckingForUpdates = false;
+        }
     }
 
-    private async Task SaveSettingsAsync()
+    internal async Task SaveSettingsAsync()
     {
         try
         {
@@ -254,7 +328,11 @@ public partial class SettingsViewModel : ObservableObject
                     4 => "o4-mini",
                     _ => "auto"
                 },
-                AlwaysUseRemote = AlwaysUseRemote
+                AlwaysUseRemote = AlwaysUseRemote,
+                NotifySessionCompleted = NotifySessionCompleted,
+                NotifyPermissionRequest = NotifyPermissionRequest,
+                NotifyError = NotifyError,
+                NotifySessionDiscovered = NotifySessionDiscovered
             };
             await _dataService.SaveSettingsAsync(settings);
         }

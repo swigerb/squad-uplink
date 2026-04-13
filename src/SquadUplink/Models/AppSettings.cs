@@ -13,4 +13,12 @@ public class AppSettings
     public string SoundPack { get; set; } = "Fluent";
     public string DefaultModel { get; set; } = "auto";
     public bool AlwaysUseRemote { get; set; }
+    public string LayoutMode { get; set; } = "Tabs";
+    public string GridSize { get; set; } = "2x2";
+
+    // Notification preferences
+    public bool NotifySessionCompleted { get; set; } = true;
+    public bool NotifyPermissionRequest { get; set; } = true;
+    public bool NotifyError { get; set; } = true;
+    public bool NotifySessionDiscovered { get; set; } = true;
 }
