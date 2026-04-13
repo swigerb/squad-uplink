@@ -1,0 +1,33 @@
+<UserControl
+    x:Class="SquadUplink.Controls.SessionLayoutControl"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:controls="using:SquadUplink.Controls"
+    xmlns:converters="using:SquadUplink.Converters">
+
+    <UserControl.Resources>
+        <converters:StatusToBrushConverter x:Key="StatusToBrush" />
+        <converters:BoolToVisibilityConverter x:Key="BoolToVis" />
+    </UserControl.Resources>
+
+    <Grid>
+        <!-- Tab Layout Mode -->
+        <TabView x:Name="SessionTabView"
+                 Visibility="Collapsed"
+                 IsAddTabButtonVisible="True"
+                 AddTabButtonClick="SessionTabView_AddTabButtonClick"
+                 TabCloseRequested="SessionTabView_TabCloseRequested"
+                 SelectionChanged="SessionTabView_SelectionChanged"
+                 CanReorderTabs="True"
+                 CanDragTabs="True"
+                 TabWidthMode="SizeToContent">
+        </TabView>
+
+        <!-- Grid Layout Mode -->
+        <controls:GridLayoutPanel x:Name="GridPanel"
+                                  Visibility="Collapsed"
+                                  SessionCloseRequested="GridPanel_SessionCloseRequested"
+                                  SessionFocusRequested="GridPanel_SessionFocusRequested"
+                                  LaunchNewRequested="GridPanel_LaunchNewRequested" />
+    </Grid>
+</UserControl>

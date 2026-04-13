@@ -7,6 +7,43 @@
     Title="Squad Uplink">
 
     <Grid>
+        <Grid.KeyboardAccelerators>
+            <!-- Ctrl+Tab: Next session -->
+            <KeyboardAccelerator Key="Tab" Modifiers="Control"
+                                 Invoked="NextSession_Invoked" />
+            <!-- Ctrl+Shift+Tab: Previous session -->
+            <KeyboardAccelerator Key="Tab" Modifiers="Control,Shift"
+                                 Invoked="PreviousSession_Invoked" />
+            <!-- Ctrl+1..9: Jump to session by index -->
+            <KeyboardAccelerator Key="Number1" Modifiers="Control"
+                                 Invoked="JumpToSession_Invoked" />
+            <KeyboardAccelerator Key="Number2" Modifiers="Control"
+                                 Invoked="JumpToSession_Invoked" />
+            <KeyboardAccelerator Key="Number3" Modifiers="Control"
+                                 Invoked="JumpToSession_Invoked" />
+            <KeyboardAccelerator Key="Number4" Modifiers="Control"
+                                 Invoked="JumpToSession_Invoked" />
+            <KeyboardAccelerator Key="Number5" Modifiers="Control"
+                                 Invoked="JumpToSession_Invoked" />
+            <KeyboardAccelerator Key="Number6" Modifiers="Control"
+                                 Invoked="JumpToSession_Invoked" />
+            <KeyboardAccelerator Key="Number7" Modifiers="Control"
+                                 Invoked="JumpToSession_Invoked" />
+            <KeyboardAccelerator Key="Number8" Modifiers="Control"
+                                 Invoked="JumpToSession_Invoked" />
+            <KeyboardAccelerator Key="Number9" Modifiers="Control"
+                                 Invoked="JumpToSession_Invoked" />
+            <!-- Ctrl+N: Launch new session -->
+            <KeyboardAccelerator Key="N" Modifiers="Control"
+                                 Invoked="LaunchNewSession_Invoked" />
+            <!-- Ctrl+W: Close current session -->
+            <KeyboardAccelerator Key="W" Modifiers="Control"
+                                 Invoked="CloseCurrentSession_Invoked" />
+            <!-- F11: Toggle focused mode -->
+            <KeyboardAccelerator Key="F11"
+                                 Invoked="ToggleFocusedMode_Invoked" />
+        </Grid.KeyboardAccelerators>
+
         <Grid.RowDefinitions>
             <RowDefinition Height="48" />
             <RowDefinition Height="*" />
