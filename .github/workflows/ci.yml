@@ -1,16 +1,12 @@
-# Legacy v1 CI for React/Node.js app
-name: CI (React v1)
+# Legacy v1 CI for React/Node.js app — DISABLED (app pivoted to WinUI 3)
+name: CI (React v1 — disabled)
 
 on:
-  push:
-    branches:
-      - main
-  pull_request:
-    branches:
-      - main
+  workflow_dispatch:  # Manual only — no longer auto-triggers
 
 jobs:
   validate:
+    if: false  # Never runs
     runs-on: ubuntu-latest
     name: Lint, Type Check, Test & Build
     steps:

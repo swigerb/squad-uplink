@@ -1,10 +1,12 @@
 name: CI (WinUI 3 / .NET 10)
 
 on:
-  push:
-    branches: [master, main]
-  pull_request:
-    branches: [master, main]
+  workflow_dispatch:  # Manual only until app is stable and .NET 10 is on GitHub runners
+  # Re-enable these once CI is verified working:
+  # push:
+  #   branches: [master, main]
+  # pull_request:
+  #   branches: [master, main]
 
 jobs:
   build-and-test:
