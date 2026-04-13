@@ -20,6 +20,18 @@ public partial class App : Application
 
     protected override async void OnLaunched(LaunchActivatedEventArgs args)
     {
+        try
+        {
+            await LaunchCoreAsync(args);
+        }
+        catch (Exception ex)
+        {
+            LogFatalException(ex);
+        }
+    }
+
+    private async Task LaunchCoreAsync(LaunchActivatedEventArgs args)
+    {
         // Velopack update check (non-blocking)
         try
         {
@@ -32,15 +44,54 @@ public partial class App : Application
         }
 
         // Initialize data service
+        Log.Debug("Resolving IDataService...");
         var dataService = Services.GetRequiredService<Contracts.IDataService>();
         await dataService.InitializeAsync();
+        Log.Debug("IDataService initialized");
 
         // Initialize notification service
+        Log.Debug("Resolving INotificationService...");
         var notificationService = Services.GetRequiredService<Contracts.INotificationService>();
         await notificationService.InitializeAsync();
+        Log.Debug("INotificationService initialized");
 
+        Log.Debug("Creating MainWindow...");
         MainWindow = new MainWindow();
+        Log.Debug("MainWindow created, activating...");
         MainWindow.Activate();
+        Log.Debug("MainWindow activated");
+    }
+
+    private static void LogFatalException(Exception ex)
+    {
+        Log.Fatal(ex, "FATAL: Unhandled exception during launch — {Type}: {Message}",
+            ex.GetType().FullName, ex.Message);
+
+        // Walk the inner exception chain
+        var inner = ex.InnerException;
+        var depth = 1;
+        while (inner is not null)
+        {
+            Log.Fatal(inner, "FATAL: Inner exception [{Depth}] — {Type}: {Message}",
+                depth, inner.GetType().FullName, inner.Message);
+            inner = inner.InnerException;
+            depth++;
+        }
+
+        // TypeLoadException has extra info
+        if (ex is TypeLoadException tle)
+        {
+            Log.Fatal("TypeLoadException.TypeName = {TypeName}", tle.TypeName);
+        }
+        if (ex is System.Reflection.ReflectionTypeLoadException rtle)
+        {
+            foreach (var loaderEx in rtle.LoaderExceptions ?? [])
+            {
+                Log.Fatal(loaderEx, "Loader exception: {Message}", loaderEx?.Message);
+            }
+        }
+
+        Log.CloseAndFlush();
     }
 
     public Window? MainWindow { get; private set; }

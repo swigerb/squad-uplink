@@ -12,20 +12,20 @@ public sealed partial class GridLayoutPanel : UserControl
     public static readonly DependencyProperty SessionsProperty =
         DependencyProperty.Register(
             nameof(Sessions),
-            typeof(object),
+            typeof(ObservableCollection<SessionState>),
             typeof(GridLayoutPanel),
             new PropertyMetadata(null, OnSessionsChanged));
 
     public static readonly DependencyProperty GridSizeProperty =
         DependencyProperty.Register(
             nameof(GridSize),
-            typeof(object),
+            typeof(GridSize),
             typeof(GridLayoutPanel),
             new PropertyMetadata(null, OnGridSizeChanged));
 
     public ObservableCollection<SessionState>? Sessions
     {
-        get => GetValue(SessionsProperty) as ObservableCollection<SessionState>;
+        get => (ObservableCollection<SessionState>?)GetValue(SessionsProperty);
         set => SetValue(SessionsProperty, value);
     }
 

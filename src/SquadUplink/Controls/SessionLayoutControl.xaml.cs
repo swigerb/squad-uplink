@@ -12,21 +12,21 @@ public sealed partial class SessionLayoutControl : UserControl
     public static readonly DependencyProperty LayoutModeProperty =
         DependencyProperty.Register(
             nameof(LayoutMode),
-            typeof(int),
+            typeof(LayoutMode),
             typeof(SessionLayoutControl),
-            new PropertyMetadata((int)Models.LayoutMode.Tabs, OnLayoutModeChanged));
+            new PropertyMetadata(Models.LayoutMode.Tabs, OnLayoutModeChanged));
 
     public static readonly DependencyProperty SessionsProperty =
         DependencyProperty.Register(
             nameof(Sessions),
-            typeof(object),
+            typeof(ObservableCollection<SessionState>),
             typeof(SessionLayoutControl),
             new PropertyMetadata(null, OnSessionsChanged));
 
     public static readonly DependencyProperty GridSizeProperty =
         DependencyProperty.Register(
             nameof(GridSize),
-            typeof(object),
+            typeof(GridSize),
             typeof(SessionLayoutControl),
             new PropertyMetadata(null, OnGridSizeChanged));
 
@@ -39,13 +39,13 @@ public sealed partial class SessionLayoutControl : UserControl
 
     public LayoutMode LayoutMode
     {
-        get => (LayoutMode)(int)GetValue(LayoutModeProperty);
-        set => SetValue(LayoutModeProperty, (int)value);
+        get => (LayoutMode)GetValue(LayoutModeProperty);
+        set => SetValue(LayoutModeProperty, value);
     }
 
     public ObservableCollection<SessionState>? Sessions
     {
-        get => GetValue(SessionsProperty) as ObservableCollection<SessionState>;
+        get => (ObservableCollection<SessionState>?)GetValue(SessionsProperty);
         set => SetValue(SessionsProperty, value);
     }
 

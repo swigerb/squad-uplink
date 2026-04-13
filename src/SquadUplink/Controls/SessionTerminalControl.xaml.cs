@@ -11,7 +11,7 @@ public sealed partial class SessionTerminalControl : UserControl
     public static readonly DependencyProperty SessionProperty =
         DependencyProperty.Register(
             nameof(Session),
-            typeof(object),
+            typeof(SessionState),
             typeof(SessionTerminalControl),
             new PropertyMetadata(null, OnSessionChanged));
 
@@ -24,7 +24,7 @@ public sealed partial class SessionTerminalControl : UserControl
 
     public SessionState? Session
     {
-        get => GetValue(SessionProperty) as SessionState;
+        get => (SessionState?)GetValue(SessionProperty);
         set => SetValue(SessionProperty, value);
     }
 
