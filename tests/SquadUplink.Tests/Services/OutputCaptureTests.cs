@@ -24,11 +24,13 @@ public class OutputCaptureTests
         Assert.IsAssignableFrom<IOutputCapture>(capture);
     }
 
-    [Fact]
+    [Fact(Timeout = 10_000)]
     public async Task CaptureAsync_CapturesStdout()
     {
         var capture = new OutputCapture(TestLogger);
-        var process = StartEchoProcess("Hello from stdout");
+        // Use ping to produce output over a short duration, avoiding the race
+        // where a single echo exits before CaptureAsync subscribes to events.
+        var process = StartProcess("cmd.exe", "/c echo Hello from stdout & ping -n 2 127.0.0.1 >nul");
 
         var lines = new List<string>();
         await foreach (var line in capture.CaptureAsync(process))
@@ -40,7 +42,7 @@ public class OutputCaptureTests
         process.Dispose();
     }
 
-    [Fact]
+    [Fact(Timeout = 10_000)]
     public async Task CaptureAsync_CapturesStderr()
     {
         var capture = new OutputCapture(TestLogger);
@@ -56,7 +58,7 @@ public class OutputCaptureTests
         process.Dispose();
     }
 
-    [Fact]
+    [Fact(Timeout = 10_000)]
     public async Task CaptureAsync_HandlesProcessExit()
     {
         var capture = new OutputCapture(TestLogger);
@@ -73,7 +75,7 @@ public class OutputCaptureTests
         process.Dispose();
     }
 
-    [Fact]
+    [Fact(Timeout = 10_000)]
     public async Task CaptureAsync_SupportsCancellation()
     {
         var capture = new OutputCapture(TestLogger);
@@ -95,7 +97,7 @@ public class OutputCaptureTests
         process.Dispose();
     }
 
-    [Fact]
+    [Fact(Timeout = 10_000)]
     public async Task CaptureAsync_DetectsTaskUrl()
     {
         var capture = new OutputCapture(TestLogger);
@@ -110,7 +112,7 @@ public class OutputCaptureTests
         process.Dispose();
     }
 
-    [Fact]
+    [Fact(Timeout = 10_000)]
     public async Task CaptureAsync_DetectsStatusChange()
     {
         var capture = new OutputCapture(TestLogger);
@@ -148,7 +150,7 @@ public class OutputCaptureTests
         Assert.Equal(shouldMatch, OutputCapture.StatusChangeRegex().IsMatch(input));
     }
 
-    [Fact]
+    [Fact(Timeout = 10_000)]
     public async Task CaptureAsync_MultipleLines()
     {
         var capture = new OutputCapture(TestLogger);
