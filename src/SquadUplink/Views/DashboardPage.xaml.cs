@@ -2,6 +2,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.UI.Text;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using SquadUplink.Controls;
 using SquadUplink.Models;
 using SquadUplink.ViewModels;
 
@@ -17,14 +18,6 @@ public sealed partial class DashboardPage : Page
         InitializeComponent();
     }
 
-    private void SessionCard_ItemClick(object sender, ItemClickEventArgs e)
-    {
-        if (e.ClickedItem is SessionState session)
-        {
-            ViewModel.OpenSessionCommand.Execute(session);
-        }
-    }
-
     // Helper functions for x:Bind in DataTemplates
     public static Thickness GetIndentPadding(int indentLevel)
         => new(indentLevel * 16, 0, 0, 0);
@@ -34,4 +27,29 @@ public sealed partial class DashboardPage : Page
 
     public static double GetFontSize(bool isHeader)
         => isHeader ? 13 : 12;
+
+    // SessionLayoutControl event handlers
+    private void SessionLayout_SessionCloseRequested(object? sender, SessionState session)
+    {
+        ViewModel.CloseSessionCommand.Execute(session);
+    }
+
+    private void SessionLayout_LaunchNewRequested(object? sender, EventArgs e)
+    {
+        ViewModel.LaunchSessionCommand.Execute(null);
+    }
+
+    private void SessionLayout_SessionFocusRequested(object? sender, SessionState session)
+    {
+        ViewModel.OpenSessionCommand.Execute(session);
+    }
+
+    // Public access for keyboard shortcut routing from MainWindow
+    internal SessionLayoutControl LayoutControl => SessionLayout;
+
+    // SquadTreeControl selection handler
+    private void SquadTreeView_SquadSelected(object? sender, SquadInfo squad)
+    {
+        ViewModel.SelectedSquad = squad;
+    }
 }

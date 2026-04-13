@@ -44,6 +44,9 @@ public partial class SessionViewModel : ObservableObject
     private Uri? _gitHubUri;
 
     [ObservableProperty]
+    private bool _hasGitHubUrl;
+
+    [ObservableProperty]
     private string _terminalContent = string.Empty;
 
     private SessionState? _currentSession;
@@ -62,8 +65,26 @@ public partial class SessionViewModel : ObservableObject
         WorkingDirectoryText = session.WorkingDirectory;
         RepositoryName = session.RepositoryName ?? "Unknown";
         GitHubUri = session.GitHubTaskUrl is not null ? new Uri(session.GitHubTaskUrl) : null;
+        HasGitHubUrl = session.GitHubTaskUrl is not null;
         OutputLineCount = session.OutputLines.Count;
         SquadName = session.Squad?.TeamName ?? "—";
+
+        // Extract GitHub URL from output if not already set
+        if (!HasGitHubUrl)
+        {
+            foreach (var line in session.OutputLines)
+            {
+                var match = System.Text.RegularExpressions.Regex.Match(
+                    line, @"https?://github\.com/[^\s]+(?:/tasks/[^\s]+|/issues/[^\s]+|/pull/[^\s]+)");
+                if (match.Success)
+                {
+                    session.GitHubTaskUrl = match.Value;
+                    GitHubUri = new Uri(match.Value);
+                    HasGitHubUrl = true;
+                    break;
+                }
+            }
+        }
 
         var elapsed = DateTime.UtcNow - session.StartedAt;
         SessionAge = elapsed.TotalMinutes < 60
@@ -97,17 +118,25 @@ public partial class SessionViewModel : ObservableObject
     }
 
     [RelayCommand]
-    private void OpenInGitHub()
+    private async Task OpenInGitHubAsync()
     {
         if (_currentSession?.GitHubTaskUrl is { } url)
         {
             Log.Debug("Opening GitHub URL: {Url}", url);
-            // Launch browser with the URL
-            var psi = new System.Diagnostics.ProcessStartInfo(url)
+            try
             {
-                UseShellExecute = true
-            };
-            System.Diagnostics.Process.Start(psi);
+                await Windows.System.Launcher.LaunchUriAsync(new Uri(url));
+            }
+            catch (Exception ex)
+            {
+                Log.Warning(ex, "Failed to launch GitHub URL");
+                // Fallback to Process.Start
+                var psi = new System.Diagnostics.ProcessStartInfo(url)
+                {
+                    UseShellExecute = true
+                };
+                System.Diagnostics.Process.Start(psi);
+            }
         }
     }
 

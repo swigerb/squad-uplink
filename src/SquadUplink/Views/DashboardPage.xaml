@@ -5,6 +5,7 @@
     xmlns:local="using:SquadUplink.Views"
     xmlns:vm="using:SquadUplink.ViewModels"
     xmlns:models="using:SquadUplink.Models"
+    xmlns:controls="using:SquadUplink.Controls"
     xmlns:converters="using:SquadUplink.Converters">
 
     <Page.Resources>
@@ -12,6 +13,7 @@
         <converters:StatusToTextConverter x:Key="StatusToText" />
         <converters:TimeAgoConverter x:Key="TimeAgo" />
         <converters:NullToVisibilityConverter x:Key="NullToVisibility" />
+        <converters:BoolToVisibilityConverter x:Key="BoolToVis" />
     </Page.Resources>
 
     <Grid ColumnSpacing="12" RowSpacing="12" Padding="20,16">
@@ -42,14 +44,23 @@
 
             <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="4"
                         VerticalAlignment="Center" Margin="0,0,12,0">
-                <ToggleButton x:Name="GridViewToggle" Content="&#xF0E2;"
-                              FontFamily="{ThemeResource SymbolThemeFontFamily}"
-                              IsChecked="{x:Bind ViewModel.IsGridView, Mode=TwoWay}"
-                              ToolTipService.ToolTip="Grid View" Width="36" Height="36" Padding="0" />
                 <ToggleButton x:Name="TabViewToggle" Content="&#xE8A0;"
                               FontFamily="{ThemeResource SymbolThemeFontFamily}"
                               IsChecked="{x:Bind ViewModel.IsTabView, Mode=TwoWay}"
                               ToolTipService.ToolTip="Tab View" Width="36" Height="36" Padding="0" />
+                <ToggleButton x:Name="GridViewToggle" Content="&#xF0E2;"
+                              FontFamily="{ThemeResource SymbolThemeFontFamily}"
+                              IsChecked="{x:Bind ViewModel.IsGridView, Mode=TwoWay}"
+                              ToolTipService.ToolTip="Grid View" Width="36" Height="36" Padding="0" />
+
+                <!-- Grid Size Selector (visible only in grid mode) -->
+                <ComboBox x:Name="GridSizeSelector"
+                          ItemsSource="{x:Bind ViewModel.GridSizeOptions}"
+                          SelectedIndex="{x:Bind ViewModel.SelectedGridSizeIndex, Mode=TwoWay}"
+                          Visibility="{x:Bind ViewModel.IsGridSizeSelectorVisible, Mode=OneWay, Converter={StaticResource BoolToVis}}"
+                          Width="80" Height="36"
+                          VerticalAlignment="Center"
+                          ToolTipService.ToolTip="Grid Size" />
             </StackPanel>
 
             <Button Grid.Column="2" Command="{x:Bind ViewModel.RefreshCommand}"
@@ -58,195 +69,39 @@
             </Button>
         </Grid>
 
-        <!-- ═══ LEFT PANEL — Squad Tree ═══ -->
-        <Border Grid.Column="0" Grid.Row="1"
-                Style="{StaticResource CockpitPanelStyle}">
-            <Grid RowSpacing="8">
-                <Grid.RowDefinitions>
-                    <RowDefinition Height="Auto" />
-                    <RowDefinition Height="*" />
-                </Grid.RowDefinitions>
+        <!-- ═══ LEFT PANEL — Squad Tree + Status ═══ -->
+        <Grid Grid.Column="0" Grid.Row="1" RowSpacing="8">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="*" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
 
-                <StackPanel Grid.Row="0" Orientation="Horizontal" Spacing="8">
-                    <FontIcon Glyph="&#xE716;" FontSize="14"
-                              Foreground="{StaticResource SquadAccentGreenBrush}" />
-                    <TextBlock Text="SQUAD TREE" Style="{StaticResource SectionHeaderStyle}"
-                               CharacterSpacing="80" FontSize="11" />
-                </StackPanel>
+            <!-- Squad Tree Control -->
+            <Border Grid.Row="0" Style="{StaticResource CockpitPanelStyle}">
+                <controls:SquadTreeControl
+                    x:Name="SquadTreeView"
+                    Squads="{x:Bind ViewModel.Squads, Mode=OneWay}"
+                    SquadSelected="SquadTreeView_SquadSelected" />
+            </Border>
 
-                <!-- Squad Members List -->
-                <ListView Grid.Row="1"
-                          ItemsSource="{x:Bind ViewModel.SquadTreeItems, Mode=OneWay}"
-                          SelectionMode="None"
-                          Visibility="{x:Bind ViewModel.HasSquads, Mode=OneWay}">
-                    <ListView.ItemTemplate>
-                        <DataTemplate x:DataType="models:SquadTreeItem">
-                            <Grid Padding="{x:Bind local:DashboardPage.GetIndentPadding(IndentLevel)}"
-                                  Height="32">
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="Auto" />
-                                    <ColumnDefinition Width="*" />
-                                    <ColumnDefinition Width="Auto" />
-                                </Grid.ColumnDefinitions>
-                                <TextBlock Grid.Column="0" Text="{x:Bind Icon}"
-                                           FontSize="14" VerticalAlignment="Center"
-                                           Margin="0,0,8,0" />
-                                <TextBlock Grid.Column="1" Text="{x:Bind DisplayText}"
-                                           VerticalAlignment="Center"
-                                           FontWeight="{x:Bind local:DashboardPage.GetFontWeight(IsHeader)}"
-                                           FontSize="{x:Bind local:DashboardPage.GetFontSize(IsHeader)}" />
-                                <TextBlock Grid.Column="2" Text="{x:Bind StatusText}"
-                                           FontSize="10" VerticalAlignment="Center"
-                                           Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
-                            </Grid>
-                        </DataTemplate>
-                    </ListView.ItemTemplate>
-                </ListView>
+            <!-- Squad Status Panel -->
+            <controls:SquadStatusPanel Grid.Row="1"
+                x:Name="SquadStatusDetail"
+                SelectedSquad="{x:Bind ViewModel.SelectedSquad, Mode=OneWay}"
+                MaxHeight="280" />
+        </Grid>
 
-                <!-- No Squad Placeholder -->
-                <StackPanel Grid.Row="1"
-                            Visibility="{x:Bind ViewModel.NoSquadsVisible, Mode=OneWay}"
-                            VerticalAlignment="Center" HorizontalAlignment="Center"
-                            Spacing="8">
-                    <FontIcon Glyph="&#xE716;" FontSize="32"
-                              Foreground="{ThemeResource TextFillColorDisabledBrush}"
-                              HorizontalAlignment="Center" />
-                    <TextBlock Text="No Squad detected"
-                               Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                               HorizontalAlignment="Center" FontSize="12" />
-                    <TextBlock Text="Open a repo with .squad/ to see your team"
-                               Foreground="{ThemeResource TextFillColorDisabledBrush}"
-                               HorizontalAlignment="Center" FontSize="11"
-                               TextWrapping="Wrap" TextAlignment="Center" />
-                </StackPanel>
-            </Grid>
-        </Border>
-
-        <!-- ═══ CENTER — Session Grid ═══ -->
-        <ScrollViewer Grid.Column="1" Grid.Row="1" VerticalScrollBarVisibility="Auto">
-            <StackPanel Spacing="12">
-                <GridView ItemsSource="{x:Bind ViewModel.Sessions, Mode=OneWay}"
-                          SelectionMode="Single"
-                          IsItemClickEnabled="True"
-                          ItemClick="SessionCard_ItemClick">
-                    <GridView.ItemTemplate>
-                        <DataTemplate x:DataType="models:SessionState">
-                            <Border Style="{StaticResource SessionCardStyle}"
-                                    Width="290" Height="190" Margin="4">
-                                <Grid RowSpacing="6">
-                                    <Grid.RowDefinitions>
-                                        <RowDefinition Height="Auto" />
-                                        <RowDefinition Height="Auto" />
-                                        <RowDefinition Height="Auto" />
-                                        <RowDefinition Height="*" />
-                                        <RowDefinition Height="Auto" />
-                                    </Grid.RowDefinitions>
-
-                                    <!-- Repo name + Status badge -->
-                                    <Grid Grid.Row="0">
-                                        <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="*" />
-                                            <ColumnDefinition Width="Auto" />
-                                        </Grid.ColumnDefinitions>
-                                        <TextBlock Grid.Column="0"
-                                                   Text="{x:Bind RepositoryName, Mode=OneWay}"
-                                                   Style="{StaticResource BodyStrongTextBlockStyle}"
-                                                   FontSize="15"
-                                                   TextTrimming="CharacterEllipsis" />
-                                        <Border Grid.Column="1" CornerRadius="4"
-                                                Padding="8,2"
-                                                Background="{x:Bind Status, Mode=OneWay, Converter={StaticResource StatusToBrush}}">
-                                            <TextBlock Text="{x:Bind Status, Mode=OneWay, Converter={StaticResource StatusToText}}"
-                                                       FontSize="10" FontWeight="SemiBold"
-                                                       Foreground="White" />
-                                        </Border>
-                                    </Grid>
-
-                                    <!-- Working directory -->
-                                    <TextBlock Grid.Row="1"
-                                               Text="{x:Bind WorkingDirectory, Mode=OneWay}"
-                                               FontSize="11"
-                                               Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                                               TextTrimming="CharacterEllipsis"
-                                               FontFamily="Cascadia Mono,Consolas,monospace" />
-
-                                    <!-- PID + Age -->
-                                    <StackPanel Grid.Row="2" Orientation="Horizontal" Spacing="12">
-                                        <StackPanel Orientation="Horizontal" Spacing="4">
-                                            <FontIcon Glyph="&#xE943;" FontSize="10"
-                                                      Foreground="{ThemeResource TextFillColorTertiaryBrush}" />
-                                            <TextBlock FontSize="11"
-                                                       Foreground="{ThemeResource TextFillColorSecondaryBrush}">
-                                                <Run Text="PID " /><Run Text="{x:Bind ProcessId, Mode=OneWay}" />
-                                            </TextBlock>
-                                        </StackPanel>
-                                        <StackPanel Orientation="Horizontal" Spacing="4">
-                                            <FontIcon Glyph="&#xE823;" FontSize="10"
-                                                      Foreground="{ThemeResource TextFillColorTertiaryBrush}" />
-                                            <TextBlock Text="{x:Bind StartedAt, Mode=OneWay, Converter={StaticResource TimeAgo}}"
-                                                       FontSize="11"
-                                                       Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
-                                        </StackPanel>
-                                    </StackPanel>
-
-                                    <!-- Activity sparkline placeholder -->
-                                    <Border Grid.Row="3" CornerRadius="4"
-                                            Background="{ThemeResource CardBackgroundFillColorSecondaryBrush}"
-                                            Padding="4" Margin="0,4">
-                                        <Grid Height="24">
-                                            <!-- Simulated sparkline bars -->
-                                            <StackPanel Orientation="Horizontal" Spacing="2"
-                                                        VerticalAlignment="Bottom"
-                                                        HorizontalAlignment="Stretch">
-                                                <Border Width="3" Height="8" CornerRadius="1"
-                                                        Background="{StaticResource SquadAccentGreenBrush}" Opacity="0.3" />
-                                                <Border Width="3" Height="14" CornerRadius="1"
-                                                        Background="{StaticResource SquadAccentGreenBrush}" Opacity="0.5" />
-                                                <Border Width="3" Height="6" CornerRadius="1"
-                                                        Background="{StaticResource SquadAccentGreenBrush}" Opacity="0.3" />
-                                                <Border Width="3" Height="18" CornerRadius="1"
-                                                        Background="{StaticResource SquadAccentGreenBrush}" Opacity="0.7" />
-                                                <Border Width="3" Height="10" CornerRadius="1"
-                                                        Background="{StaticResource SquadAccentGreenBrush}" Opacity="0.4" />
-                                                <Border Width="3" Height="22" CornerRadius="1"
-                                                        Background="{StaticResource SquadAccentGreenBrush}" Opacity="0.9" />
-                                                <Border Width="3" Height="12" CornerRadius="1"
-                                                        Background="{StaticResource SquadAccentGreenBrush}" Opacity="0.5" />
-                                            </StackPanel>
-                                        </Grid>
-                                    </Border>
-
-                                    <!-- GitHub link -->
-                                    <HyperlinkButton Grid.Row="4"
-                                                     Content="{x:Bind GitHubTaskUrl, Mode=OneWay}"
-                                                     NavigateUri="{x:Bind GitHubTaskUrl, Mode=OneWay}"
-                                                     Visibility="{x:Bind GitHubTaskUrl, Mode=OneWay, Converter={StaticResource NullToVisibility}}"
-                                                     FontSize="11" Padding="0" />
-                                </Grid>
-                            </Border>
-                        </DataTemplate>
-                    </GridView.ItemTemplate>
-                </GridView>
-
-                <!-- Launch New Session Card -->
-                <Button Command="{x:Bind ViewModel.LaunchSessionCommand}"
-                        HorizontalAlignment="Left" Margin="4,0"
-                        Padding="0" Background="Transparent" BorderThickness="0">
-                    <Border Style="{StaticResource LaunchCardStyle}"
-                            Width="290" Height="190">
-                        <StackPanel VerticalAlignment="Center"
-                                    HorizontalAlignment="Center" Spacing="12">
-                            <FontIcon Glyph="&#xE710;" FontSize="36"
-                                      Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
-                            <TextBlock Text="Launch New Session"
-                                       HorizontalAlignment="Center"
-                                       Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                                       FontSize="14" FontWeight="SemiBold" />
-                        </StackPanel>
-                    </Border>
-                </Button>
-            </StackPanel>
-        </ScrollViewer>
+        <!-- ═══ CENTER — Session Layout (Tab / Grid) ═══ -->
+        <controls:SessionLayoutControl
+            x:Name="SessionLayout"
+            Grid.Column="1" Grid.Row="1"
+            LayoutMode="{x:Bind ViewModel.CurrentLayoutMode, Mode=OneWay}"
+            Sessions="{x:Bind ViewModel.Sessions, Mode=OneWay}"
+            GridSize="{x:Bind ViewModel.CurrentGridSize, Mode=OneWay}"
+            SelectedSessionIndex="{x:Bind ViewModel.SelectedSessionIndex, Mode=TwoWay}"
+            SessionCloseRequested="SessionLayout_SessionCloseRequested"
+            LaunchNewRequested="SessionLayout_LaunchNewRequested"
+            SessionFocusRequested="SessionLayout_SessionFocusRequested" />
 
         <!-- ═══ RIGHT PANEL — Stats &amp; Graphs ═══ -->
         <ScrollViewer Grid.Column="2" Grid.Row="1" VerticalScrollBarVisibility="Auto">

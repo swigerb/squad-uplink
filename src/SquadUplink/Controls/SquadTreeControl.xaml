@@ -1,0 +1,47 @@
+<UserControl
+    x:Class="SquadUplink.Controls.SquadTreeControl"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="using:SquadUplink.Controls"
+    xmlns:models="using:SquadUplink.Models">
+
+    <Grid RowSpacing="8">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <StackPanel Grid.Row="0" Orientation="Horizontal" Spacing="8">
+            <FontIcon Glyph="&#xE716;" FontSize="14"
+                      Foreground="{StaticResource SquadAccentGreenBrush}" />
+            <TextBlock Text="SQUAD TREE" Style="{StaticResource SectionHeaderStyle}"
+                       CharacterSpacing="80" FontSize="11" />
+        </StackPanel>
+
+        <!-- TreeView for squad hierarchy -->
+        <TreeView Grid.Row="1"
+                  x:Name="SquadTree"
+                  SelectionMode="Single"
+                  ItemInvoked="SquadTree_ItemInvoked"
+                  Visibility="{x:Bind HasSquads, Mode=OneWay}">
+        </TreeView>
+
+        <!-- No Squad Placeholder -->
+        <StackPanel Grid.Row="1"
+                    x:Name="NoSquadPanel"
+                    Visibility="{x:Bind NoSquadsVisible, Mode=OneWay}"
+                    VerticalAlignment="Center" HorizontalAlignment="Center"
+                    Spacing="8">
+            <FontIcon Glyph="&#xE946;" FontSize="32"
+                      Foreground="{ThemeResource TextFillColorDisabledBrush}"
+                      HorizontalAlignment="Center" />
+            <TextBlock Text="No Squad detected"
+                       Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                       HorizontalAlignment="Center" FontSize="12" />
+            <TextBlock Text="Open a repo with .squad/ to see your team"
+                       Foreground="{ThemeResource TextFillColorDisabledBrush}"
+                       HorizontalAlignment="Center" FontSize="11"
+                       TextWrapping="Wrap" TextAlignment="Center" />
+        </StackPanel>
+    </Grid>
+</UserControl>

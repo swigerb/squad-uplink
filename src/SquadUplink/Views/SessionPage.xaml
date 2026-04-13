@@ -9,6 +9,7 @@
     <Page.Resources>
         <converters:StatusToBrushConverter x:Key="StatusToBrush" />
         <converters:StatusToTextConverter x:Key="StatusToText" />
+        <converters:BoolToVisibilityConverter x:Key="BoolToVis" />
     </Page.Resources>
 
     <Grid Padding="20,16" RowSpacing="12">
@@ -97,14 +98,16 @@
                         </StackPanel>
                     </Button>
                     <Button Command="{x:Bind ViewModel.OpenInGitHubCommand}"
-                            ToolTipService.ToolTip="Open in GitHub">
+                            ToolTipService.ToolTip="Open in GitHub"
+                            Visibility="{x:Bind ViewModel.HasGitHubUrl, Mode=OneWay, Converter={StaticResource BoolToVis}}">
                         <StackPanel Orientation="Horizontal" Spacing="6">
                             <FontIcon Glyph="&#xE71B;" FontSize="12" />
                             <TextBlock Text="GitHub" />
                         </StackPanel>
                     </Button>
                     <Button Command="{x:Bind ViewModel.CopyTaskUrlCommand}"
-                            ToolTipService.ToolTip="Copy Task URL">
+                            ToolTipService.ToolTip="Copy Task URL"
+                            Visibility="{x:Bind ViewModel.HasGitHubUrl, Mode=OneWay, Converter={StaticResource BoolToVis}}">
                         <FontIcon Glyph="&#xE8C8;" FontSize="14" />
                     </Button>
                 </StackPanel>

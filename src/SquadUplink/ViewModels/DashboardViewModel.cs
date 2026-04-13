@@ -51,16 +51,41 @@ public partial class DashboardViewModel : ObservableObject
     private bool _isTabView;
 
     [ObservableProperty]
+    private LayoutMode _currentLayoutMode = LayoutMode.Tabs;
+
+    [ObservableProperty]
+    private GridSize _currentGridSize = GridSize.Default;
+
+    [ObservableProperty]
+    private int _selectedSessionIndex = -1;
+
+    [ObservableProperty]
     private Visibility _hasSquads = Visibility.Collapsed;
 
     [ObservableProperty]
     private Visibility _noSquadsVisible = Visibility.Visible;
+
+    [ObservableProperty]
+    private SquadInfo? _selectedSquad;
+
+    [ObservableProperty]
+    private bool _isGridSizeSelectorVisible;
+
+    [ObservableProperty]
+    private int _selectedGridSizeIndex;
+
+    [ObservableProperty]
+    private bool _isFocusedMode;
 
     public ObservableCollection<SessionState> Sessions => _sessionManager.Sessions;
 
     public ObservableCollection<SquadTreeItem> SquadTreeItems { get; } = [];
 
     public ObservableCollection<SquadInfo> Squads { get; } = [];
+
+    public ObservableCollection<SessionHistoryEntry> RecentSessions { get; } = [];
+
+    public string[] GridSizeOptions { get; } = GridSize.Presets.Select(g => g.ToString()).ToArray();
 
     public DashboardViewModel(ISessionManager sessionManager, IDataService dataService, ISquadDetector squadDetector)
     {
@@ -69,6 +94,8 @@ public partial class DashboardViewModel : ObservableObject
         _squadDetector = squadDetector;
         UpdateStats();
         Sessions.CollectionChanged += (_, _) => UpdateStats();
+        _ = LoadRecentSessionsAsync();
+        _ = LoadLayoutPreferencesAsync();
     }
 
     [RelayCommand]
@@ -89,8 +116,7 @@ public partial class DashboardViewModel : ObservableObject
     [RelayCommand]
     private async Task RefreshAsync()
     {
-        var recent = await _dataService.GetRecentSessionsAsync();
-        Log.Debug("Loaded {Count} recent sessions", recent.Count);
+        await LoadRecentSessionsAsync();
         UpdateStats();
     }
 
@@ -102,14 +128,150 @@ public partial class DashboardViewModel : ObservableObject
         // Navigation handled by the page code-behind
     }
 
+    [RelayCommand]
+    private async Task CloseSessionAsync(SessionState? session)
+    {
+        if (session is null) return;
+        try
+        {
+            await _sessionManager.StopSessionAsync(session.Id);
+            Log.Information("Session {Id} closed from dashboard", session.Id);
+        }
+        catch (Exception ex)
+        {
+            Log.Error(ex, "Failed to close session {Id}", session.Id);
+        }
+    }
+
+    [RelayCommand]
+    private async Task ResumeSessionAsync(SessionHistoryEntry? entry)
+    {
+        if (entry is null) return;
+        try
+        {
+            await _sessionManager.LaunchSessionAsync(entry.WorkingDirectory);
+            Log.Information("Resumed session in {Dir}", entry.WorkingDirectory);
+        }
+        catch (Exception ex)
+        {
+            Log.Error(ex, "Failed to resume session in {Dir}", entry.WorkingDirectory);
+        }
+    }
+
+    [RelayCommand]
+    private void SelectNextSession()
+    {
+        if (Sessions.Count == 0) return;
+        SelectedSessionIndex = (SelectedSessionIndex + 1) % Sessions.Count;
+    }
+
+    [RelayCommand]
+    private void SelectPreviousSession()
+    {
+        if (Sessions.Count == 0) return;
+        SelectedSessionIndex = (SelectedSessionIndex - 1 + Sessions.Count) % Sessions.Count;
+    }
+
+    [RelayCommand]
+    private void SelectSessionByIndex(int index)
+    {
+        if (index >= 0 && index < Sessions.Count)
+        {
+            SelectedSessionIndex = index;
+        }
+    }
+
+    [RelayCommand]
+    private void ToggleFocusedMode()
+    {
+        IsFocusedMode = !IsFocusedMode;
+        Log.Debug("Focused mode toggled: {Mode}", IsFocusedMode);
+    }
+
     partial void OnIsGridViewChanged(bool value)
     {
-        if (value) IsTabView = false;
+        if (value)
+        {
+            IsTabView = false;
+            CurrentLayoutMode = LayoutMode.Grid;
+            IsGridSizeSelectorVisible = true;
+            _ = SaveLayoutPreferencesAsync();
+        }
     }
 
     partial void OnIsTabViewChanged(bool value)
     {
-        if (value) IsGridView = false;
+        if (value)
+        {
+            IsGridView = false;
+            CurrentLayoutMode = LayoutMode.Tabs;
+            IsGridSizeSelectorVisible = false;
+            _ = SaveLayoutPreferencesAsync();
+        }
+    }
+
+    partial void OnSelectedGridSizeIndexChanged(int value)
+    {
+        if (value >= 0 && value < GridSize.Presets.Length)
+        {
+            CurrentGridSize = GridSize.Presets[value];
+            _ = SaveLayoutPreferencesAsync();
+        }
+    }
+
+    private async Task LoadLayoutPreferencesAsync()
+    {
+        try
+        {
+            var settings = await _dataService.GetSettingsAsync();
+            if (Enum.TryParse<LayoutMode>(settings.LayoutMode, out var mode))
+            {
+                CurrentLayoutMode = mode;
+                IsTabView = mode == LayoutMode.Tabs;
+                IsGridView = mode == LayoutMode.Grid;
+            }
+            CurrentGridSize = GridSize.Parse(settings.GridSize);
+            SelectedGridSizeIndex = Array.IndexOf(GridSizeOptions, CurrentGridSize.ToString());
+            if (SelectedGridSizeIndex < 0) SelectedGridSizeIndex = 3; // default 2x2
+            IsGridSizeSelectorVisible = CurrentLayoutMode == LayoutMode.Grid;
+        }
+        catch (Exception ex)
+        {
+            Log.Warning(ex, "Failed to load layout preferences");
+        }
+    }
+
+    private async Task SaveLayoutPreferencesAsync()
+    {
+        try
+        {
+            var settings = await _dataService.GetSettingsAsync();
+            settings.LayoutMode = CurrentLayoutMode.ToString();
+            settings.GridSize = CurrentGridSize.ToString();
+            await _dataService.SaveSettingsAsync(settings);
+        }
+        catch (Exception ex)
+        {
+            Log.Warning(ex, "Failed to save layout preferences");
+        }
+    }
+
+    private async Task LoadRecentSessionsAsync()
+    {
+        try
+        {
+            var recent = await _dataService.GetRecentSessionsAsync(10);
+            RecentSessions.Clear();
+            foreach (var entry in recent)
+            {
+                RecentSessions.Add(entry);
+            }
+            Log.Debug("Loaded {Count} recent sessions", recent.Count);
+        }
+        catch (Exception ex)
+        {
+            Log.Warning(ex, "Failed to load recent sessions");
+        }
     }
 
     private void UpdateStats()
@@ -139,6 +301,7 @@ public partial class DashboardViewModel : ObservableObject
     private void RebuildSquadTree()
     {
         SquadTreeItems.Clear();
+        Squads.Clear();
         var squadsFound = false;
 
         foreach (var session in Sessions)
@@ -146,12 +309,18 @@ public partial class DashboardViewModel : ObservableObject
             if (session.Squad is { } squad)
             {
                 squadsFound = true;
+                if (!Squads.Any(s => s.TeamName == squad.TeamName))
+                    Squads.Add(squad);
                 AddSquadToTree(squad, 0);
             }
         }
 
         HasSquads = squadsFound ? Visibility.Visible : Visibility.Collapsed;
         NoSquadsVisible = squadsFound ? Visibility.Collapsed : Visibility.Visible;
+
+        // Auto-select first squad if none selected
+        if (SelectedSquad is null && Squads.Count > 0)
+            SelectedSquad = Squads[0];
     }
 
     private void AddSquadToTree(SquadInfo squad, int indent)
