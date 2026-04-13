@@ -1,0 +1,84 @@
+<Window
+    x:Class="SquadUplink.MainWindow"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="using:SquadUplink"
+    xmlns:views="using:SquadUplink.Views"
+    Title="Squad Uplink">
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="48" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <!-- Custom Title Bar -->
+        <Grid x:Name="AppTitleBar" Grid.Row="0" Padding="16,0">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+
+            <FontIcon Grid.Column="0" Glyph="&#xE774;" FontSize="18"
+                       Foreground="{StaticResource SquadAccentGreenBrush}"
+                       VerticalAlignment="Center" Margin="0,0,8,0" />
+            <TextBlock Grid.Column="1" Text="Squad Uplink"
+                       Style="{StaticResource CaptionTextBlockStyle}"
+                       FontWeight="SemiBold" FontSize="13"
+                       VerticalAlignment="Center" />
+            <InfoBadge Grid.Column="2" x:Name="SessionCountBadge"
+                       Value="{x:Bind SessionCount, Mode=OneWay}"
+                       Margin="8,0,0,0" VerticalAlignment="Center"
+                       Style="{ThemeResource AttentionIconInfoBadgeStyle}" />
+            <TextBlock Grid.Column="4" x:Name="StatusText"
+                       Text="{x:Bind StatusMessage, Mode=OneWay}"
+                       Style="{StaticResource CaptionTextBlockStyle}"
+                       Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                       VerticalAlignment="Center" />
+        </Grid>
+
+        <!-- Navigation + Content -->
+        <NavigationView
+            x:Name="NavView"
+            Grid.Row="1"
+            IsBackButtonVisible="Collapsed"
+            PaneDisplayMode="LeftCompact"
+            SelectionChanged="NavView_SelectionChanged"
+            IsSettingsVisible="True"
+            IsPaneToggleButtonVisible="True"
+            OpenPaneLength="200">
+
+            <NavigationView.MenuItems>
+                <NavigationViewItem Content="Dashboard" Tag="Dashboard">
+                    <NavigationViewItem.Icon>
+                        <FontIcon Glyph="&#xE80F;" />
+                    </NavigationViewItem.Icon>
+                </NavigationViewItem>
+                <NavigationViewItem Content="Sessions" Tag="Sessions">
+                    <NavigationViewItem.Icon>
+                        <FontIcon Glyph="&#xF0E2;" />
+                    </NavigationViewItem.Icon>
+                </NavigationViewItem>
+            </NavigationView.MenuItems>
+
+            <NavigationView.FooterMenuItems>
+                <NavigationViewItem x:Name="FooterStatusItem" SelectsOnInvoked="False" IsEnabled="False">
+                    <NavigationViewItem.Icon>
+                        <FontIcon x:Name="FooterStatusIcon" Glyph="&#xE895;"
+                                  Foreground="{StaticResource SquadAccentGreenBrush}" />
+                    </NavigationViewItem.Icon>
+                    <NavigationViewItem.Content>
+                        <TextBlock x:Name="FooterStatusText" Text="Scanning..."
+                                   FontSize="11"
+                                   Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                    </NavigationViewItem.Content>
+                </NavigationViewItem>
+            </NavigationView.FooterMenuItems>
+
+            <Frame x:Name="ContentFrame" />
+        </NavigationView>
+    </Grid>
+</Window>

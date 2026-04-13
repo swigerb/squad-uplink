@@ -1,0 +1,16 @@
+namespace SquadUplink.Models;
+
+public class AppSettings
+{
+    public string ThemeId { get; set; } = "FluentDark";
+    public int ScanIntervalSeconds { get; set; } = 5;
+    public string DefaultWorkingDirectory { get; set; } = string.Empty;
+    public bool AudioEnabled { get; set; } = true;
+    public bool AutoScanOnStartup { get; set; } = true;
+    public bool CrtEffectsEnabled { get; set; }
+    public double FontSize { get; set; } = 13;
+    public double Volume { get; set; } = 80;
+    public string SoundPack { get; set; } = "Fluent";
+    public string DefaultModel { get; set; } = "auto";
+    public bool AlwaysUseRemote { get; set; }
+}
