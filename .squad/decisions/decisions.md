@@ -647,5 +647,21 @@ Low. Scaffold only — all service implementations are stubs. Real logic comes n
 
 ---
 
+## Copilot CLI Model Preference — Opus 4.6 for All Code
+
+**By:** Brian Swiger (via Copilot directive)  
+**Date:** 2026-04-13  
+**Status:** Directive
+
+### Decision
+
+Use Opus 4.6 for ANYONE that writes code. Full audit of app for WinUI 3 / Fluent 2 best practices, metrics, logging, tracing, and error handling.
+
+### Rationale
+
+User request — quality gate before shipping.
+
+---
+
 ## Archive Log
 (Post-release decisions logged here).
