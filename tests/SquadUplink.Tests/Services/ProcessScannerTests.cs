@@ -216,6 +216,90 @@ public class ProcessScannerTests
         Assert.Equal(7002, results[1].ProcessId);
     }
 
+    // --- Parent-child process tree detection tests ---
+
+    [Fact]
+    public void ClassifyCopilotProcess_IncludesRootCopilotFromShell()
+    {
+        // Root copilot.exe spawned from a shell (parent PID 52432 is NOT a copilot process)
+        var proc = new ProcessInfoSnapshot(33156, "copilot",
+            "\"C:\\AppData\\copilot.exe\"", null, DateTime.UtcNow, ParentProcessId: 52432);
+        var copilotPids = new HashSet<int> { 33156, 40596 };
+
+        var (isMatch, reason) = ProcessScanner.ClassifyCopilotProcess(proc, copilotPids);
+        Assert.True(isMatch);
+        Assert.Contains("Root", reason);
+    }
+
+    [Fact]
+    public void ClassifyCopilotProcess_ExcludesChildDaemon()
+    {
+        // Child copilot.exe spawned from another copilot.exe (parent PID 33156 is copilot)
+        var proc = new ProcessInfoSnapshot(40596, "copilot",
+            "C:\\AppData\\copilot.exe", null, DateTime.UtcNow, ParentProcessId: 33156);
+        var copilotPids = new HashSet<int> { 33156, 40596 };
+
+        var (isMatch, reason) = ProcessScanner.ClassifyCopilotProcess(proc, copilotPids);
+        Assert.False(isMatch);
+        Assert.Contains("Child daemon", reason);
+    }
+
+    [Fact]
+    public async Task ScanAsync_DetectsRootSessionsFromProcessTree()
+    {
+        // Simulates real Copilot CLI process tree:
+        // PID 33156 (parent: 52432 shell) → root session
+        // PID 40596 (parent: 33156 copilot) → child daemon
+        // PID 23004 (parent: 34188 shell) → root session
+        // PID 52176 (parent: 23004 copilot) → child daemon
+        var fakeProcesses = new[]
+        {
+            new ProcessInfoSnapshot(33156, "copilot",
+                "\"C:\\copilot.exe\"", null, DateTime.UtcNow, ParentProcessId: 52432),
+            new ProcessInfoSnapshot(40596, "copilot",
+                "C:\\copilot.exe", null, DateTime.UtcNow, ParentProcessId: 33156),
+            new ProcessInfoSnapshot(23004, "copilot",
+                "\"C:\\copilot.exe\"", null, DateTime.UtcNow, ParentProcessId: 34188),
+            new ProcessInfoSnapshot(52176, "copilot",
+                "C:\\copilot.exe", null, DateTime.UtcNow, ParentProcessId: 23004),
+            new ProcessInfoSnapshot(26436, "copilot-language-server",
+                "--stdio", null, DateTime.UtcNow, ParentProcessId: 44152),
+        };
+
+        var scanner = new ProcessScanner(TestLogger, () => fakeProcesses);
+        var results = await scanner.ScanAsync();
+
+        // Only the two root copilot.exe processes should be detected as sessions
+        Assert.Equal(2, results.Count);
+        Assert.Equal(33156, results[0].ProcessId);
+        Assert.Equal(23004, results[1].ProcessId);
+    }
+
+    [Fact]
+    public async Task ScanAsync_MixesParentTreeAndArgDetection()
+    {
+        // Root session with explicit --remote flag PLUS bare root session detected by parent tree
+        var fakeProcesses = new[]
+        {
+            new ProcessInfoSnapshot(1001, "copilot",
+                "copilot.exe --remote", null, DateTime.UtcNow, ParentProcessId: 9999),
+            new ProcessInfoSnapshot(2001, "copilot",
+                "\"C:\\copilot.exe\"", null, DateTime.UtcNow, ParentProcessId: 8888),
+            new ProcessInfoSnapshot(2002, "copilot",
+                "C:\\copilot.exe", null, DateTime.UtcNow, ParentProcessId: 2001),
+        };
+
+        var scanner = new ProcessScanner(TestLogger, () => fakeProcesses);
+        var results = await scanner.ScanAsync();
+
+        // 1001: has --remote arg → included
+        // 2001: bare exe but root (parent 8888 not copilot) → included
+        // 2002: bare exe and child (parent 2001 is copilot) → excluded
+        Assert.Equal(2, results.Count);
+        Assert.Equal(1001, results[0].ProcessId);
+        Assert.Equal(2001, results[1].ProcessId);
+    }
+
     // --- BuildSessionState tests ---
 
     [Fact]

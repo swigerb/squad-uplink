@@ -47,42 +47,55 @@ public partial class ProcessScanner : IProcessScanner
         _processProvider = processProvider;
     }
 
-    public Task<IReadOnlyList<SessionState>> ScanAsync(CancellationToken ct = default)
+    public async Task<IReadOnlyList<SessionState>> ScanAsync(CancellationToken ct = default)
     {
         ct.ThrowIfCancellationRequested();
-        var results = new List<SessionState>();
 
-        try
+        return await Task.Run(() =>
         {
-            var processes = _processProvider();
-            foreach (var proc in processes)
+            var results = new List<SessionState>();
+
+            try
             {
-                ct.ThrowIfCancellationRequested();
+                var processes = _processProvider().ToList();
 
-                var (isMatch, reason) = ClassifyCopilotProcess(proc);
-                _logger.Debug("Process {Name} (PID {Pid}): {Result} — {Reason}",
-                    proc.ProcessName, proc.Pid, isMatch ? "INCLUDED" : "EXCLUDED", reason);
+                // Build set of all copilot.exe PIDs for parent-child detection.
+                // Root copilot.exe (parent = shell) is the session; child (parent = copilot) is a daemon.
+                var copilotPids = new HashSet<int>(
+                    processes
+                        .Where(p => p.ProcessName.Equals("copilot", StringComparison.OrdinalIgnoreCase))
+                        .Select(p => p.Pid));
 
-                if (!isMatch)
-                    continue;
+                foreach (var proc in processes)
+                {
+                    ct.ThrowIfCancellationRequested();
 
-                var session = BuildSessionState(proc);
-                if (session is not null)
-                    results.Add(session);
+                    var (isMatch, reason) = ClassifyCopilotProcess(proc, copilotPids);
+                    _logger.Debug("Process {Name} (PID {Pid}): {Result} — {Reason}",
+                        proc.ProcessName, proc.Pid, isMatch ? "INCLUDED" : "EXCLUDED", reason);
+
+                    if (!isMatch)
+                        continue;
+
+                    var session = BuildSessionState(proc);
+                    if (session is not null)
+                        results.Add(session);
+                }
             }
-        }
-        catch (Exception ex) when (ex is not OperationCanceledException)
-        {
-            _logger.Warning(ex, "Process scan encountered an error");
-        }
+            catch (Exception ex) when (ex is not OperationCanceledException)
+            {
+                _logger.Warning(ex, "Process scan encountered an error");
+            }
 
-        return Task.FromResult<IReadOnlyList<SessionState>>(results.AsReadOnly());
+            return (IReadOnlyList<SessionState>)results.AsReadOnly();
+        }, ct);
     }
 
     /// <summary>
     /// Returns (isMatch, reason) for detailed diagnostics on why a process was included or excluded.
     /// </summary>
-    internal static (bool IsMatch, string Reason) ClassifyCopilotProcess(ProcessInfoSnapshot proc)
+    internal static (bool IsMatch, string Reason) ClassifyCopilotProcess(
+        ProcessInfoSnapshot proc, ISet<int>? copilotPids = null)
     {
         // 1. Always exclude non-GitHub-Copilot processes by name
         if (ExcludedProcessNames.Contains(proc.ProcessName, StringComparer.OrdinalIgnoreCase))
@@ -95,7 +108,7 @@ public partial class ProcessScanner : IProcessScanner
         // 3. copilot.exe — must distinguish daemon from interactive session
         if (string.Equals(proc.ProcessName, "copilot", StringComparison.OrdinalIgnoreCase))
         {
-            return IsInteractiveSession(proc);
+            return IsInteractiveSession(proc, copilotPids);
         }
 
         // 4. Node processes running Copilot CLI (npm/npx scenarios)
@@ -110,36 +123,44 @@ public partial class ProcessScanner : IProcessScanner
 
     /// <summary>
     /// Determines if a copilot.exe process is an interactive session vs a background daemon.
-    /// Background daemons run as bare "copilot.exe" with no meaningful args.
-    /// Interactive sessions have prompt text, --remote, --resume, --continue, etc.
+    /// The Copilot CLI spawns child copilot.exe daemons for each session — the root process
+    /// (whose parent is a shell, not another copilot.exe) is the actual user session.
+    /// Interactive sessions may also have explicit args like --remote, --resume, --continue.
     /// </summary>
-    internal static (bool IsMatch, string Reason) IsInteractiveSession(ProcessInfoSnapshot proc)
+    internal static (bool IsMatch, string Reason) IsInteractiveSession(
+        ProcessInfoSnapshot proc, ISet<int>? copilotPids = null)
     {
         var cmdLine = proc.CommandLine;
+        var args = cmdLine is not null ? StripExecutablePath(cmdLine) : null;
 
-        // No command line available at all — be conservative, include it
-        // (WMI fallback may not have command line info)
-        if (cmdLine is null)
-            return (false, "No command line available — assumed daemon");
-
-        // Strip the executable path/name to isolate the arguments.
-        // Command lines look like: "C:\...\copilot.exe" --remote
-        // or: copilot --remote
-        var args = StripExecutablePath(cmdLine);
-
-        // Bare executable with no arguments = background daemon
-        if (string.IsNullOrWhiteSpace(args))
-            return (false, "Bare copilot.exe with no args — background daemon");
-
-        // Check for known interactive indicators
-        foreach (var indicator in InteractiveSessionIndicators)
+        // Has meaningful command-line arguments → interactive session
+        if (!string.IsNullOrWhiteSpace(args))
         {
-            if (args.Contains(indicator, StringComparison.OrdinalIgnoreCase))
-                return (true, $"Interactive session: found {indicator}");
+            foreach (var indicator in InteractiveSessionIndicators)
+            {
+                if (args.Contains(indicator, StringComparison.OrdinalIgnoreCase))
+                    return (true, $"Interactive session: found {indicator}");
+            }
+            return (true, $"Interactive session: has args [{Truncate(args, 80)}]");
         }
 
-        // Any other non-empty args (prompt text, flags) = interactive session
-        return (true, $"Interactive session: has args [{Truncate(args, 80)}]");
+        // Bare copilot.exe or no command line — use parent process tree.
+        // The Copilot CLI runs as a bare "copilot.exe" with flags consumed internally.
+        // Root copilot.exe (parent is a shell) = the user's session.
+        // Child copilot.exe (parent is another copilot.exe) = background daemon helper.
+        if (proc.ParentProcessId.HasValue && copilotPids is not null)
+        {
+            if (copilotPids.Contains(proc.ParentProcessId.Value))
+                return (false, "Child daemon: parent is another copilot.exe");
+
+            return (true, "Root copilot session: launched from shell (parent is not copilot.exe)");
+        }
+
+        // No parent info and no command line — conservative exclusion
+        if (cmdLine is null)
+            return (false, "No command line or parent info — assumed daemon");
+
+        return (false, "Bare copilot.exe with no args — background daemon");
     }
 
     /// <summary>
@@ -213,6 +234,32 @@ public partial class ProcessScanner : IProcessScanner
             : null;
     }
 
+    /// <summary>
+    /// Retrieves command line and parent PID for a single process via CIM.
+    /// Used as a fallback when the broad WMI query fails.
+    /// </summary>
+    private static (string? CommandLine, int? ParentProcessId) GetProcessDetailsForPid(int pid)
+    {
+        try
+        {
+            using var searcher = new ManagementObjectSearcher(
+                $"SELECT CommandLine, ParentProcessId FROM Win32_Process WHERE ProcessId = {pid}");
+            foreach (ManagementObject obj in searcher.Get())
+            {
+                using (obj)
+                {
+                    var cmdLine = obj["CommandLine"]?.ToString();
+                    var parentPid = obj["ParentProcessId"] is not null
+                        ? Convert.ToInt32(obj["ParentProcessId"])
+                        : (int?)null;
+                    return (cmdLine, parentPid);
+                }
+            }
+        }
+        catch { /* CIM not available for this process */ }
+        return (null, null);
+    }
+
     private static IEnumerable<ProcessInfoSnapshot> GetSystemProcesses()
     {
         var snapshots = new List<ProcessInfoSnapshot>();
@@ -220,8 +267,8 @@ public partial class ProcessScanner : IProcessScanner
         try
         {
             using var searcher = new ManagementObjectSearcher(
-                "SELECT ProcessId, Name, CommandLine, ExecutablePath FROM Win32_Process " +
-                "WHERE (Name LIKE '%copilot%' OR Name LIKE '%node%' OR Name LIKE '%github-copilot%') " +
+                "SELECT ProcessId, Name, CommandLine, ExecutablePath, ParentProcessId FROM Win32_Process " +
+                "WHERE (Name LIKE 'copilot%' OR Name LIKE 'github-copilot%') " +
                 "AND Name NOT LIKE '%copilot-language-server%' AND Name NOT LIKE '%M365Copilot%'");
 
             foreach (ManagementObject obj in searcher.Get())
@@ -233,6 +280,9 @@ public partial class ProcessScanner : IProcessScanner
                         var pid = Convert.ToInt32(obj["ProcessId"]);
                         var name = obj["Name"]?.ToString() ?? string.Empty;
                         var cmdLine = obj["CommandLine"]?.ToString();
+                        var parentPid = obj["ParentProcessId"] is not null
+                            ? Convert.ToInt32(obj["ParentProcessId"])
+                            : (int?)null;
 
                         if (name.EndsWith(".exe", StringComparison.OrdinalIgnoreCase))
                             name = name[..^4];
@@ -247,7 +297,7 @@ public partial class ProcessScanner : IProcessScanner
                         catch (System.ComponentModel.Win32Exception) { /* access denied */ }
                         catch (ArgumentException) { /* process not found */ }
 
-                        snapshots.Add(new ProcessInfoSnapshot(pid, name, cmdLine, null, startTime));
+                        snapshots.Add(new ProcessInfoSnapshot(pid, name, cmdLine, null, startTime, parentPid));
                     }
                     catch (Exception ex)
                     {
@@ -259,7 +309,7 @@ public partial class ProcessScanner : IProcessScanner
         catch (Exception ex)
         {
             Log.Debug(ex, "WMI not available, falling back to Process API");
-            // WMI not available — fall back to Process API
+            // WMI not available — fall back to Process API with per-process CIM for details
             foreach (var procName in CopilotProcessNames)
             {
                 try
@@ -268,12 +318,14 @@ public partial class ProcessScanner : IProcessScanner
                     {
                         try
                         {
+                            var (cmdLine, parentPid) = GetProcessDetailsForPid(proc.Id);
                             snapshots.Add(new ProcessInfoSnapshot(
                                 proc.Id,
                                 proc.ProcessName,
+                                cmdLine,
                                 null,
-                                null,
-                                proc.StartTime));
+                                proc.StartTime,
+                                parentPid));
                         }
                         catch (InvalidOperationException) { /* process exited */ }
                         catch (System.ComponentModel.Win32Exception) { /* access denied */ }
@@ -293,4 +345,5 @@ internal record ProcessInfoSnapshot(
     string ProcessName,
     string? CommandLine,
     string? WorkingDirectory,
-    DateTime? StartTime);
+    DateTime? StartTime,
+    int? ParentProcessId = null);
