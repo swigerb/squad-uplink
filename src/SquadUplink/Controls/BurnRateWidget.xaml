@@ -1,0 +1,44 @@
+<UserControl
+    x:Class="SquadUplink.Controls.BurnRateWidget"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <Border Style="{StaticResource CockpitPanelStyle}">
+        <StackPanel Spacing="6">
+            <TextBlock Text="BURN RATE" Style="{StaticResource SectionHeaderStyle}"
+                       CharacterSpacing="80" FontSize="10" />
+
+            <!-- Large burn rate number -->
+            <TextBlock x:Name="BurnRateText"
+                       Text="{x:Bind BurnRateDisplay, Mode=OneWay}"
+                       FontSize="32" FontWeight="Bold"
+                       FontFamily="Cascadia Mono,Consolas,monospace"
+                       Foreground="{x:Bind BurnRateBrush, Mode=OneWay}" />
+
+            <!-- Session total subtitle -->
+            <TextBlock x:Name="SessionTotalText"
+                       Text="{x:Bind SessionTotalDisplay, Mode=OneWay}"
+                       Style="{StaticResource StatLabelTextStyle}" />
+
+            <!-- Mini trend line (last 10 data points as bar chart) -->
+            <Grid Height="32" Margin="0,4,0,0">
+                <ItemsControl x:Name="TrendBars"
+                              ItemsSource="{x:Bind TrendHeights, Mode=OneWay}">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <StackPanel Orientation="Horizontal" Spacing="3"
+                                        VerticalAlignment="Bottom" />
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate x:DataType="x:Double">
+                            <Border Width="12" Height="{x:Bind}" CornerRadius="2"
+                                    Background="{ThemeResource TextFillColorSecondaryBrush}"
+                                    Opacity="0.6" />
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </Grid>
+        </StackPanel>
+    </Border>
+</UserControl>

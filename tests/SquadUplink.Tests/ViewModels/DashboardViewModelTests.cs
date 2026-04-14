@@ -23,7 +23,7 @@ public class DashboardViewModelTests
         dataService.Setup(d => d.GetRecentSessionsAsync(It.IsAny<int>()))
             .ReturnsAsync(new List<SessionHistoryEntry>().AsReadOnly());
         var mockSquadDetector = new Mock<ISquadDetector>();
-        var mockTelemetry = new Mock<ITelemetryService>();
+        var mockTelemetry = MockHelpers.CreateTelemetryMock();
         mockTelemetry.Setup(t => t.GetCurrentMetrics()).Returns(new TokenMetrics());
         mockTelemetry.Setup(t => t.GetAgentBreakdown()).Returns(new List<AgentTokenSummary>().AsReadOnly());
         var mockLogger = new Mock<ILogger<DashboardViewModel>>();
@@ -135,7 +135,7 @@ public class DashboardViewModelTests
         mockDataService.Setup(d => d.GetRecentSessionsAsync(It.IsAny<int>()))
             .ReturnsAsync(new List<SessionHistoryEntry>().AsReadOnly());
 
-        var mockTelemetry = new Mock<ITelemetryService>();
+        var mockTelemetry = MockHelpers.CreateTelemetryMock();
         mockTelemetry.Setup(t => t.GetCurrentMetrics()).Returns(new TokenMetrics());
         mockTelemetry.Setup(t => t.GetAgentBreakdown()).Returns(new List<AgentTokenSummary>().AsReadOnly());
 
@@ -432,7 +432,7 @@ public class DashboardViewModelTests
         mockDataService.Setup(d => d.GetRecentSessionsAsync(It.IsAny<int>()))
             .ReturnsAsync(new List<SessionHistoryEntry>().AsReadOnly());
 
-        var mockTelemetry = new Mock<ITelemetryService>();
+        var mockTelemetry = MockHelpers.CreateTelemetryMock();
         mockTelemetry.Setup(t => t.GetCurrentMetrics()).Returns(new TokenMetrics());
         mockTelemetry.Setup(t => t.GetAgentBreakdown()).Returns(new List<AgentTokenSummary>().AsReadOnly());
 

@@ -30,7 +30,7 @@ public class AllViewModels_NullSafetyTests
         mockDataService.Setup(d => d.GetRecentSessionsAsync(It.IsAny<int>()))
             .ReturnsAsync(new List<SessionHistoryEntry>().AsReadOnly());
 
-        var mockTelemetry = new Mock<ITelemetryService>();
+        var mockTelemetry = MockHelpers.CreateTelemetryMock();
         mockTelemetry.Setup(t => t.GetCurrentMetrics()).Returns(new TokenMetrics());
         mockTelemetry.Setup(t => t.GetAgentBreakdown()).Returns(new List<AgentTokenSummary>().AsReadOnly());
 
@@ -60,7 +60,7 @@ public class AllViewModels_NullSafetyTests
         mockDataService.Setup(d => d.GetRecentSessionsAsync(It.IsAny<int>()))
             .ReturnsAsync(new List<SessionHistoryEntry>().AsReadOnly());
 
-        var mockTelemetry = new Mock<ITelemetryService>();
+        var mockTelemetry = MockHelpers.CreateTelemetryMock();
         mockTelemetry.Setup(t => t.GetCurrentMetrics()).Returns(new TokenMetrics());
         mockTelemetry.Setup(t => t.GetAgentBreakdown()).Returns(new List<AgentTokenSummary>().AsReadOnly());
 
@@ -94,7 +94,7 @@ public class AllViewModels_NullSafetyTests
         mockDataService.Setup(d => d.GetRecentSessionsAsync(It.IsAny<int>()))
             .ReturnsAsync(new List<SessionHistoryEntry>().AsReadOnly());
 
-        var mockTelemetry = new Mock<ITelemetryService>();
+        var mockTelemetry = MockHelpers.CreateTelemetryMock();
         mockTelemetry.Setup(t => t.GetCurrentMetrics()).Returns(new TokenMetrics());
         mockTelemetry.Setup(t => t.GetAgentBreakdown()).Returns(new List<AgentTokenSummary>().AsReadOnly());
 
