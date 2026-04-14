@@ -244,4 +244,67 @@ public class SquadDetectorTests : IDisposable
         var focus = SquadDetector.ParseCurrentFocus(content);
         Assert.Equal("Working on tests", focus);
     }
+
+    // --- Real .squad/ file integration tests ---
+
+    [Fact]
+    public async Task DetectAsync_ReadsRealSquadFiles_FromProjectRoot()
+    {
+        var projectRoot = FindProjectRoot();
+        if (projectRoot is null) return;
+
+        var squadDir = Path.Combine(projectRoot, ".squad");
+        if (!Directory.Exists(squadDir)) return;
+
+        var detector = new SquadDetector(TestLogger);
+        var result = await detector.DetectAsync(projectRoot);
+
+        Assert.NotNull(result);
+        Assert.Equal("Squad Team", result!.TeamName);
+
+        // Verify the real roster: Jobs, Woz, Kare, Hertzfeld, Scribe, Ralph
+        var memberNames = result.Members.Select(m => m.Name).ToList();
+        Assert.Contains("Jobs", memberNames);
+        Assert.Contains("Woz", memberNames);
+        Assert.Contains("Kare", memberNames);
+        Assert.Contains("Hertzfeld", memberNames);
+        Assert.Contains("Scribe", memberNames);
+        Assert.Contains("Ralph", memberNames);
+        Assert.True(result.Members.Count >= 6, $"Expected at least 6 members, got {result.Members.Count}");
+
+        // Verify current focus was read from identity/now.md
+        Assert.NotNull(result.CurrentFocus);
+
+        // Verify decisions were read from decisions.md
+        Assert.NotNull(result.RecentDecisions);
+        Assert.True(result.RecentDecisions.Count > 0, "Expected at least one decision from real decisions.md");
+    }
+
+    [Fact]
+    public async Task DetectAsync_ReadsDecisionsFromRealFile()
+    {
+        var projectRoot = FindProjectRoot();
+        if (projectRoot is null) return;
+
+        var decisionsFile = Path.Combine(projectRoot, ".squad", "decisions.md");
+        if (!File.Exists(decisionsFile)) return;
+
+        var content = await File.ReadAllTextAsync(decisionsFile);
+        var decisions = SquadDetector.ParseDecisions(content, 5);
+
+        Assert.NotNull(decisions);
+        Assert.True(decisions.Count > 0, "Real decisions.md should have at least one decision");
+    }
+
+    private static string? FindProjectRoot()
+    {
+        var dir = AppContext.BaseDirectory;
+        for (var i = 0; i < 10; i++)
+        {
+            var candidate = Path.GetFullPath(Path.Combine(dir, string.Concat(Enumerable.Repeat("..\\", i))));
+            if (Directory.Exists(Path.Combine(candidate, ".squad")))
+                return candidate;
+        }
+        return null;
+    }
 }

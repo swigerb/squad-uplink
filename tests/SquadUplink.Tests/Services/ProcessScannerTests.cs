@@ -98,9 +98,15 @@ public class ProcessScannerTests
     // --- IsCopilotProcess tests ---
 
     [Theory]
-    [InlineData("copilot", null, true)]
-    [InlineData("Copilot", null, true)]
-    [InlineData("github-copilot-cli", null, true)]
+    [InlineData("copilot", "copilot --remote", true)]
+    [InlineData("Copilot", "copilot --resume=abc123", true)]
+    [InlineData("copilot", "copilot \"fix the login bug\"", true)]
+    [InlineData("copilot", null, false)]                          // daemon — no cmdline
+    [InlineData("copilot", "copilot.exe", false)]                 // daemon — bare exe, no args
+    [InlineData("copilot", "\"C:\\Program Files\\copilot.exe\"", false)] // daemon — quoted path, no args
+    [InlineData("github-copilot-cli", "--remote", true)]
+    [InlineData("copilot-language-server", "--stdio", false)]     // VS Code extension
+    [InlineData("M365Copilot", null, false)]                      // Microsoft 365 Copilot
     [InlineData("node", "/usr/lib/copilot/index.js", true)]
     [InlineData("node", "/usr/lib/express/server.js", false)]
     [InlineData("node", null, false)]
@@ -110,6 +116,104 @@ public class ProcessScannerTests
     {
         var snapshot = new ProcessInfoSnapshot(100, name, cmdLine, null, DateTime.UtcNow);
         Assert.Equal(expected, ProcessScanner.IsCopilotProcess(snapshot));
+    }
+
+    // --- ClassifyCopilotProcess diagnostic tests ---
+
+    [Fact]
+    public void ClassifyCopilotProcess_ExcludesBareCopilotDaemon()
+    {
+        var proc = new ProcessInfoSnapshot(33156, "copilot", "copilot.exe", null, DateTime.UtcNow);
+        var (isMatch, reason) = ProcessScanner.ClassifyCopilotProcess(proc);
+        Assert.False(isMatch);
+        Assert.Contains("daemon", reason, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void ClassifyCopilotProcess_ExcludesCopilotLanguageServer()
+    {
+        var proc = new ProcessInfoSnapshot(5001, "copilot-language-server", "--stdio --node-ipc", null, DateTime.UtcNow);
+        var (isMatch, reason) = ProcessScanner.ClassifyCopilotProcess(proc);
+        Assert.False(isMatch);
+        Assert.Contains("Excluded", reason);
+    }
+
+    [Fact]
+    public void ClassifyCopilotProcess_ExcludesM365Copilot()
+    {
+        var proc = new ProcessInfoSnapshot(5002, "M365Copilot", null, null, DateTime.UtcNow);
+        var (isMatch, reason) = ProcessScanner.ClassifyCopilotProcess(proc);
+        Assert.False(isMatch);
+        Assert.Contains("Excluded", reason);
+    }
+
+    [Fact]
+    public void ClassifyCopilotProcess_IncludesCopilotWithPromptArgs()
+    {
+        var proc = new ProcessInfoSnapshot(6001, "copilot", "copilot.exe \"fix the login page CSS\"", null, DateTime.UtcNow);
+        var (isMatch, reason) = ProcessScanner.ClassifyCopilotProcess(proc);
+        Assert.True(isMatch);
+        Assert.Contains("Interactive", reason);
+    }
+
+    [Fact]
+    public void ClassifyCopilotProcess_IncludesCopilotRemote()
+    {
+        var proc = new ProcessInfoSnapshot(6002, "copilot", "copilot.exe --remote", null, DateTime.UtcNow);
+        var (isMatch, reason) = ProcessScanner.ClassifyCopilotProcess(proc);
+        Assert.True(isMatch);
+        Assert.Contains("--remote", reason);
+    }
+
+    [Fact]
+    public void ClassifyCopilotProcess_IncludesCopilotResume()
+    {
+        var proc = new ProcessInfoSnapshot(6003, "copilot", "copilot.exe --resume=SESSION_ID", null, DateTime.UtcNow);
+        var (isMatch, reason) = ProcessScanner.ClassifyCopilotProcess(proc);
+        Assert.True(isMatch);
+        Assert.Contains("--resume", reason);
+    }
+
+    [Fact]
+    public void ClassifyCopilotProcess_IncludesCopilotContinue()
+    {
+        var proc = new ProcessInfoSnapshot(6004, "copilot", "copilot.exe --continue", null, DateTime.UtcNow);
+        var (isMatch, reason) = ProcessScanner.ClassifyCopilotProcess(proc);
+        Assert.True(isMatch);
+        Assert.Contains("--continue", reason);
+    }
+
+    [Fact]
+    public void ClassifyCopilotProcess_ExcludesNullCommandLineDaemon()
+    {
+        // Bare copilot.exe with no WMI command line = daemon
+        var proc = new ProcessInfoSnapshot(40596, "copilot", null, null, DateTime.UtcNow);
+        var (isMatch, reason) = ProcessScanner.ClassifyCopilotProcess(proc);
+        Assert.False(isMatch);
+        Assert.Contains("daemon", reason, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public async Task ScanAsync_ExcludesDaemonsFromSessionCount()
+    {
+        var fakeProcesses = new[]
+        {
+            // Daemon processes — should be excluded
+            new ProcessInfoSnapshot(33156, "copilot", "copilot.exe", null, DateTime.UtcNow),
+            new ProcessInfoSnapshot(40596, "copilot", null, null, DateTime.UtcNow),
+            new ProcessInfoSnapshot(5001, "copilot-language-server", "--stdio", null, DateTime.UtcNow),
+            new ProcessInfoSnapshot(5002, "M365Copilot", null, null, DateTime.UtcNow),
+            // Interactive session — should be included
+            new ProcessInfoSnapshot(7001, "copilot", "copilot.exe --remote", null, DateTime.UtcNow),
+            new ProcessInfoSnapshot(7002, "copilot", "copilot.exe \"fix bug in auth\"", null, DateTime.UtcNow),
+        };
+
+        var scanner = new ProcessScanner(TestLogger, () => fakeProcesses);
+        var results = await scanner.ScanAsync();
+
+        Assert.Equal(2, results.Count);
+        Assert.Equal(7001, results[0].ProcessId);
+        Assert.Equal(7002, results[1].ProcessId);
     }
 
     // --- BuildSessionState tests ---

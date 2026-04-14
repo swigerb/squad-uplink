@@ -17,7 +17,10 @@ public partial class SquadDetector : ISquadDetector, IDisposable
     public event EventHandler<SquadInfo>? SquadStateChanged;
 
     [GeneratedRegex(@"^\|\s*(\S+)\s*\|\s*\*\*(.+?)\*\*\s*\|\s*(.+?)\s*\|\s*(.+?)\s*\|", RegexOptions.Multiline)]
-    private static partial Regex MemberRowRegex();
+    private static partial Regex MemberRowBoldRegex();
+
+    [GeneratedRegex(@"^\|\s*([^|]+?)\s*\|\s*([^|]+?)\s*\|\s*([^|]+?)\s*\|\s*([^|]+?)\s*\|", RegexOptions.Multiline)]
+    private static partial Regex MemberRowPlainRegex();
 
     [GeneratedRegex(@"^##?\s+(.+)", RegexOptions.Multiline)]
     private static partial Regex DecisionHeaderRegex();
@@ -166,25 +169,65 @@ public partial class SquadDetector : ISquadDetector, IDisposable
         if (universeMatch.Success)
             info.Universe = universeMatch.Groups[1].Value.Trim();
 
-        // Parse member table rows: | emoji | **name** | role | status |
-        foreach (Match match in MemberRowRegex().Matches(content))
+        // Try bold format first: | emoji | **name** | role | status |
+        var boldMatches = MemberRowBoldRegex().Matches(content);
+        if (boldMatches.Count > 0)
         {
-            var emoji = match.Groups[1].Value.Trim();
-            var name = match.Groups[2].Value.Trim();
-            var role = match.Groups[3].Value.Trim();
-            var status = match.Groups[4].Value.Trim();
-
-            // Skip separator rows and header labels
-            if (name.Contains("---") || name.Equals("Name", StringComparison.OrdinalIgnoreCase))
-                continue;
-
-            info.Members.Add(new SquadMember
+            foreach (Match match in boldMatches)
             {
-                Emoji = emoji,
-                Name = name,
-                Role = role,
-                Status = status
-            });
+                var emoji = match.Groups[1].Value.Trim();
+                var name = match.Groups[2].Value.Trim();
+                var role = match.Groups[3].Value.Trim();
+                var status = match.Groups[4].Value.Trim();
+
+                if (name.Contains("---") || name.Equals("Name", StringComparison.OrdinalIgnoreCase))
+                    continue;
+
+                info.Members.Add(new SquadMember
+                {
+                    Emoji = emoji,
+                    Name = name,
+                    Role = role,
+                    Status = status
+                });
+            }
+        }
+        else
+        {
+            // Fall back to plain format: | name | role | charter | status |
+            foreach (Match match in MemberRowPlainRegex().Matches(content))
+            {
+                var col1 = match.Groups[1].Value.Trim();
+                var col2 = match.Groups[2].Value.Trim();
+                var col3 = match.Groups[3].Value.Trim();
+                var col4 = match.Groups[4].Value.Trim();
+
+                // Skip separator rows and header rows
+                if (col1.Contains("---") || col1.Equals("Name", StringComparison.OrdinalIgnoreCase)
+                    || col1.Equals("Emoji", StringComparison.OrdinalIgnoreCase))
+                    continue;
+
+                // Extract status emoji if present in the last column
+                var statusEmoji = "";
+                var statusText = col4;
+                if (col4.Length > 0 && !char.IsLetterOrDigit(col4[0]))
+                {
+                    var parts = col4.Split(' ', 2, StringSplitOptions.RemoveEmptyEntries);
+                    if (parts.Length == 2)
+                    {
+                        statusEmoji = parts[0];
+                        statusText = parts[1];
+                    }
+                }
+
+                info.Members.Add(new SquadMember
+                {
+                    Emoji = statusEmoji,
+                    Name = col1,
+                    Role = col2,
+                    Status = statusText
+                });
+            }
         }
 
         return info;
