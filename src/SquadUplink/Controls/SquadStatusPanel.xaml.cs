@@ -63,7 +63,19 @@ public sealed partial class SquadStatusPanel : UserControl
         UniverseText = squad.Universe ?? "—";
         MemberCountText = squad.Members.Count == 1 ? "1 member" : $"{squad.Members.Count} members";
         CurrentFocusText = squad.CurrentFocus ?? "No focus set";
-        DecisionsSummary = "No recent decisions";
+
+        // Build decisions summary from recent decisions
+        if (squad.RecentDecisions.Count > 0)
+        {
+            var summaryLines = squad.RecentDecisions
+                .Take(3)
+                .Select(d => $"• {d.Text}");
+            DecisionsSummary = string.Join("\n", summaryLines);
+        }
+        else
+        {
+            DecisionsSummary = "No recent decisions";
+        }
 
         MemberItems.Clear();
         foreach (var member in squad.Members)

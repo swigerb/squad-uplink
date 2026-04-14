@@ -1,22 +1,43 @@
 using System.Text.RegularExpressions;
+using Microsoft.Extensions.Logging;
 using Serilog;
 using SquadUplink.Contracts;
+using SquadUplink.Core.Logging;
 using SquadUplink.Models;
 
 namespace SquadUplink.Services;
 
-public partial class SquadDetector : ISquadDetector
+public partial class SquadDetector : ISquadDetector, IDisposable
 {
-    private readonly ILogger _logger;
+    private readonly Serilog.ILogger _logger;
+    private readonly ILogger<SquadDetector>? _msLogger;
+    private FileSystemWatcher? _watcher;
+    private string? _watchedDirectory;
+
+    public event EventHandler<SquadInfo>? SquadStateChanged;
 
     [GeneratedRegex(@"^\|\s*(\S+)\s*\|\s*\*\*(.+?)\*\*\s*\|\s*(.+?)\s*\|\s*(.+?)\s*\|", RegexOptions.Multiline)]
     private static partial Regex MemberRowRegex();
 
+    [GeneratedRegex(@"^##?\s+(.+)", RegexOptions.Multiline)]
+    private static partial Regex DecisionHeaderRegex();
+
+    [GeneratedRegex(@"^\*\*(.+?)\*\*\s*[-–—]\s*(.+)", RegexOptions.Multiline)]
+    private static partial Regex DecisionLineRegex();
+
+    [GeneratedRegex(@"^[-*]\s+\*\*(\d{4}-\d{2}-\d{2}[T ]?\d{2}:\d{2}(?::\d{2})?)\*\*\s*[-–—:]\s*(.+)", RegexOptions.Multiline)]
+    private static partial Regex TimestampedDecisionRegex();
+
     public SquadDetector() : this(Log.Logger) { }
 
-    public SquadDetector(ILogger logger)
+    public SquadDetector(Serilog.ILogger logger)
     {
         _logger = logger;
+    }
+
+    public SquadDetector(Serilog.ILogger logger, ILogger<SquadDetector>? msLogger) : this(logger)
+    {
+        _msLogger = msLogger;
     }
 
     public async Task<SquadInfo?> DetectAsync(string workingDirectory, CancellationToken ct = default)
@@ -45,11 +66,20 @@ public partial class SquadDetector : ISquadDetector
                 info.CurrentFocus = ParseCurrentFocus(nowContent);
             }
 
+            // Read recent decisions
+            var decisionsFile = Path.Combine(squadDir, "decisions.md");
+            if (File.Exists(decisionsFile))
+            {
+                var decisionsContent = await File.ReadAllTextAsync(decisionsFile, ct);
+                info.RecentDecisions = ParseDecisions(decisionsContent, 5);
+            }
+
             // Detect sub-squads in child directories
             await DetectSubSquadsAsync(workingDirectory, info, ct);
 
             _logger.Debug("Detected squad {Team} with {MemberCount} members in {Dir}",
                 info.TeamName, info.Members.Count, workingDirectory);
+            _msLogger?.SquadDetected(info.TeamName, info.Members.Count, info.Universe);
 
             return info;
         }
@@ -57,6 +87,61 @@ public partial class SquadDetector : ISquadDetector
         {
             _logger.Warning(ex, "Failed to detect squad in {Dir}", workingDirectory);
             return null;
+        }
+    }
+
+    public void StartWatching(string workingDirectory)
+    {
+        StopWatching();
+
+        var squadDir = Path.Combine(workingDirectory, ".squad");
+        if (!Directory.Exists(squadDir))
+            return;
+
+        _watchedDirectory = workingDirectory;
+        _watcher = new FileSystemWatcher(squadDir)
+        {
+            IncludeSubdirectories = true,
+            NotifyFilter = NotifyFilters.LastWrite | NotifyFilters.FileName | NotifyFilters.CreationTime,
+            EnableRaisingEvents = true
+        };
+
+        _watcher.Changed += OnSquadFileChanged;
+        _watcher.Created += OnSquadFileChanged;
+        _watcher.Deleted += OnSquadFileChanged;
+
+        _logger.Debug("Started watching .squad/ in {Dir}", workingDirectory);
+    }
+
+    public void StopWatching()
+    {
+        if (_watcher is not null)
+        {
+            _watcher.EnableRaisingEvents = false;
+            _watcher.Changed -= OnSquadFileChanged;
+            _watcher.Created -= OnSquadFileChanged;
+            _watcher.Deleted -= OnSquadFileChanged;
+            _watcher.Dispose();
+            _watcher = null;
+            _watchedDirectory = null;
+        }
+    }
+
+    private async void OnSquadFileChanged(object sender, FileSystemEventArgs e)
+    {
+        if (_watchedDirectory is null) return;
+
+        try
+        {
+            // Small delay to allow file writes to complete
+            await Task.Delay(200);
+            var info = await DetectAsync(_watchedDirectory);
+            if (info is not null)
+                SquadStateChanged?.Invoke(this, info);
+        }
+        catch (Exception ex)
+        {
+            _logger.Debug(ex, "Error re-detecting squad after file change: {File}", e.FullPath);
         }
     }
 
@@ -138,6 +223,213 @@ public partial class SquadDetector : ISquadDetector
         return null;
     }
 
+    internal static List<DecisionEntry> ParseDecisions(string content, int maxCount = 5)
+    {
+        var decisions = new List<DecisionEntry>();
+        if (string.IsNullOrWhiteSpace(content))
+            return decisions;
+
+        var lines = content.Split('\n');
+        string? currentAuthor = null;
+
+        foreach (var line in lines)
+        {
+            var trimmed = line.Trim();
+            if (string.IsNullOrEmpty(trimmed) || trimmed.StartsWith('#'))
+                continue;
+
+            // Try timestamped format: - **2025-01-15 14:30** — Decision text
+            var tsMatch = TimestampedDecisionRegex().Match(line);
+            if (tsMatch.Success)
+            {
+                if (DateTime.TryParse(tsMatch.Groups[1].Value, out var ts))
+                {
+                    decisions.Add(new DecisionEntry
+                    {
+                        Timestamp = ts,
+                        Author = currentAuthor ?? "Squad",
+                        Text = tsMatch.Groups[2].Value.Trim()
+                    });
+                    if (decisions.Count >= maxCount) break;
+                    continue;
+                }
+            }
+
+            // Try author-prefixed: **Author** — Decision text
+            var authorMatch = DecisionLineRegex().Match(line);
+            if (authorMatch.Success)
+            {
+                currentAuthor = authorMatch.Groups[1].Value.Trim();
+                decisions.Add(new DecisionEntry
+                {
+                    Timestamp = DateTime.UtcNow,
+                    Author = currentAuthor,
+                    Text = authorMatch.Groups[2].Value.Trim()
+                });
+                if (decisions.Count >= maxCount) break;
+                continue;
+            }
+
+            // Simple bullet-point decision: - Some decision text
+            if (trimmed.StartsWith("- ") || trimmed.StartsWith("* "))
+            {
+                decisions.Add(new DecisionEntry
+                {
+                    Timestamp = DateTime.UtcNow,
+                    Author = currentAuthor ?? "Squad",
+                    Text = trimmed[2..].Trim()
+                });
+                if (decisions.Count >= maxCount) break;
+            }
+        }
+
+        return decisions;
+    }
+
+    internal static List<DecisionEntry> ParseDecisionInboxFile(string content, string? filePath = null)
+    {
+        var decisions = new List<DecisionEntry>();
+        if (string.IsNullOrWhiteSpace(content))
+            return decisions;
+
+        var lines = content.Split('\n');
+        string? title = null;
+        string? author = null;
+        DateTime timestamp = DateTime.UtcNow;
+        var bodyLines = new List<string>();
+
+        foreach (var line in lines)
+        {
+            var trimmed = line.Trim();
+
+            if (trimmed.StartsWith("# ") && title is null)
+            {
+                title = trimmed[2..].Trim();
+                continue;
+            }
+
+            var authorMatch = Regex.Match(trimmed, @"^(?:author|by|from):\s*(.+)", RegexOptions.IgnoreCase);
+            if (authorMatch.Success)
+            {
+                author = authorMatch.Groups[1].Value.Trim();
+                continue;
+            }
+
+            var dateMatch = Regex.Match(trimmed, @"^(?:date|timestamp):\s*(.+)", RegexOptions.IgnoreCase);
+            if (dateMatch.Success && DateTime.TryParse(dateMatch.Groups[1].Value.Trim(), out var dt))
+            {
+                timestamp = dt;
+                continue;
+            }
+
+            if (trimmed == "---") continue;
+
+            if (!string.IsNullOrEmpty(trimmed))
+                bodyLines.Add(trimmed);
+        }
+
+        var text = title ?? (bodyLines.Count > 0 ? string.Join(" ", bodyLines.Take(3)) : "");
+        if (!string.IsNullOrEmpty(text))
+        {
+            decisions.Add(new DecisionEntry
+            {
+                Timestamp = timestamp,
+                Author = author ?? "Squad",
+                Text = text,
+                FilePath = filePath
+            });
+        }
+
+        return decisions;
+    }
+
+    internal static List<OrchestrationEntry> ParseOrchestrationLog(string content, string? filePath = null)
+    {
+        var entries = new List<OrchestrationEntry>();
+        if (string.IsNullOrWhiteSpace(content))
+            return entries;
+
+        var lines = content.Split('\n');
+        string? agentName = null;
+        string? agentEmoji = null;
+        DateTime timestamp = DateTime.UtcNow;
+        string? outcome = null;
+        var summaryLines = new List<string>();
+
+        foreach (var line in lines)
+        {
+            var trimmed = line.Trim();
+
+            // Agent name from H1: # 🧙 Woz
+            if (trimmed.StartsWith("# "))
+            {
+                var header = trimmed[2..].Trim();
+                // First token may be emoji
+                var parts = header.Split(' ', 2, StringSplitOptions.RemoveEmptyEntries);
+                if (parts.Length == 2 && !char.IsLetterOrDigit(parts[0][0]))
+                {
+                    agentEmoji = parts[0];
+                    agentName = parts[1];
+                }
+                else
+                {
+                    agentName = header;
+                }
+                continue;
+            }
+
+            // Agent/outcome from metadata lines
+            var agentMatch = Regex.Match(trimmed, @"^agent:\s*(.+)", RegexOptions.IgnoreCase);
+            if (agentMatch.Success) { agentName = agentMatch.Groups[1].Value.Trim(); continue; }
+
+            var outcomeMatch = Regex.Match(trimmed, @"^(?:outcome|status|result):\s*(.+)", RegexOptions.IgnoreCase);
+            if (outcomeMatch.Success) { outcome = outcomeMatch.Groups[1].Value.Trim(); continue; }
+
+            var dateMatch = Regex.Match(trimmed, @"^(?:date|timestamp|time):\s*(.+)", RegexOptions.IgnoreCase);
+            if (dateMatch.Success && DateTime.TryParse(dateMatch.Groups[1].Value.Trim(), out var dt))
+            {
+                timestamp = dt;
+                continue;
+            }
+
+            if (trimmed == "---") continue;
+
+            if (!string.IsNullOrEmpty(trimmed) && !trimmed.StartsWith("##"))
+                summaryLines.Add(trimmed);
+        }
+
+        if (agentName is not null || summaryLines.Count > 0)
+        {
+            var emojiForAgent = agentEmoji ?? GetAgentEmoji(agentName ?? "Unknown");
+            entries.Add(new OrchestrationEntry
+            {
+                AgentName = agentName ?? "Unknown",
+                AgentEmoji = emojiForAgent,
+                Timestamp = timestamp,
+                Outcome = outcome ?? "completed",
+                Summary = summaryLines.Count > 0 ? string.Join(" ", summaryLines.Take(3)) : "",
+                FullLogContent = content,
+                FilePath = filePath
+            });
+        }
+
+        return entries;
+    }
+
+    internal static string GetAgentEmoji(string agentName)
+    {
+        return agentName.ToLowerInvariant() switch
+        {
+            var n when n.Contains("lead") || n.Contains("woz") => "🏗️",
+            var n when n.Contains("devops") || n.Contains("ops") || n.Contains("infra") => "⚙️",
+            var n when n.Contains("dev") || n.Contains("eng") => "🔧",
+            var n when n.Contains("test") || n.Contains("qa") => "🧪",
+            var n when n.Contains("design") || n.Contains("pixel") => "🎨",
+            var n when n.Contains("doc") || n.Contains("write") => "📝",
+            _ => "🤖"
+        };
+    }
+
     private async Task DetectSubSquadsAsync(string parentDir, SquadInfo parentInfo, CancellationToken ct)
     {
         try
@@ -159,5 +451,11 @@ public partial class SquadDetector : ISquadDetector
         {
             _logger.Debug(ex, "Error scanning for sub-squads in {Dir}", parentDir);
         }
+    }
+
+    public void Dispose()
+    {
+        StopWatching();
+        GC.SuppressFinalize(this);
     }
 }

@@ -114,6 +114,24 @@ public static partial class LogMessages
         Message = "Session output line captured: session={SessionId} lineCount={LineCount}")]
     public static partial void SessionOutputCaptured(this ILogger logger, string sessionId, int lineCount);
 
+    // ─── Squad awareness (Phase C) ─────────────────────────────
+
+    [LoggerMessage(EventId = 4003, Level = LogLevel.Information,
+        Message = "Squad state changed: team={TeamName} decisions={DecisionCount}")]
+    public static partial void SquadStateChanged(this ILogger logger, string teamName, int decisionCount);
+
+    [LoggerMessage(EventId = 4004, Level = LogLevel.Debug,
+        Message = "Decision feed updated: {Count} new decisions from {Source}")]
+    public static partial void DecisionFeedUpdated(this ILogger logger, int count, string source);
+
+    [LoggerMessage(EventId = 4005, Level = LogLevel.Debug,
+        Message = "Orchestration log parsed: agent={AgentName} outcome={Outcome}")]
+    public static partial void OrchestrationLogParsed(this ILogger logger, string agentName, string outcome);
+
+    [LoggerMessage(EventId = 4006, Level = LogLevel.Debug,
+        Message = "Squad file watcher triggered: {ChangeType} {FilePath}")]
+    public static partial void SquadFileWatcherTriggered(this ILogger logger, string changeType, string filePath);
+
     // ─── Errors ─────────────────────────────────────────────────
 
     [LoggerMessage(EventId = 9001, Level = LogLevel.Error,

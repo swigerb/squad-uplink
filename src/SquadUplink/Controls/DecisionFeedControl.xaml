@@ -1,0 +1,97 @@
+<UserControl
+    x:Class="SquadUplink.Controls.DecisionFeedControl"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="using:SquadUplink.Controls"
+    xmlns:models="using:SquadUplink.Models">
+
+    <Border Style="{StaticResource CockpitPanelStyle}">
+        <Grid RowSpacing="8">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+            </Grid.RowDefinitions>
+
+            <!-- Header with collapse toggle -->
+            <Grid Grid.Row="0">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+
+                <FontIcon Grid.Column="0" Glyph="&#xE8FB;" FontSize="14"
+                          Foreground="{StaticResource SquadAccentBlueBrush}"
+                          Margin="0,0,8,0" />
+                <TextBlock Grid.Column="1" Text="DECISION FEED"
+                           Style="{StaticResource SectionHeaderStyle}"
+                           CharacterSpacing="80" FontSize="11"
+                           VerticalAlignment="Center" />
+                <ToggleButton Grid.Column="2"
+                              x:Name="CollapseToggle"
+                              Content="&#xE70D;"
+                              FontFamily="{ThemeResource SymbolThemeFontFamily}"
+                              IsChecked="{x:Bind IsExpanded, Mode=TwoWay}"
+                              Width="28" Height="28" Padding="0"
+                              ToolTipService.ToolTip="Toggle feed" />
+            </Grid>
+
+            <!-- Decision Feed List -->
+            <ScrollViewer Grid.Row="1"
+                          x:Name="FeedScroller"
+                          Visibility="{x:Bind IsExpanded, Mode=OneWay}"
+                          VerticalScrollBarVisibility="Auto"
+                          MaxHeight="240">
+                <ItemsRepeater x:Name="DecisionList"
+                               ItemsSource="{x:Bind Decisions, Mode=OneWay}">
+                    <ItemsRepeater.ItemTemplate>
+                        <DataTemplate x:DataType="models:DecisionEntry">
+                            <Border Margin="0,2" Padding="10,8" CornerRadius="4"
+                                    Background="{ThemeResource CardBackgroundFillColorSecondaryBrush}">
+                                <Grid RowSpacing="4">
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto" />
+                                        <RowDefinition Height="Auto" />
+                                    </Grid.RowDefinitions>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+
+                                    <!-- Author -->
+                                    <TextBlock Grid.Row="0" Grid.Column="0"
+                                               Text="{x:Bind Author, Mode=OneTime}"
+                                               FontSize="11" FontWeight="SemiBold"
+                                               Foreground="{StaticResource SquadAccentBlueBrush}" />
+
+                                    <!-- Timestamp -->
+                                    <TextBlock Grid.Row="0" Grid.Column="1"
+                                               Text="{x:Bind Timestamp, Mode=OneTime}"
+                                               FontSize="10"
+                                               Foreground="{ThemeResource TextFillColorDisabledBrush}" />
+
+                                    <!-- Decision text -->
+                                    <TextBlock Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2"
+                                               Text="{x:Bind Text, Mode=OneTime}"
+                                               FontSize="12" TextWrapping="Wrap"
+                                               Foreground="{ThemeResource TextFillColorPrimaryBrush}" />
+                                </Grid>
+                            </Border>
+                        </DataTemplate>
+                    </ItemsRepeater.ItemTemplate>
+                </ItemsRepeater>
+            </ScrollViewer>
+
+            <!-- Empty state -->
+            <TextBlock Grid.Row="1"
+                       x:Name="EmptyText"
+                       Visibility="{x:Bind NoDecisionsVisible, Mode=OneWay}"
+                       Text="No decisions yet"
+                       FontSize="12"
+                       Foreground="{ThemeResource TextFillColorDisabledBrush}"
+                       HorizontalAlignment="Center"
+                       VerticalAlignment="Center"
+                       Margin="0,12" />
+        </Grid>
+    </Border>
+</UserControl>

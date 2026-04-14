@@ -7,6 +7,7 @@ public class SquadInfo
     public string? CurrentFocus { get; set; }
     public List<SquadMember> Members { get; set; } = [];
     public List<SquadInfo> SubSquads { get; set; } = [];
+    public List<DecisionEntry> RecentDecisions { get; set; } = [];
 }
 
 public class SquadMember

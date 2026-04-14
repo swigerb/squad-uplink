@@ -100,6 +100,10 @@ public partial class DashboardViewModel : ViewModelBase
 
     public ObservableCollection<SessionHistoryEntry> RecentSessions { get; } = [];
 
+    public ObservableCollection<DecisionEntry> DecisionFeed { get; } = [];
+
+    public ObservableCollection<OrchestrationEntry> OrchestrationTimeline { get; } = [];
+
     public string[] GridSizeOptions { get; } = GridSize.Presets.Select(g => g.ToString()).ToArray();
 
     public DashboardViewModel(
@@ -352,6 +356,7 @@ public partial class DashboardViewModel : ViewModelBase
     {
         SquadTreeItems.Clear();
         Squads.Clear();
+        DecisionFeed.Clear();
         var squadsFound = false;
 
         foreach (var session in Sessions)
@@ -360,7 +365,16 @@ public partial class DashboardViewModel : ViewModelBase
             {
                 squadsFound = true;
                 if (!Squads.Any(s => s.TeamName == squad.TeamName))
+                {
                     Squads.Add(squad);
+
+                    // Populate decision feed from squad decisions
+                    foreach (var decision in squad.RecentDecisions)
+                    {
+                        if (!DecisionFeed.Any(d => d.Text == decision.Text))
+                            DecisionFeed.Add(decision);
+                    }
+                }
                 AddSquadToTree(squad, 0);
             }
         }
