@@ -3,6 +3,7 @@ using Microsoft.UI.Text;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Input;
+using Microsoft.UI.Xaml.Navigation;
 using Serilog;
 using SquadUplink.Controls;
 using SquadUplink.Models;
@@ -20,6 +21,12 @@ public sealed partial class DashboardPage : Page
         ViewModel.LaunchDialogRequested += ShowLaunchDialogAsync;
         InitializeComponent();
         Log.Debug("DashboardPage initialized");
+    }
+
+    protected override void OnNavigatedFrom(NavigationEventArgs e)
+    {
+        ViewModel.LaunchDialogRequested -= ShowLaunchDialogAsync;
+        base.OnNavigatedFrom(e);
     }
 
     // Helper functions for x:Bind in DataTemplates
@@ -70,6 +77,25 @@ public sealed partial class DashboardPage : Page
     private void LaunchCard_PointerPressed(object sender, PointerRoutedEventArgs e)
     {
         ViewModel.LaunchSessionCommand.Execute(null);
+    }
+
+    private void SessionCard_KeyDown(object sender, KeyRoutedEventArgs e)
+    {
+        if (e.Key is Windows.System.VirtualKey.Enter or Windows.System.VirtualKey.Space)
+        {
+            if (sender is Border { Tag: SessionState session })
+                ViewModel.OpenSessionCommand.Execute(session);
+            e.Handled = true;
+        }
+    }
+
+    private void LaunchCard_KeyDown(object sender, KeyRoutedEventArgs e)
+    {
+        if (e.Key is Windows.System.VirtualKey.Enter or Windows.System.VirtualKey.Space)
+        {
+            ViewModel.LaunchSessionCommand.Execute(null);
+            e.Handled = true;
+        }
     }
 
     // Show launch dialog

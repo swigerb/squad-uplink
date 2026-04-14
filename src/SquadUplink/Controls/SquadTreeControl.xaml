@@ -23,7 +23,8 @@
                   x:Name="SquadTree"
                   SelectionMode="Single"
                   ItemInvoked="SquadTree_ItemInvoked"
-                  Visibility="{x:Bind HasSquads, Mode=OneWay}">
+                  Visibility="{x:Bind HasSquads, Mode=OneWay}"
+                  AutomationProperties.Name="Squad hierarchy tree">
         </TreeView>
 
         <!-- No Squad Placeholder -->

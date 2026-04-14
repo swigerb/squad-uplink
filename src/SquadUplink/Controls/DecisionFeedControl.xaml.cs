@@ -43,16 +43,19 @@ public sealed partial class DecisionFeedControl : UserControl
 
     private static void OnDecisionsChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
     {
-        if (d is DecisionFeedControl control)
-        {
-            control.UpdateVisibility();
+        if (d is not DecisionFeedControl control) return;
 
-            if (e.NewValue is ObservableCollection<DecisionEntry> newCollection)
-            {
-                newCollection.CollectionChanged += (_, _) => control.UpdateVisibility();
-            }
-        }
+        if (e.OldValue is ObservableCollection<DecisionEntry> oldCollection)
+            oldCollection.CollectionChanged -= control.OnCollectionChanged;
+
+        control.UpdateVisibility();
+
+        if (e.NewValue is ObservableCollection<DecisionEntry> newCollection)
+            newCollection.CollectionChanged += control.OnCollectionChanged;
     }
+
+    private void OnCollectionChanged(object? sender, System.Collections.Specialized.NotifyCollectionChangedEventArgs e)
+        => UpdateVisibility();
 
     private void UpdateVisibility()
     {

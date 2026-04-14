@@ -204,14 +204,8 @@ public sealed partial class SessionLayoutControl : UserControl
         return tab;
     }
 
-    private static Microsoft.UI.Xaml.Media.SolidColorBrush StatusToBrush(SessionStatus status) => status switch
-    {
-        SessionStatus.Running => new(Microsoft.UI.ColorHelper.FromArgb(255, 0, 200, 83)),
-        SessionStatus.Launching => new(Microsoft.UI.ColorHelper.FromArgb(255, 33, 150, 243)),
-        SessionStatus.Idle => new(Microsoft.UI.ColorHelper.FromArgb(255, 255, 193, 7)),
-        SessionStatus.Error => new(Microsoft.UI.ColorHelper.FromArgb(255, 244, 67, 54)),
-        _ => new(Microsoft.UI.ColorHelper.FromArgb(255, 158, 158, 158)),
-    };
+    private static Microsoft.UI.Xaml.Media.SolidColorBrush StatusToBrush(SessionStatus status)
+        => Converters.StatusToBrushConverter.StatusToBrush(status);
 
     private void SyncTabSelection(int index)
     {

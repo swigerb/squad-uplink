@@ -8,7 +8,7 @@ namespace SquadUplink.Controls;
 public sealed partial class CommandPalette : UserControl
 {
     private List<CommandItem> _allCommands = [];
-    private List<CommandItem> _filteredCommands = [];
+    private readonly List<CommandItem> _filteredCommands = [];
 
     /// <summary>
     /// Raised when the palette is dismissed without executing a command.
@@ -64,12 +64,15 @@ public sealed partial class CommandPalette : UserControl
     /// </summary>
     internal List<CommandItem> FilterCommands(string query)
     {
-        return _allCommands.Where(c => c.MatchesQuery(query)).ToList();
+        _filteredCommands.Clear();
+        foreach (var c in _allCommands)
+            if (c.MatchesQuery(query)) _filteredCommands.Add(c);
+        return _filteredCommands;
     }
 
     private void ApplyFilter(string query)
     {
-        _filteredCommands = FilterCommands(query);
+        FilterCommands(query);
         CommandList.ItemsSource = _filteredCommands;
         if (_filteredCommands.Count > 0)
             CommandList.SelectedIndex = 0;

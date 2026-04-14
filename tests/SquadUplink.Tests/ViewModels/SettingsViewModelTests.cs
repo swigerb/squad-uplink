@@ -67,7 +67,7 @@ public class SettingsViewModelTests
 
         vm.AudioEnabled = false;
         // Give fire-and-forget a moment
-        await Task.Delay(50);
+        await Task.Delay(600);
 
         dataMock.Verify(d => d.SaveSettingsAsync(It.Is<AppSettings>(s => s.AudioEnabled == false)), Times.AtLeastOnce);
     }
@@ -79,7 +79,7 @@ public class SettingsViewModelTests
         await vm.LoadSettingsAsync();
 
         vm.SelectedThemeIndex = 3; // C64
-        await Task.Delay(50);
+        await Task.Delay(600);
 
         themeMock.Verify(t => t.ApplyTheme("C64"), Times.Once);
         dataMock.Verify(d => d.SaveSettingsAsync(It.Is<AppSettings>(s => s.ThemeId == "C64")), Times.AtLeastOnce);
@@ -92,7 +92,7 @@ public class SettingsViewModelTests
         await vm.LoadSettingsAsync();
 
         vm.NotifySessionDiscovered = false;
-        await Task.Delay(50);
+        await Task.Delay(600);
 
         dataMock.Verify(d => d.SaveSettingsAsync(
             It.Is<AppSettings>(s => s.NotifySessionDiscovered == false)), Times.AtLeastOnce);

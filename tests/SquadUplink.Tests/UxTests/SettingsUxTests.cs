@@ -76,7 +76,7 @@ public class SettingsUxTests
         await vm.LoadSettingsAsync();
 
         vm.SelectedThemeIndex = 2; // AppleIIe
-        await Task.Delay(50);
+        await Task.Delay(600);
 
         themeMock.Verify(t => t.ApplyTheme("AppleIIe"), Times.Once);
     }
@@ -88,7 +88,7 @@ public class SettingsUxTests
         await vm.LoadSettingsAsync();
 
         vm.SelectedThemeIndex = 3; // C64
-        await Task.Delay(50);
+        await Task.Delay(600);
 
         dataMock.Verify(d => d.SaveSettingsAsync(
             It.Is<AppSettings>(s => s.ThemeId == "C64")), Times.AtLeastOnce);
@@ -131,7 +131,7 @@ public class SettingsUxTests
         await vm.LoadSettingsAsync();
 
         vm.ScanIntervalSeconds = 15;
-        await Task.Delay(50);
+        await Task.Delay(600);
 
         dataMock.Verify(d => d.SaveSettingsAsync(
             It.Is<AppSettings>(s => s.ScanIntervalSeconds == 15)), Times.AtLeastOnce);
@@ -183,7 +183,7 @@ public class SettingsUxTests
         await vm.LoadSettingsAsync();
 
         vm.NotifySessionCompleted = false;
-        await Task.Delay(50);
+        await Task.Delay(600);
 
         dataMock.Verify(d => d.SaveSettingsAsync(
             It.Is<AppSettings>(s => s.NotifySessionCompleted == false)), Times.AtLeastOnce);

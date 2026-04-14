@@ -7,23 +7,32 @@ namespace SquadUplink.Converters;
 
 public class StatusToBrushConverter : IValueConverter
 {
+    private static readonly Lazy<SolidColorBrush> s_running = new(() => new(ColorHelper.FromArgb(255, 0, 200, 83)));
+    private static readonly Lazy<SolidColorBrush> s_launching = new(() => new(ColorHelper.FromArgb(255, 33, 150, 243)));
+    private static readonly Lazy<SolidColorBrush> s_idle = new(() => new(ColorHelper.FromArgb(255, 255, 193, 7)));
+    private static readonly Lazy<SolidColorBrush> s_error = new(() => new(ColorHelper.FromArgb(255, 244, 67, 54)));
+    private static readonly Lazy<SolidColorBrush> s_completed = new(() => new(ColorHelper.FromArgb(255, 158, 158, 158)));
+    private static readonly Lazy<SolidColorBrush> s_default = new(() => new(Colors.Gray));
+
     public object Convert(object value, Type targetType, object parameter, string language)
     {
         if (value is SessionStatus status)
         {
-            return status switch
-            {
-                SessionStatus.Running => new SolidColorBrush(ColorHelper.FromArgb(255, 0, 200, 83)),
-                SessionStatus.Launching => new SolidColorBrush(ColorHelper.FromArgb(255, 33, 150, 243)),
-                SessionStatus.Idle => new SolidColorBrush(ColorHelper.FromArgb(255, 255, 193, 7)),
-                SessionStatus.Error => new SolidColorBrush(ColorHelper.FromArgb(255, 244, 67, 54)),
-                SessionStatus.Completed => new SolidColorBrush(ColorHelper.FromArgb(255, 158, 158, 158)),
-                SessionStatus.Discovered => new SolidColorBrush(ColorHelper.FromArgb(255, 33, 150, 243)),
-                _ => new SolidColorBrush(ColorHelper.FromArgb(255, 158, 158, 158)),
-            };
+            return StatusToBrush(status);
         }
-        return new SolidColorBrush(Colors.Gray);
+        return s_default.Value;
     }
+
+    internal static SolidColorBrush StatusToBrush(SessionStatus status) => status switch
+    {
+        SessionStatus.Running => s_running.Value,
+        SessionStatus.Launching => s_launching.Value,
+        SessionStatus.Idle => s_idle.Value,
+        SessionStatus.Error => s_error.Value,
+        SessionStatus.Completed => s_completed.Value,
+        SessionStatus.Discovered => s_launching.Value,
+        _ => s_completed.Value,
+    };
 
     public object ConvertBack(object value, Type targetType, object parameter, string language)
         => throw new NotImplementedException();

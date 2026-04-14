@@ -11,6 +11,10 @@ namespace SquadUplink.Views;
 public sealed partial class DiagnosticsDialog : ContentDialog
 {
     private readonly DiagnosticsViewModel _viewModel;
+    private Microsoft.UI.Dispatching.DispatcherQueueTimer? _exportTipTimer;
+    private Microsoft.UI.Dispatching.DispatcherQueueTimer? _copyTipTimer;
+
+    public DiagnosticsViewModel ViewModel => _viewModel;
 
     public DiagnosticsDialog(DiagnosticsViewModel viewModel)
     {
@@ -31,6 +35,17 @@ public sealed partial class DiagnosticsDialog : ContentDialog
             if (LogList.Items.Count > 0)
                 LogList.ScrollIntoView(LogList.Items[0]);
         };
+
+        Closing += OnClosing;
+    }
+
+    private void OnClosing(ContentDialog sender, ContentDialogClosingEventArgs args)
+    {
+        _viewModel.CopyToClipboardRequested -= OnCopyToClipboard;
+        _viewModel.ExportCompleted -= OnExportCompleted;
+        _viewModel.SaveFileRequested -= OnSaveFileRequested;
+        _exportTipTimer?.Stop();
+        _copyTipTimer?.Stop();
     }
 
     private void OnCopyToClipboard(string text)
@@ -75,11 +90,12 @@ public sealed partial class DiagnosticsDialog : ContentDialog
         ExportTip.Subtitle = $"Saved to {filePath}";
         ExportTip.IsOpen = true;
 
-        var timer = DispatcherQueue.CreateTimer();
-        timer.Interval = TimeSpan.FromSeconds(4);
-        timer.IsRepeating = false;
-        timer.Tick += (_, _) => ExportTip.IsOpen = false;
-        timer.Start();
+        _exportTipTimer?.Stop();
+        _exportTipTimer = DispatcherQueue.CreateTimer();
+        _exportTipTimer.Interval = TimeSpan.FromSeconds(4);
+        _exportTipTimer.IsRepeating = false;
+        _exportTipTimer.Tick += (_, _) => ExportTip.IsOpen = false;
+        _exportTipTimer.Start();
     }
 
     private void LevelFilter_Changed(object sender, SelectionChangedEventArgs e)
@@ -101,10 +117,11 @@ public sealed partial class DiagnosticsDialog : ContentDialog
     {
         CopyTip.IsOpen = true;
 
-        var timer = DispatcherQueue.CreateTimer();
-        timer.Interval = TimeSpan.FromSeconds(2);
-        timer.IsRepeating = false;
-        timer.Tick += (_, _) => CopyTip.IsOpen = false;
-        timer.Start();
+        _copyTipTimer?.Stop();
+        _copyTipTimer = DispatcherQueue.CreateTimer();
+        _copyTipTimer.Interval = TimeSpan.FromSeconds(2);
+        _copyTipTimer.IsRepeating = false;
+        _copyTipTimer.Tick += (_, _) => CopyTip.IsOpen = false;
+        _copyTipTimer.Start();
     }
 }

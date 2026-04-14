@@ -22,6 +22,8 @@
     <SolidColorBrush x:Key="SquadWarningYellowBrush" Color="{StaticResource SquadWarningYellow}" />
     <SolidColorBrush x:Key="SquadErrorRedBrush" Color="{StaticResource SquadErrorRed}" />
     <SolidColorBrush x:Key="SquadNeutralGrayBrush" Color="{StaticResource SquadNeutralGray}" />
+    <SolidColorBrush x:Key="SquadSurfaceDarkBrush" Color="{StaticResource SquadSurfaceDark}" />
+    <SolidColorBrush x:Key="SquadSurfaceMidBrush" Color="{StaticResource SquadSurfaceMid}" />
 
     <!-- ═══ Status Badge Styles ═══ -->
     <!-- Running = green -->

@@ -279,7 +279,7 @@ public sealed partial class MainWindow : Window
             if (recentErrors is not null
                 && recentErrors.Timestamp > DateTimeOffset.Now.AddMinutes(-1))
             {
-                StatusDot.Fill = new SolidColorBrush(Microsoft.UI.ColorHelper.FromArgb(255, 255, 59, 48));
+                StatusDot.Fill = (Microsoft.UI.Xaml.Media.Brush)Application.Current.Resources["SquadErrorRedBrush"];
             }
             else
             {

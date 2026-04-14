@@ -41,16 +41,19 @@ public sealed partial class SquadTreeControl : UserControl
 
     private static void OnSquadsChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
     {
-        if (d is SquadTreeControl control)
-        {
-            control.RebuildTree();
+        if (d is not SquadTreeControl control) return;
 
-            if (e.NewValue is ObservableCollection<SquadInfo> newCollection)
-            {
-                newCollection.CollectionChanged += (_, _) => control.RebuildTree();
-            }
-        }
+        if (e.OldValue is ObservableCollection<SquadInfo> oldCollection)
+            oldCollection.CollectionChanged -= control.OnCollectionChanged;
+
+        control.RebuildTree();
+
+        if (e.NewValue is ObservableCollection<SquadInfo> newCollection)
+            newCollection.CollectionChanged += control.OnCollectionChanged;
     }
+
+    private void OnCollectionChanged(object? sender, System.Collections.Specialized.NotifyCollectionChangedEventArgs e)
+        => RebuildTree();
 
     public void RebuildTree()
     {

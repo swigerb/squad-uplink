@@ -1,6 +1,7 @@
 using System.Collections.Specialized;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Navigation;
 using Serilog;
 using SquadUplink.ViewModels;
 
@@ -19,6 +20,12 @@ public sealed partial class SessionPage : Page
 
         // Auto-scroll when new output arrives
         ViewModel.OutputLines.CollectionChanged += OutputLines_CollectionChanged;
+    }
+
+    protected override void OnNavigatedFrom(NavigationEventArgs e)
+    {
+        ViewModel.OutputLines.CollectionChanged -= OutputLines_CollectionChanged;
+        base.OnNavigatedFrom(e);
     }
 
     private void OutputLines_CollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)

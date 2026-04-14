@@ -76,6 +76,12 @@ public sealed partial class GridLayoutPanel : UserControl
 
     private void RebuildGrid()
     {
+        // Unsubscribe from old children before clearing (PERF-008)
+        foreach (var child in RootGrid.Children.OfType<SessionTerminalControl>())
+        {
+            child.DoubleTapped -= Terminal_DoubleTapped;
+            child.CloseRequested -= Terminal_CloseRequested;
+        }
         RootGrid.Children.Clear();
         RootGrid.RowDefinitions.Clear();
         RootGrid.ColumnDefinitions.Clear();

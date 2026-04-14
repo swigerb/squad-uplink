@@ -2,12 +2,11 @@ using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Microsoft.Extensions.Logging;
-using Microsoft.UI;
-using Microsoft.UI.Xaml.Media;
 using Serilog;
 using Serilog.Sinks.InMemory;
 using SquadUplink.Contracts;
 using SquadUplink.Models;
+using Windows.UI;
 
 namespace SquadUplink.ViewModels;
 
@@ -15,6 +14,7 @@ public partial class SettingsViewModel : ViewModelBase
 {
     private readonly IThemeService _themeService;
     private readonly IDataService _dataService;
+    private CancellationTokenSource? _saveCts;
 
     // Appearance
     [ObservableProperty]
@@ -27,16 +27,16 @@ public partial class SettingsViewModel : ViewModelBase
     private double _fontSize = 13;
 
     [ObservableProperty]
-    private SolidColorBrush? _previewAccentBrush;
+    private Color _previewAccentColor;
 
     [ObservableProperty]
-    private SolidColorBrush? _previewBackgroundBrush;
+    private Color _previewBackgroundColor;
 
     [ObservableProperty]
-    private SolidColorBrush? _previewSurfaceBrush;
+    private Color _previewSurfaceColor;
 
     [ObservableProperty]
-    private SolidColorBrush? _previewTextBrush;
+    private Color _previewTextColor;
 
     // Scanning
     [ObservableProperty]
@@ -109,23 +109,16 @@ public partial class SettingsViewModel : ViewModelBase
         VersionText = $"v{typeof(App).Assembly.GetName().Version}";
         Log.Debug("SettingsViewModel created");
 
-        InitializeBrushes();
+        InitializeColors();
         _ = LoadSettingsAsync();
     }
 
-    private void InitializeBrushes()
+    private void InitializeColors()
     {
-        try
-        {
-            PreviewAccentBrush = new SolidColorBrush(ColorHelper.FromArgb(255, 0, 200, 83));
-            PreviewBackgroundBrush = new SolidColorBrush(ColorHelper.FromArgb(255, 26, 26, 46));
-            PreviewSurfaceBrush = new SolidColorBrush(ColorHelper.FromArgb(255, 22, 33, 62));
-            PreviewTextBrush = new SolidColorBrush(Colors.White);
-        }
-        catch (System.Runtime.InteropServices.COMException)
-        {
-            // WinUI runtime not available (unit tests)
-        }
+        PreviewAccentColor = Color.FromArgb(255, 0, 200, 83);
+        PreviewBackgroundColor = Color.FromArgb(255, 26, 26, 46);
+        PreviewSurfaceColor = Color.FromArgb(255, 22, 33, 62);
+        PreviewTextColor = Color.FromArgb(255, 255, 255, 255);
     }
 
     internal async Task LoadSettingsAsync()
@@ -161,23 +154,36 @@ public partial class SettingsViewModel : ViewModelBase
         {
             _themeService.ApplyTheme(_themeService.AvailableThemes[value]);
             UpdateThemePreview();
-            _ = SaveSettingsAsync();
+            _ = DebouncedSaveAsync();
         }
     }
 
-    partial void OnScanIntervalSecondsChanged(double value) => _ = SaveSettingsAsync();
-    partial void OnDefaultWorkingDirectoryChanged(string value) => _ = SaveSettingsAsync();
-    partial void OnAudioEnabledChanged(bool value) => _ = SaveSettingsAsync();
-    partial void OnAutoScanOnStartupChanged(bool value) => _ = SaveSettingsAsync();
-    partial void OnCrtEffectsEnabledChanged(bool value) => _ = SaveSettingsAsync();
-    partial void OnFontSizeChanged(double value) => _ = SaveSettingsAsync();
-    partial void OnVolumeChanged(double value) => _ = SaveSettingsAsync();
-    partial void OnAlwaysUseRemoteChanged(bool value) => _ = SaveSettingsAsync();
-    partial void OnNotifySessionCompletedChanged(bool value) => _ = SaveSettingsAsync();
-    partial void OnNotifyPermissionRequestChanged(bool value) => _ = SaveSettingsAsync();
-    partial void OnNotifyErrorChanged(bool value) => _ = SaveSettingsAsync();
-    partial void OnNotifySessionDiscoveredChanged(bool value) => _ = SaveSettingsAsync();
-    partial void OnMinimizeToTrayChanged(bool value) => _ = SaveSettingsAsync();
+    partial void OnScanIntervalSecondsChanged(double value) => _ = DebouncedSaveAsync();
+    partial void OnDefaultWorkingDirectoryChanged(string value) => _ = DebouncedSaveAsync();
+    partial void OnAudioEnabledChanged(bool value) => _ = DebouncedSaveAsync();
+    partial void OnAutoScanOnStartupChanged(bool value) => _ = DebouncedSaveAsync();
+    partial void OnCrtEffectsEnabledChanged(bool value) => _ = DebouncedSaveAsync();
+    partial void OnFontSizeChanged(double value) => _ = DebouncedSaveAsync();
+    partial void OnVolumeChanged(double value) => _ = DebouncedSaveAsync();
+    partial void OnAlwaysUseRemoteChanged(bool value) => _ = DebouncedSaveAsync();
+    partial void OnNotifySessionCompletedChanged(bool value) => _ = DebouncedSaveAsync();
+    partial void OnNotifyPermissionRequestChanged(bool value) => _ = DebouncedSaveAsync();
+    partial void OnNotifyErrorChanged(bool value) => _ = DebouncedSaveAsync();
+    partial void OnNotifySessionDiscoveredChanged(bool value) => _ = DebouncedSaveAsync();
+    partial void OnMinimizeToTrayChanged(bool value) => _ = DebouncedSaveAsync();
+
+    private async Task DebouncedSaveAsync()
+    {
+        _saveCts?.Cancel();
+        _saveCts = new CancellationTokenSource();
+        try
+        {
+            await Task.Delay(500, _saveCts.Token);
+            await SaveSettingsAsync();
+        }
+        catch (OperationCanceledException) { }
+        catch (Exception ex) { Log.Warning(ex, "Debounced settings save failed"); }
+    }
 
     private void UpdateThemePreview()
     {
@@ -185,76 +191,69 @@ public partial class SettingsViewModel : ViewModelBase
             ? _themeService.AvailableThemes[SelectedThemeIndex]
             : "FluentDark";
 
-        try
+        (PreviewAccentColor, PreviewBackgroundColor, PreviewSurfaceColor, PreviewTextColor) = themeId switch
         {
-            (PreviewAccentBrush, PreviewBackgroundBrush, PreviewSurfaceBrush, PreviewTextBrush) = themeId switch
-            {
-                "FluentLight" => (
-                    new SolidColorBrush(ColorHelper.FromArgb(255, 0, 120, 212)),
-                    new SolidColorBrush(ColorHelper.FromArgb(255, 243, 243, 243)),
-                    new SolidColorBrush(ColorHelper.FromArgb(255, 255, 255, 255)),
-                    new SolidColorBrush(ColorHelper.FromArgb(255, 0, 0, 0))),
-                "FluentDark" => (
-                    new SolidColorBrush(ColorHelper.FromArgb(255, 0, 200, 83)),
-                    new SolidColorBrush(ColorHelper.FromArgb(255, 26, 26, 46)),
-                    new SolidColorBrush(ColorHelper.FromArgb(255, 22, 33, 62)),
-                    new SolidColorBrush(Colors.White)),
-                "AppleIIe" => (
-                    new SolidColorBrush(ColorHelper.FromArgb(255, 51, 255, 51)),
-                    new SolidColorBrush(ColorHelper.FromArgb(255, 0, 0, 0)),
-                    new SolidColorBrush(ColorHelper.FromArgb(255, 20, 20, 20)),
-                    new SolidColorBrush(ColorHelper.FromArgb(255, 51, 255, 51))),
-                "C64" => (
-                    new SolidColorBrush(ColorHelper.FromArgb(255, 134, 122, 222)),
-                    new SolidColorBrush(ColorHelper.FromArgb(255, 64, 50, 133)),
-                    new SolidColorBrush(ColorHelper.FromArgb(255, 80, 69, 155)),
-                    new SolidColorBrush(ColorHelper.FromArgb(255, 134, 122, 222))),
-                "PipBoy" => (
-                    new SolidColorBrush(ColorHelper.FromArgb(255, 18, 255, 128)),
-                    new SolidColorBrush(ColorHelper.FromArgb(255, 10, 20, 10)),
-                    new SolidColorBrush(ColorHelper.FromArgb(255, 15, 30, 15)),
-                    new SolidColorBrush(ColorHelper.FromArgb(255, 18, 255, 128))),
-                "MUTHUR" => (
-                    new SolidColorBrush(ColorHelper.FromArgb(255, 0, 255, 65)),
-                    new SolidColorBrush(ColorHelper.FromArgb(255, 0, 0, 0)),
-                    new SolidColorBrush(ColorHelper.FromArgb(255, 10, 15, 10)),
-                    new SolidColorBrush(ColorHelper.FromArgb(255, 51, 255, 0))),
-                "WOPR" => (
-                    new SolidColorBrush(ColorHelper.FromArgb(255, 255, 51, 51)),
-                    new SolidColorBrush(ColorHelper.FromArgb(255, 10, 10, 26)),
-                    new SolidColorBrush(ColorHelper.FromArgb(255, 15, 15, 36)),
-                    new SolidColorBrush(ColorHelper.FromArgb(255, 0, 255, 0))),
-                "Matrix" => (
-                    new SolidColorBrush(ColorHelper.FromArgb(255, 0, 143, 17)),
-                    new SolidColorBrush(ColorHelper.FromArgb(255, 0, 0, 0)),
-                    new SolidColorBrush(ColorHelper.FromArgb(255, 0, 26, 0)),
-                    new SolidColorBrush(ColorHelper.FromArgb(255, 0, 255, 65))),
-                "Win95" => (
-                    new SolidColorBrush(ColorHelper.FromArgb(255, 0, 0, 128)),
-                    new SolidColorBrush(ColorHelper.FromArgb(255, 192, 192, 192)),
-                    new SolidColorBrush(ColorHelper.FromArgb(255, 255, 255, 255)),
-                    new SolidColorBrush(ColorHelper.FromArgb(255, 0, 0, 0))),
-                "LCARS" => (
-                    new SolidColorBrush(ColorHelper.FromArgb(255, 204, 153, 204)),
-                    new SolidColorBrush(ColorHelper.FromArgb(255, 0, 0, 0)),
-                    new SolidColorBrush(ColorHelper.FromArgb(255, 10, 10, 20)),
-                    new SolidColorBrush(ColorHelper.FromArgb(255, 255, 153, 0))),
-                "StarWars" => (
-                    new SolidColorBrush(ColorHelper.FromArgb(255, 68, 136, 255)),
-                    new SolidColorBrush(ColorHelper.FromArgb(255, 10, 10, 20)),
-                    new SolidColorBrush(ColorHelper.FromArgb(255, 13, 17, 23)),
-                    new SolidColorBrush(ColorHelper.FromArgb(255, 224, 224, 255))),
-                _ => (
-                    new SolidColorBrush(ColorHelper.FromArgb(255, 0, 200, 83)),
-                    new SolidColorBrush(ColorHelper.FromArgb(255, 26, 26, 46)),
-                    new SolidColorBrush(ColorHelper.FromArgb(255, 22, 33, 62)),
-                    new SolidColorBrush(Colors.White)),
-            };
-        }
-        catch (System.Runtime.InteropServices.COMException)
-        {
-            // WinUI runtime not available (unit tests)
-        }
+            "FluentLight" => (
+                Color.FromArgb(255, 0, 120, 212),
+                Color.FromArgb(255, 243, 243, 243),
+                Color.FromArgb(255, 255, 255, 255),
+                Color.FromArgb(255, 0, 0, 0)),
+            "FluentDark" => (
+                Color.FromArgb(255, 0, 200, 83),
+                Color.FromArgb(255, 26, 26, 46),
+                Color.FromArgb(255, 22, 33, 62),
+                Color.FromArgb(255, 255, 255, 255)),
+            "AppleIIe" => (
+                Color.FromArgb(255, 51, 255, 51),
+                Color.FromArgb(255, 0, 0, 0),
+                Color.FromArgb(255, 20, 20, 20),
+                Color.FromArgb(255, 51, 255, 51)),
+            "C64" => (
+                Color.FromArgb(255, 134, 122, 222),
+                Color.FromArgb(255, 64, 50, 133),
+                Color.FromArgb(255, 80, 69, 155),
+                Color.FromArgb(255, 134, 122, 222)),
+            "PipBoy" => (
+                Color.FromArgb(255, 18, 255, 128),
+                Color.FromArgb(255, 10, 20, 10),
+                Color.FromArgb(255, 15, 30, 15),
+                Color.FromArgb(255, 18, 255, 128)),
+            "MUTHUR" => (
+                Color.FromArgb(255, 0, 255, 65),
+                Color.FromArgb(255, 0, 0, 0),
+                Color.FromArgb(255, 10, 15, 10),
+                Color.FromArgb(255, 51, 255, 0)),
+            "WOPR" => (
+                Color.FromArgb(255, 255, 51, 51),
+                Color.FromArgb(255, 10, 10, 26),
+                Color.FromArgb(255, 15, 15, 36),
+                Color.FromArgb(255, 0, 255, 0)),
+            "Matrix" => (
+                Color.FromArgb(255, 0, 143, 17),
+                Color.FromArgb(255, 0, 0, 0),
+                Color.FromArgb(255, 0, 26, 0),
+                Color.FromArgb(255, 0, 255, 65)),
+            "Win95" => (
+                Color.FromArgb(255, 0, 0, 128),
+                Color.FromArgb(255, 192, 192, 192),
+                Color.FromArgb(255, 255, 255, 255),
+                Color.FromArgb(255, 0, 0, 0)),
+            "LCARS" => (
+                Color.FromArgb(255, 204, 153, 204),
+                Color.FromArgb(255, 0, 0, 0),
+                Color.FromArgb(255, 10, 10, 20),
+                Color.FromArgb(255, 255, 153, 0)),
+            "StarWars" => (
+                Color.FromArgb(255, 68, 136, 255),
+                Color.FromArgb(255, 10, 10, 20),
+                Color.FromArgb(255, 13, 17, 23),
+                Color.FromArgb(255, 224, 224, 255)),
+            _ => (
+                Color.FromArgb(255, 0, 200, 83),
+                Color.FromArgb(255, 26, 26, 46),
+                Color.FromArgb(255, 22, 33, 62),
+                Color.FromArgb(255, 255, 255, 255)),
+        };
     }
 
     [RelayCommand]
