@@ -16,7 +16,7 @@ public sealed partial class TimelineScrubber : UserControl
     }
 
     // Bindable properties
-    private double _playheadPosition = 35; // placeholder at 35%
+    private double _playheadPosition; // start at 0 — no placeholder offset
     private string _durationDisplay = "01:00:00";
     private double _playheadWidth = 0;
     private Thickness _playheadMargin = new(0);

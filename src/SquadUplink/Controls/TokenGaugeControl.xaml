@@ -31,5 +31,11 @@
                    FontFamily="Cascadia Mono,Consolas,monospace"
                    HorizontalAlignment="Center"
                    Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+
+        <!-- Empty-state hint -->
+        <TextBlock Text="Token tracking coming soon"
+                   FontSize="9" FontStyle="Italic" Opacity="0.5"
+                   HorizontalAlignment="Center"
+                   Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
     </StackPanel>
 </UserControl>

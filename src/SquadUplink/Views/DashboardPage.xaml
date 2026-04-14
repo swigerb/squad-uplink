@@ -264,7 +264,7 @@
                         <TextBlock Text="{x:Bind ViewModel.TotalUptime, Mode=OneWay}"
                                    Style="{StaticResource StatCounterTextStyle}"
                                    FontSize="28" />
-                        <TextBlock Text="combined session runtime"
+                        <TextBlock Text="since app launched"
                                    Style="{StaticResource StatLabelTextStyle}" />
                     </StackPanel>
                 </Border>
@@ -328,39 +328,22 @@
                     </StackPanel>
                 </Border>
 
-                <!-- Session Activity Chart Placeholder -->
+                <!-- Session Activity — Empty State -->
                 <Border Style="{StaticResource CockpitPanelStyle}">
                     <StackPanel Spacing="8">
                         <TextBlock Text="SESSION ACTIVITY" Style="{StaticResource SectionHeaderStyle}"
                                    CharacterSpacing="80" FontSize="10" />
                         <Grid Height="80">
-                            <!-- Bar chart simulation -->
-                            <StackPanel Orientation="Horizontal" Spacing="4"
-                                        VerticalAlignment="Bottom" HorizontalAlignment="Center">
-                                <Border Width="16" Height="20" CornerRadius="2,2,0,0"
-                                        Background="{StaticResource SquadAccentBlueBrush}" Opacity="0.3" />
-                                <Border Width="16" Height="35" CornerRadius="2,2,0,0"
-                                        Background="{StaticResource SquadAccentBlueBrush}" Opacity="0.5" />
-                                <Border Width="16" Height="55" CornerRadius="2,2,0,0"
-                                        Background="{StaticResource SquadAccentBlueBrush}" Opacity="0.7" />
-                                <Border Width="16" Height="42" CornerRadius="2,2,0,0"
-                                        Background="{StaticResource SquadAccentBlueBrush}" Opacity="0.6" />
-                                <Border Width="16" Height="70" CornerRadius="2,2,0,0"
-                                        Background="{StaticResource SquadAccentBlueBrush}" Opacity="0.9" />
-                                <Border Width="16" Height="48" CornerRadius="2,2,0,0"
-                                        Background="{StaticResource SquadAccentBlueBrush}" Opacity="0.6" />
-                                <Border Width="16" Height="30" CornerRadius="2,2,0,0"
-                                        Background="{StaticResource SquadAccentBlueBrush}" Opacity="0.4" />
-                                <Border Width="16" Height="60" CornerRadius="2,2,0,0"
-                                        Background="{StaticResource SquadAccentBlueBrush}" Opacity="0.8" />
-                                <Border Width="16" Height="25" CornerRadius="2,2,0,0"
-                                        Background="{StaticResource SquadAccentBlueBrush}" Opacity="0.3" />
-                                <Border Width="16" Height="50" CornerRadius="2,2,0,0"
-                                        Background="{StaticResource SquadAccentBlueBrush}" Opacity="0.7" />
+                            <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="4">
+                                <FontIcon Glyph="&#xE9D9;" FontSize="24" Opacity="0.4"
+                                          HorizontalAlignment="Center"
+                                          Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                <TextBlock Text="No activity data"
+                                           FontSize="11" FontStyle="Italic" Opacity="0.5"
+                                           HorizontalAlignment="Center"
+                                           Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
                             </StackPanel>
                         </Grid>
-                        <TextBlock Text="msgs/min over last hour"
-                                   Style="{StaticResource StatLabelTextStyle}" />
                     </StackPanel>
                 </Border>
 

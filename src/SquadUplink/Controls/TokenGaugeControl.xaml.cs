@@ -62,11 +62,7 @@ public sealed partial class TokenGaugeControl : UserControl
     public TokenGaugeControl()
     {
         InitializeComponent();
-        // Load placeholder data by default
-        var placeholder = TokenUsage.Placeholder;
-        CurrentTokens = placeholder.CurrentTokens;
-        MaxTokens = placeholder.MaxTokens;
-        EstimatedCost = (double)placeholder.EstimatedCost;
+        // Start with empty state — real data will be bound when available
     }
 
     private static void OnTokensChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)

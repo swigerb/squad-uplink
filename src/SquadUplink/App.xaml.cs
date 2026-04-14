@@ -147,13 +147,22 @@ public partial class App : Application
             Log.Warning(ex, "Theme initialization failed — using default theme");
         }
 
-        // Start background session scanning
+        // Start background session scanning (if auto-scan enabled)
         try
         {
             splash.UpdateStatus("Starting session scanner...");
-            var sessionManager = Services.GetRequiredService<ISessionManager>();
-            _ = Task.Run(() => sessionManager.StartScanningAsync(CancellationToken.None));
-            Log.Debug("Session scanning started");
+            var dataService = Services.GetRequiredService<IDataService>();
+            var settings = await dataService.GetSettingsAsync();
+            if (settings.AutoScanOnStartup)
+            {
+                var sessionManager = Services.GetRequiredService<ISessionManager>();
+                _ = Task.Run(() => sessionManager.StartScanningAsync(CancellationToken.None));
+                Log.Debug("Session scanning started");
+            }
+            else
+            {
+                Log.Debug("Session scanning skipped — AutoScanOnStartup is disabled");
+            }
         }
         catch (Exception ex)
         {
