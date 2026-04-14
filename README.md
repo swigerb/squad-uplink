@@ -1,39 +1,192 @@
 # 🚀 Squad Uplink
 
-**Command Center for GitHub Copilot CLI Sessions**
+### Command Center for GitHub Copilot CLI Sessions
 
-![.NET 10](https://img.shields.io/badge/.NET-10-512BD4) ![C# 14](https://img.shields.io/badge/C%23-14-239120) ![WinUI 3](https://img.shields.io/badge/WinUI-3-0078D4) ![Windows 11](https://img.shields.io/badge/Windows-11+-0078D4) ![Tests 325+](https://img.shields.io/badge/Tests-325%2B-brightgreen) ![License MIT](https://img.shields.io/badge/License-MIT-green)
+![.NET 10](https://img.shields.io/badge/.NET-10-512BD4) ![C# 14](https://img.shields.io/badge/C%23-14-239120) ![WinUI 3](https://img.shields.io/badge/WinUI-3-0078D4) ![Windows 11](https://img.shields.io/badge/Windows-11+-0078D4) ![Tests 665+](https://img.shields.io/badge/Tests-665%2B-brightgreen) ![License MIT](https://img.shields.io/badge/License-MIT-green)
 
-Squad Uplink v3 is a native Windows 11 Command Center for managing multiple GitHub Copilot CLI sessions. Launch, discover, and monitor AI agent sessions with Squad awareness — featuring MESS-style diagnostics, a command palette, retro skins, and Velopack auto-updates.
+Squad Uplink is a native Windows 11 desktop application that serves as your mission control cockpit for managing multiple GitHub Copilot CLI sessions with Squad awareness. Launch, discover, and monitor AI agent sessions — track token telemetry, visualize Squad hierarchies, and switch between 11 retro-futuristic themes.
+
+<!-- Screenshots coming soon -->
+
+---
 
 ## ✨ Key Features
 
-- 🔍 **Process Discovery** — Automatically finds running `copilot --remote` sessions and displays real-time status
-- 🚀 **Session Launching** — Start new Copilot CLI sessions with one click, configurable with model overrides and custom args
-- 📊 **Multi-Session Dashboard** — Monitor all sessions in configurable tab or grid layouts with live terminal output
-- 🏗️ **Squad Awareness** — Detects Squad/SubSquad hierarchies from `.squad/team.md` for intelligent agent grouping
-- 🩺 **MESS-Style Diagnostics** — 3-stage log filter pipeline (level → text → source), payload-aware formatting (JSON, stack traces, CLI output), and one-click diagnostic report export
-- 🎨 **Retro Skins** — Fluent 2 light/dark, Apple IIe phosphor green, Commodore 64 PETSCII blue, and Pip-Boy Vault-Tec amber — with CRT scanline effects
-- 🔔 **Windows Notifications** — Toast alerts for session discovery, completion, permission requests, and errors
-- 📈 **Telemetry Dashboard** — Real-time CPU, memory, and session activity graphs powered by WebView2
-- ⌨️ **Keyboard Shortcuts** — Ctrl+Tab, Ctrl+1-9, Ctrl+N, Ctrl+W, F11, Ctrl+R for power users
-- 🔗 **GitHub Integration** — Deep-link to Copilot CLI remote task viewer for seamless workflow
-- 🔄 **Velopack Auto-Updates** — Seamless background updates via GitHub Releases with delta patching
-- 🗄️ **SQLite Persistence** — Session history, settings, and preferences survive between launches
-- 🎵 **Audio Feedback** — Per-theme sound packs for session events (connectable, disconnectable, errors)
+### 🔍 Session Management
 
-## Screenshots
+- **Process Discovery** — Finds running `copilot --remote` sessions via WMI (filters out daemons and background processes)
+- **Session Launcher** — Start new sessions with repo picker, model selection, and custom arguments
+- **Multi-Session Layouts** — Cards, Tabs, and Grid view with one-click layout toggle
+- **GitHub Task URL Deep-Linking** — Click through to the Copilot CLI remote task viewer
+- **Live Terminal Output** — xterm.js-powered terminal via WebView2 with stdout/stderr capture
+- **SQLite Session History** — Full session persistence with resume across app restarts
 
-<!-- Screenshots will be added before GA release -->
+### 📊 Enterprise Telemetry
 
-## 🚦 Getting Started
+- **OTLP Listener on `:4318`** — Receives real-time `gen_ai.client.token.usage` metrics from Copilot CLI
+- **Burn Rate Widget** — Live $/hr calculation with color-coded thresholds (green/amber/red)
+- **Context Window Pressure** — Percentage of model context used with warning at 80%
+- **Agent ROI** — Cost per decision committed across your Squad agents
+- **Model Pricing for 7 models** — GPT-4o, GPT-4o-mini, Claude Opus 4.6, Claude Sonnet 4.5, Claude Haiku 4.5, o1, o1-mini
+
+### 🏗️ Squad Awareness
+
+- **Team Roster** — Reads `.squad/team.md` and displays agent roster with role emoji
+- **Decision Feed** — Live updates parsed from `decisions.md` via Markdig
+- **Orchestration Timeline** — Visual history from `orchestration-log/` entries
+- **FileSystemWatcher with Debounce** — Real-time `.squad/` directory monitoring
+- **Markdig Markdown Parsing** — Rich rendering of Squad config files
+
+### 📋 MESS-Style Diagnostics
+
+- **Expandable Footer Log Panel** — ▶/▼ toggle for quick log inspection
+- **Full DiagnosticsDialog** — 3-stage filtering: log level → text search → source
+- **Source-Generated Structured Logging** — 30+ `[LoggerMessage]` definitions, zero-allocation hot paths
+- **Custom InMemorySink** — Circular-buffer Serilog sink bridging logs to the diagnostics UI
+- **LogPayloadFormatter** — Auto-detects JSON, stack traces, and CLI output for syntax-aware display
+- **Runtime Log Level Switching** — Change verbosity without restarting
+- **Markdown Diagnostic Report Export** — One-click export of filtered logs for sharing
+
+### 🎨 11 Retro-Futuristic Themes
+
+| # | Theme | Description |
+|---|-------|-------------|
+| 1 | **Fluent** (Default) | Windows 11 native light and dark modes |
+| 2 | **Apple IIe** | 1984 phosphor green terminal (`#33FF33` on black) |
+| 3 | **Commodore 64** | PETSCII blue and cream palette (`#A0A0FF` on `#4040E0`) |
+| 4 | **Pip-Boy** | Fallout Vault-Tec amber (`#FFB000` on deep black) |
+| 5 | **MU-TH-UR 6000** | Nostromo AI — *Alien* mainframe aesthetic |
+| 6 | **W.O.P.R.** | NORAD war simulation — *WarGames* green on black |
+| 7 | **The Matrix** | Digital rain green cascade |
+| 8 | **Windows 95** | Classic chrome, 3D borders, and system fonts |
+| 9 | **LCARS** | *Star Trek* bridge console — orange/blue panels |
+| 10 | **Star Wars** | Imperial/Rebel holographic blue glow |
+| 11 | **RetroBase** | Shared foundation for all retro themes (CRT scanline effects) |
+
+All themes are switchable at runtime, persisted across sessions, and support optional CRT scanline effects.
+
+### ⌨️ Keyboard Shortcuts
+
+| Shortcut | Action |
+|----------|--------|
+| **Ctrl+Tab** | Next session |
+| **Ctrl+Shift+Tab** | Previous session |
+| **Ctrl+1** to **Ctrl+9** | Jump to session N |
+| **Ctrl+N** | New session |
+| **Ctrl+W** | Close session |
+| **Ctrl+Shift+U** | Command palette |
+| **F11** | Toggle focus mode |
+| **Ctrl+,** | Open Settings |
+| **Ctrl+R** | Refresh process scan |
+
+### 🔔 Additional Features
+
+- **Command Palette** (Ctrl+Shift+U) — Quick access to all actions
+- **Token Gauge Control** — Visual token budget with cost tracking
+- **Timeline Scrubber** — Scrub through session history and replay events
+- **SQLite Session History** — Full persistence with resume support
+- **Velopack Auto-Updates** — Delta patching via GitHub Releases
+- **Windows Toast Notifications** — Alerts for session discovery, completion, and errors
+- **Splash Screen** — Branded startup experience
+- **Audio Feedback** — Per-theme sound packs for session lifecycle events
+
+---
+
+## 📡 How to Enable Copilot CLI Telemetry
+
+```bash
+export COPILOT_OTEL_ENABLED=true
+export OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4318
+copilot --remote "your prompt here"
+```
+
+Squad Uplink will receive token usage in real-time and update the Burn Rate, Context Pressure, and Agent ROI dashboard widgets automatically.
+
+---
+
+## 🏗️ Architecture
+
+```
+┌──────────────────────────────────────────────────┐
+│              Squad Uplink v3                      │
+│          (WinUI 3 / .NET 10 / C# 14)            │
+├──────────────────────────────────────────────────┤
+│  PRESENTATION    Views, Controls, Themes          │
+│  VIEWMODEL       CommunityToolkit.Mvvm            │
+│  SERVICES        Scanner, Launcher, Telemetry     │
+│  LOGGING         Serilog (InMemory+File+Debug)    │
+│  DATA            SQLite, Markdig, FileWatcher     │
+│  TELEMETRY       OTLP Listener, ModelPricing      │
+└──────────────────────────────────────────────────┘
+```
+
+### Key Services
+
+| Service | Responsibility |
+|---------|---------------|
+| **ProcessScanner** | WMI queries to find `copilot.exe` processes with `--remote` flag |
+| **SessionManager** | CRUD + scan cycle + auto-prune for active sessions |
+| **ProcessLauncher** | Spawns new Copilot CLI processes with configurable arguments |
+| **OutputCapture** | Pipes process stdout/stderr to the xterm.js terminal control |
+| **SquadDetector** | Parses `.squad/team.md` hierarchies and sub-squads |
+| **SquadFileWatcher** | FileSystemWatcher with debounce for `.squad/` directory changes |
+| **TelemetryService** | Aggregates token usage records, calculates burn rate and ROI |
+| **OtlpListener** | HTTP listener on `:4318` accepting OTLP JSON metric payloads |
+| **ThemeService** | Manages 11 theme XAML dictionaries with persistence |
+| **AudioService** | Per-theme sound packs for session lifecycle events |
+| **NotificationService** | Windows toast notifications for session events |
+| **DataService** | SQLite persistence for session history, settings, and telemetry |
+| **LoggingService** | Serilog pipeline configuration with multiple sinks |
+
+### Custom Controls (13)
+
+| Control | Purpose |
+|---------|---------|
+| `BurnRateWidget` | Live $/hr display with color-coded thresholds |
+| `ContextPressureWidget` | Context window % usage gauge |
+| `AgentRoiWidget` | Cost per decision committed |
+| `TokenGaugeControl` | Visual token budget indicator |
+| `TimelineScrubber` | Session history replay scrubber |
+| `SessionTerminalControl` | xterm.js terminal via WebView2 |
+| `SessionLayoutControl` | Tab/Card/Grid layout switcher |
+| `GridLayoutPanel` | Responsive grid for multi-session view |
+| `SquadTreeControl` | TreeView for Squad agent hierarchy |
+| `SquadStatusPanel` | Squad state summary panel |
+| `OrchestrationTimelineControl` | Visual timeline from orchestration logs |
+| `DecisionFeedControl` | Live decision stream from `decisions.md` |
+| `CommandPalette` | Fuzzy-search command launcher |
+
+---
+
+## 🛠️ Technology Stack
+
+| Layer | Technology | Version | Purpose |
+|-------|-----------|---------|---------|
+| **Runtime** | .NET | 10 | Latest LTS runtime |
+| **Language** | C# | 14 (latest) | Source generators, pattern matching |
+| **UI Framework** | WinUI 3 | 1.7 | Windows App SDK XAML |
+| **Windows API** | Windows App SDK | 1.7.250513003 | Native Windows integration |
+| **MVVM** | CommunityToolkit.Mvvm | 8.4.0 | Source-generated ObservableObject/RelayCommand |
+| **Logging** | Serilog | 4.3.0 | File + Debug + InMemory + Custom sinks |
+| **Database** | Microsoft.Data.Sqlite | 10.0 preview | Session history, settings, telemetry |
+| **Markdown** | Markdig | 0.38.0 | Squad file parsing, diagnostic report export |
+| **Web Control** | WebView2 | 1.0.3856.49 | xterm.js terminal, telemetry charts |
+| **Updates** | Velopack | 0.0.1251 | Self-contained EXE with delta patching |
+| **Process API** | System.Management | 9.0.5 | WMI-based process discovery |
+| **DI** | Microsoft.Extensions.DependencyInjection | 10.0 preview | Constructor injection throughout |
+| **Hosting** | Microsoft.Extensions.Hosting | 10.0 preview | App lifecycle management |
+| **Testing** | xUnit + Moq + Coverlet | latest | Unit, integration, UX, smoke, regression |
+
+---
+
+## 🚀 Getting Started
 
 ### Prerequisites
 
 - **Windows 11** (build 22621 or later)
 - **.NET 10 SDK** — [Download](https://dotnet.microsoft.com/download/dotnet)
-- **Visual Studio 2026** (Community+ or Code with C# extension) — optional for development
 - **GitHub Copilot CLI** — Install via `npm install -g @github/copilot-cli`
+- **Visual Studio 2026** (optional) — Community or higher with the WinUI workload
 
 ### Clone and Build
 
@@ -49,147 +202,49 @@ dotnet build SquadUplink.sln -p:Platform=x64
 # Debug mode
 dotnet run --project src/SquadUplink/SquadUplink.csproj
 
-# Or release build
+# Release build
 dotnet build SquadUplink.sln -p:Platform=x64 -c Release
 .\src\SquadUplink\bin\x64\Release\net10.0-windows10.0.22621.0\SquadUplink.exe
 ```
 
 ### First Launch
 
-On startup, Squad Uplink automatically scans for running `copilot --remote` sessions:
-1. Click **Launch New** to start a fresh Copilot CLI session
-2. Sessions appear in the dashboard with live terminal output
-3. Switch themes via **Settings** → **Appearance** (includes retro skins)
-4. Configure layout (tabs vs grid) in **Settings** → **Layout**
-5. Open **Diagnostics** for MESS-style log inspection and report export
-6. Check for updates in **Settings** → **About**
+1. Squad Uplink automatically scans for running `copilot --remote` sessions
+2. Click **Launch New** to start a fresh Copilot CLI session
+3. Sessions appear in the dashboard with live terminal output
+4. Switch themes via **Settings → Appearance** (11 themes available)
+5. Toggle layout (tabs/cards/grid) in **Settings → Layout**
+6. Open **Diagnostics** for MESS-style log inspection and report export
+7. Enable OTLP telemetry for real-time token tracking widgets
 
-## 🏛️ Architecture
+---
 
-Squad Uplink v3 was built in five phases:
+## 🧪 Testing
 
-| Phase | Focus | Delivered |
-|-------|-------|-----------|
-| **A — Foundation** | Core services, DI, MVVM, logging, splash screen | ProcessScanner, SessionManager, DataService, ThemeService, Serilog pipeline |
-| **B — Diagnostics** | MESS-style log viewer, payload formatting, diagnostic reports | DiagnosticsViewModel, InMemorySink, 3-stage filter, export |
-| **C — Retro Skins** | Apple IIe, C64, Pip-Boy themes with CRT effects | RetroBase.xaml, per-theme XAML, CRT scanline toggle |
-| **D — Polish** | Audio, notifications, keyboard shortcuts, grid layout | AudioService, NotificationService, GridLayoutPanel, keyboard nav |
-| **E — Distribution** | Velopack packaging, end-to-end tests, README | VelopackApp bootstrap, build-release.ps1, 325+ tests |
+Squad Uplink has **665+ tests** across 44 test files organized into 6 categories:
 
-### Layered Architecture
-
-```
-┌─────────────────────────────────────────────┐
-│     Presentation (WinUI 3 / XAML)           │
-│  Views, Controls, Themes, Converters        │
-└──────────────────┬──────────────────────────┘
-                   │
-┌──────────────────▼──────────────────────────┐
-│    ViewModel Layer (MVVM Toolkit)           │
-│ Dashboard, Session, Settings, Diagnostics   │
-└──────────────────┬──────────────────────────┘
-                   │
-┌──────────────────▼──────────────────────────┐
-│         Services Layer (Business Logic)     │
-│  ProcessScanner, SessionManager, Squad-     │
-│  Detector, ThemeService, AudioService,      │
-│  NotificationService, OutputCapture         │
-└──────────────────┬──────────────────────────┘
-                   │
-┌──────────────────▼──────────────────────────┐
-│        Data Layer (SQLite + Serilog)        │
-│  DataService, InMemorySink, LogPayload-     │
-│  Formatter, crash.log, rolling file logs    │
-└─────────────────────────────────────────────┘
-```
-
-**Key Service Responsibilities:**
-- **ProcessScanner** — WMI queries to find `copilot.exe` processes
-- **SessionManager** — CRUD + scan cycle + auto-prune for active sessions
-- **SquadDetector** — Parses `.squad/team.md` hierarchies and sub-squads
-- **ThemeService** — Manages Fluent/retro theme switching with persistence
-- **AudioService** — Per-theme sound packs for session lifecycle events
-- **NotificationService** — Windows toast notifications for session events
-- **OutputCapture** — Pipes process stdout/stderr to terminal control
-- **DataService** — SQLite persistence for session history and settings
-- **DiagnosticsViewModel** — 3-stage filter (level → search → source), payload formatting, report export
-- **InMemorySink** — Circular-buffer Serilog sink bridging logs to the diagnostics UI
-
-## 🛠️ Technology Stack
-
-| Layer | Technology | Version |
-|-------|-----------|---------|
-| **Runtime** | .NET | 10 |
-| **Language** | C# | 14 (latest) |
-| **UI Framework** | WinUI 3 | 1.7 |
-| **Windows API** | Windows App SDK | 1.7 |
-| **MVVM** | CommunityToolkit.Mvvm | 8.4 |
-| **Logging** | Serilog (File + Debug + InMemory + Custom) | 4.3 |
-| **Database** | SQLite | via Microsoft.Data.Sqlite |
-| **Web Control** | WebView2 | 1.0.3856.49+ |
-| **Terminal Emulation** | xterm.js | (via WebView2) |
-| **Updates** | Velopack | 0.0.1251 |
-| **Testing** | xUnit, Moq, Coverlet | latest |
-| **Process API** | System.Management | 9.0 |
-
-## 🎨 Theme Gallery
-
-Squad Uplink ships with five carefully crafted themes:
-
-### 🔵 Fluent 2 (Default)
-Windows 11 native light and dark modes. Clean, modern sans-serif typography with accent color support. Perfect for corporate environments.
-- Light palette: `#FFFFFF` bg, `#000000` fg
-- Dark palette: `#1E1E1E` bg, `#E8E8E8` fg
-
-### 💚 Apple IIe
-Nostalgic 1984 phosphor green terminal. Classic monospace font on black background.
-- Foreground: `#33FF33` (Apple IIe green)
-- Background: `#000000` (black CRT)
-
-### 💙 Commodore 64
-PETSCII-inspired blue and cream palette from the legendary 8-bit computer. Chunky bitmap font emulation.
-- Foreground: `#A0A0FF` (light blue)
-- Background: `#4040E0` (C64 blue)
-
-### 💛 Pip-Boy
-Fallout universe amber Vault-Tec aesthetic. Retro-futuristic dials and amber text on black.
-- Foreground: `#FFB000` (Vault-Tec amber)
-- Background: `#0A0A0A` (deep black)
-
-All retro themes support optional CRT scanline effects via **Settings** → **CRT Effects**.
-
-## ⌨️ Keyboard Shortcuts
-
-| Shortcut | Action |
-|----------|--------|
-| **Ctrl+Tab** | Switch to next session tab |
-| **Ctrl+Shift+Tab** | Switch to previous session tab |
-| **Ctrl+1** to **Ctrl+9** | Jump directly to session N |
-| **Ctrl+N** | Launch new session |
-| **Ctrl+W** | Close current session (with confirmation) |
-| **F11** | Toggle focus mode (hide UI chrome) |
-| **Ctrl+, (comma)** | Open Settings |
-| **Ctrl+R** | Refresh process scan |
-
-## 🔨 Development
-
-### Clean Build
+| Category | Files | Coverage |
+|----------|-------|----------|
+| **Smoke Tests** | DI, type loading, XAML binding, service construction | Bootstrap validation |
+| **Service Tests** | ProcessScanner, SessionManager, SquadDetector, OtlpListener, Theme, Data, etc. | Core business logic |
+| **ViewModel Tests** | Dashboard, Session, Settings, Diagnostics, Telemetry widgets | UI behavior |
+| **UX Tests** | Command palette, navigation, null safety, binding safety | User experience flows |
+| **Logging Tests** | InMemorySink, LogPayloadFormatter | Diagnostics pipeline |
+| **End-to-End** | App bootstrap, integration, regression | Full-stack validation |
 
 ```powershell
-dotnet build SquadUplink.sln -p:Platform=x64
-```
-
-### Testing
-
-```powershell
-# Run all tests (325+ tests)
+# Run all tests
 dotnet test SquadUplink.sln -p:Platform=x64
 
-# With coverage
+# With code coverage
 dotnet test SquadUplink.sln -p:Platform=x64 --collect:"XPlat Code Coverage"
 ```
 
-### Release Build (Velopack)
+---
+
+## 📦 Distribution
+
+Squad Uplink uses [Velopack](https://velopack.io) for self-contained packaging with delta auto-updates.
 
 ```powershell
 # Install Velopack CLI (one-time)
@@ -199,55 +254,58 @@ dotnet tool install -g vpk
 .\scripts\build-release.ps1 -Version "3.0.0"
 ```
 
-This generates self-contained EXE and delta update packages in `releases/`. Upload to GitHub Releases for automatic update delivery.
+This generates a self-contained EXE and delta update packages in `releases/`. Upload to GitHub Releases for automatic update delivery to users.
+
+---
 
 ## 📖 Project Structure
 
 ```
 squad-uplink/
 ├── src/
-│   ├── SquadUplink/              # Main WinUI 3 app
-│   │   ├── Views/                # XAML pages (Dashboard, Settings, Diagnostics)
-│   │   ├── ViewModels/           # MVVM view models
-│   │   ├── Services/             # Business logic (Scanner, Manager, etc.)
-│   │   ├── Controls/             # Reusable controls (Terminal, Grid, SquadTree)
-│   │   ├── Contracts/            # Service interfaces
-│   │   ├── Models/               # Data models (SessionState, AppSettings, etc.)
-│   │   ├── Themes/               # Theme definitions (Fluent, RetroBase, C64, etc.)
-│   │   ├── Helpers/              # DI registration, converters
-│   │   ├── Assets/               # Icons, audio, application resources
-│   │   ├── wwwroot/              # Static web content for WebView2
-│   │   ├── Program.cs            # Entry point: Velopack + Serilog + DI + WinUI
-│   │   └── App.xaml.cs           # WinUI app: splash, service init, error handling
-│   └── SquadUplink.Core/         # Shared logic library (logging, formatters)
+│   ├── SquadUplink/                    # Main WinUI 3 application
+│   │   ├── Views/                      # 5 XAML pages (Dashboard, Session, Settings, Launch, Diagnostics)
+│   │   ├── ViewModels/                 # 5 MVVM view models
+│   │   ├── Services/                   # 13 services (Scanner, Launcher, Telemetry, OTLP, etc.)
+│   │   ├── Controls/                   # 13 custom controls (Widgets, Terminal, CommandPalette, etc.)
+│   │   ├── Contracts/                  # Service interfaces (ITelemetryService, IProcessScanner)
+│   │   ├── Models/                     # 15 data models (SessionState, ModelPricing, TokenUsage, etc.)
+│   │   ├── Themes/                     # 11 theme XAML dictionaries
+│   │   ├── Converters/                 # Value converters (Bool, Level, Status, TimeAgo)
+│   │   ├── Helpers/                    # DI registration extensions
+│   │   ├── Assets/                     # Icons, audio, application resources
+│   │   ├── wwwroot/                    # Static web content for WebView2
+│   │   ├── Program.cs                  # Entry point: Velopack + Serilog + DI + WinUI
+│   │   └── App.xaml.cs                 # WinUI app: splash, service init, error handling
+│   └── SquadUplink.Core/              # Shared library
+│       ├── Logging/                    # InMemorySink, LogPayloadFormatter, 30+ LogMessages
+│       ├── Models/                     # Shared models (SquadInfo, DecisionEntry)
+│       └── Services/                   # MarkdownParser (Markdig-based)
 ├── tests/
-│   └── SquadUplink.Tests/        # xUnit test suite (325+ tests)
-│       ├── SmokeTests/           # DI, type loading, XAML binding validation
-│       ├── Services/             # Unit tests for each service
-│       ├── ViewModels/           # ViewModel behavior tests
-│       ├── Logging/              # InMemorySink, payload formatter tests
-│       └── EndToEnd/             # Bootstrap, integration, regression tests
+│   └── SquadUplink.Tests/             # xUnit test suite (665+ tests)
+│       ├── SmokeTests/                 # DI, type loading, XAML binding validation
+│       ├── Services/                   # Unit tests for all 13 services
+│       ├── ViewModels/                 # ViewModel behavior + telemetry widget tests
+│       ├── UxTests/                    # Command palette, navigation, null/binding safety
+│       ├── Logging/                    # InMemorySink, LogPayloadFormatter tests
+│       ├── Integration/                # Real Squad file tests
+│       └── EndToEnd/                   # Bootstrap, integration, regression tests
 ├── scripts/
-│   └── build-release.ps1         # Velopack release packaging script
-├── SquadUplink.sln               # Solution file (.NET 10)
-├── Directory.Build.props         # Shared build properties
-└── README.md                     # This file
+│   ├── build-release.ps1               # Velopack release packaging
+│   ├── generate-icons.mjs              # Icon asset generation
+│   └── squad-rc-launch.mjs            # Squad RC launch helper
+├── SquadUplink.sln                     # Solution file
+├── Directory.Build.props               # Shared build properties
+└── README.md                           # You are here
 ```
 
-## 🔄 About
+---
 
-Squad Uplink v3 "Command Center" is the third major iteration. The original v1 was a React/Vite web app connecting via DevTunnels. v2 pivoted to native WinUI 3 when `copilot --remote` launched in April 2026. v3 adds MESS-style diagnostics, retro skins, audio feedback, and distribution packaging.
+## 🤖 Built with Squad
 
-### v3 Highlights
-- **MESS-style diagnostics**: 3-stage filter pipeline with payload-aware formatting
-- **Retro skins**: Apple IIe, C64, Pip-Boy with optional CRT effects
-- **Audio feedback**: Per-theme sound packs for session events
-- **Velopack distribution**: Self-contained EXE with delta auto-updates
-- **325+ tests**: Comprehensive coverage including end-to-end and regression suites
-- **Command palette**: Quick-access keyboard shortcuts for all actions
+This project was built by an AI team managed by [Squad](https://github.com/bradygaster/squad) — an intelligent agent orchestration framework for Git-native AI workflows. The team includes Jobs (Lead), Woz (Lead Dev), Kare (Frontend), Hertzfeld (Tester), Scribe, and Ralph.
 
-### Built with Squad
-This project was built by an AI team managed by [Squad](https://github.com/bradygaster/squad) — an intelligent agent orchestration framework for Git-native AI workflows.
+---
 
 ## 📜 License
 
@@ -255,4 +313,8 @@ MIT License — see [LICENSE](LICENSE) for details.
 
 ---
 
-**Squad Uplink v3** © 2026 | Command Center for modern Copilot CLI workflows
+<div align="center">
+
+**Squad Uplink v3** © 2026 — Command Center for modern Copilot CLI workflows
+
+</div>
