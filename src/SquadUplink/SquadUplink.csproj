@@ -35,7 +35,10 @@
     <PackageReference Include="Serilog.Sinks.Debug" Version="3.0.0" />
     <PackageReference Include="Serilog.Sinks.InMemory" Version="0.11.0" />
     <PackageReference Include="Microsoft.Data.Sqlite" Version="10.0.0-preview.5.25277.114" />
-    <PackageReference Include="Microsoft.Web.WebView2" Version="1.0.3124.44" />
+    <!-- Pin WebView2 to latest version — Windows App SDK 1.7 pulls in an older
+         version (1.0.2903.40) whose CsWinRT projection is incompatible with .NET 10
+         (GetVirtualMethodTableInfoForKey TypeLoadException). Pinning to latest. -->
+    <PackageReference Include="Microsoft.Web.WebView2" Version="1.0.3856.49" />
     <PackageReference Include="System.Management" Version="9.0.5" />
     <PackageReference Include="Velopack" Version="0.0.1251" />
   </ItemGroup>
