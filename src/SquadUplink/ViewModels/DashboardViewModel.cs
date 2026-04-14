@@ -530,6 +530,60 @@ public partial class DashboardViewModel : ViewModelBase
         {
             Log.Warning(ex, "Failed to refresh telemetry widgets");
         }
+
+        UpdateHeartbeats();
+    }
+
+    private void UpdateHeartbeats()
+    {
+        foreach (var session in Sessions)
+        {
+            if (session.Status == SessionStatus.Completed || session.Status == SessionStatus.Error)
+            {
+                session.Heartbeat = HeartbeatStatus.Ended;
+                continue;
+            }
+
+            bool processAlive;
+            try
+            {
+                var proc = System.Diagnostics.Process.GetProcessById(session.ProcessId);
+                processAlive = !proc.HasExited;
+            }
+            catch
+            {
+                processAlive = false;
+            }
+
+            if (!processAlive)
+            {
+                session.Heartbeat = HeartbeatStatus.Ended;
+                continue;
+            }
+
+            if (session.LastEventAt is null)
+            {
+                session.Heartbeat = HeartbeatStatus.Unknown;
+                continue;
+            }
+
+            var elapsed = DateTime.UtcNow - session.LastEventAt.Value;
+            session.Heartbeat = elapsed.TotalSeconds switch
+            {
+                < 30 => HeartbeatStatus.Active,
+                < 120 => HeartbeatStatus.Idle,
+                _ => HeartbeatStatus.Waiting
+            };
+        }
+    }
+
+    public void UpdateSessionLastEvent(string eventsJsonlPath, DateTime timestamp)
+    {
+        var session = Sessions.FirstOrDefault(s => s.EventsJsonlPath == eventsJsonlPath);
+        if (session is not null)
+        {
+            session.LastEventAt = timestamp;
+        }
     }
 
     /// <summary>

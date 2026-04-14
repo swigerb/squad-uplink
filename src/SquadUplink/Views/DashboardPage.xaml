@@ -196,7 +196,7 @@
                                             </Border>
                                         </Grid>
 
-                                        <!-- Row 1: PID + Age -->
+                                        <!-- Row 1: PID + Age + Heartbeat -->
                                         <StackPanel Grid.Row="1" Orientation="Horizontal" Spacing="12">
                                             <StackPanel Orientation="Horizontal" Spacing="4">
                                                 <FontIcon Glyph="&#xE943;" FontSize="11"
@@ -211,6 +211,14 @@
                                                           Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
                                                 <TextBlock Text="{x:Bind StartedAt, Mode=OneWay, Converter={StaticResource TimeAgo}}"
                                                            FontSize="11"
+                                                           Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                            </StackPanel>
+                                            <StackPanel Orientation="Horizontal" Spacing="4">
+                                                <Ellipse Width="8" Height="8"
+                                                         Fill="{x:Bind HeartbeatBrush, Mode=OneWay}"
+                                                         VerticalAlignment="Center" />
+                                                <TextBlock Text="{x:Bind HeartbeatLabel, Mode=OneWay}"
+                                                           FontSize="10" Opacity="0.7"
                                                            Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
                                             </StackPanel>
                                         </StackPanel>

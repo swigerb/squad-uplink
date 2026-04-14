@@ -1,5 +1,7 @@
 using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
+using Microsoft.UI;
+using Microsoft.UI.Xaml.Media;
 
 namespace SquadUplink.Models;
 
@@ -11,6 +13,15 @@ public enum SessionStatus
     Idle,
     Completed,
     Error
+}
+
+public enum HeartbeatStatus
+{
+    Unknown,
+    Active,
+    Idle,
+    Waiting,
+    Ended
 }
 
 public partial class SessionState : ObservableObject
@@ -71,6 +82,12 @@ public partial class SessionState : ObservableObject
     private string? _gitBranch;
 
     [ObservableProperty]
+    private HeartbeatStatus _heartbeat = HeartbeatStatus.Unknown;
+
+    [ObservableProperty]
+    private DateTime? _lastEventAt;
+
+    [ObservableProperty]
     private string? _eventsJsonlPath;
 
     partial void OnGitHubTaskUrlChanged(string? value)
@@ -78,6 +95,30 @@ public partial class SessionState : ObservableObject
         HasGitHubUrl = !string.IsNullOrEmpty(value);
         GitHubTaskUri = HasGitHubUrl && Uri.TryCreate(value, UriKind.Absolute, out var uri) ? uri : null;
     }
+
+    partial void OnHeartbeatChanged(HeartbeatStatus value)
+    {
+        OnPropertyChanged(nameof(HeartbeatBrush));
+        OnPropertyChanged(nameof(HeartbeatLabel));
+    }
+
+    public SolidColorBrush HeartbeatBrush => Heartbeat switch
+    {
+        HeartbeatStatus.Active => new SolidColorBrush(ColorHelper.FromArgb(255, 76, 175, 80)),
+        HeartbeatStatus.Idle => new SolidColorBrush(ColorHelper.FromArgb(255, 255, 193, 7)),
+        HeartbeatStatus.Waiting => new SolidColorBrush(ColorHelper.FromArgb(255, 244, 67, 54)),
+        HeartbeatStatus.Ended => new SolidColorBrush(ColorHelper.FromArgb(255, 158, 158, 158)),
+        _ => new SolidColorBrush(ColorHelper.FromArgb(255, 97, 97, 97))
+    };
+
+    public string HeartbeatLabel => Heartbeat switch
+    {
+        HeartbeatStatus.Active => "Active",
+        HeartbeatStatus.Idle => "Thinking...",
+        HeartbeatStatus.Waiting => "Waiting for Agent...",
+        HeartbeatStatus.Ended => "Session ended",
+        _ => ""
+    };
 
     public ObservableCollection<string> OutputLines { get; } = [];
 }
