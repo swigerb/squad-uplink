@@ -890,6 +890,124 @@ Used a module-level `EMPTY_ERRORS` constant instead of inline `?? []` for the Zu
 - `src/components/__tests__/TelemetryDrawer.test.tsx` — Added `connectionErrors` to telemetry fixture
 - `src/components/__tests__/PipBoyLayout.test.tsx` — Added `connectionErrors` to telemetry fixture
 
+---
+
+## 2026-04-14T0000Z: Performance & Architecture Audit
+**By:** Jobs (Lead)  
+**Date:** 2026-04-14  
+**Status:** Implemented
+
+### Summary
+Comprehensive performance and architecture audit of 68 `.cs` files in `src/SquadUplink/` and `src/SquadUplink.Core/`. **39 findings** identified: 9 Critical, 14 High, 12 Medium, 4 Low.
+
+### Critical Findings Implemented
+1. **PERF-005: Background-thread UI updates** — DashboardViewModel now marshals all property updates to UI thread via DispatcherQueue
+2. **PERF-001: GDI handle leak** — TrayIconService now properly destroys HICON handles via P/Invoke after Icon.FromHandle
+3. **ARCH-001: Duplicate ITelemetryService** — Removed second registration from ServiceCollectionExtensions
+4. **PERF-002/003/004/008: Event handler leaks** — All four CollectionChanged subscription patterns now properly unsubscribe via named handlers
+
+### High Priority Implemented
+- **PERF-009**: SqliteCommand disposal — all `CreateCommand()` calls now wrapped in `await using`
+- **PERF-010**: WMI ManagementObject disposal — ProcessScanner now disposes each object in foreach
+- **PERF-013**: OtlpListener Stop() blocking — Made StopAsync() to avoid UI thread hangs
+- **PERF-014/015/016/017**: Brush allocation churn — Converters and controls now cache SolidColorBrush instances
+- **PERF-020**: CommandPalette allocation — Reuse filtered list buffer instead of per-keystroke allocation
+
+### Medium/Low Optimizations
+- **PERF-022/023/024/025/026/027/028/030/031**: Collection optimizations, timer reuse, LINQ single-pass aggregates, StringBuilder usage
+- **ERR-005/006/007/011**: Bare catch blocks upgraded to typed catches with Debug logging
+
+### Files Modified
+Core service layer and infrastructure fixes across 12 files for thread safety, resource management, and error observability.
+
+---
+
+## 2026-04-14T0000Z: Error Handling & C# Best Practices Audit
+**By:** Woz (Lead Dev)  
+**Date:** 2026-04-14  
+**Status:** Implemented
+
+### Summary
+Comprehensive error handling audit of all `.cs` files. **31 findings** identified: 3 Critical, 9 High, 13 Medium, 6 Low.
+
+### Critical Findings Implemented
+1. **ERR-002: IHost disposal** — Program.cs now uses `using var host =` pattern to ensure Serilog flushing and DI disposal
+2. **ERR-003: Duplicate DI registration** — ITelemetryService duplicate removed
+3. **ERR-001: async void safety** — SquadDetector async void documented as intentional with full try-catch coverage
+
+### High Priority Implemented
+- **ERR-004/008/012**: Fire-and-forget and disposal patterns — Exception continuations added, resources properly cleaned
+- **ERR-005/006/007/009/010/011**: Bare catch blocks — Upgraded to typed catches with contextual logging
+- **ERR-013/014/015/016**: Event subscription leaks — Named handlers with proper unsubscribe logic
+
+### Medium Priority Implemented
+- **ERR-017/019/020/021**: Input validation — ArgumentNullException/ArgumentException guards added to public methods
+- **ERR-022**: Null-forgiving operator — Replaced with null-conditional guards and explicit exceptions
+
+### Positive Findings
+- NRT enabled project-wide ✓
+- File-scoped namespaces used consistently ✓
+- Record types used appropriately ✓
+- Pattern matching throughout ✓
+
+---
+
+## 2026-04-14T0000Z: WinUI 3 / Fluent 2 / XAML Best Practices Audit
+**By:** Kare (Frontend Dev)  
+**Date:** 2026-04-14  
+**Status:** Implemented
+
+### Summary
+Comprehensive XAML and UI audit of all `.xaml`, `.xaml.cs`, and ViewModel files. **31 findings** identified: 2 Critical, 11 High, 13 Medium, 5 Low.
+
+### Critical Findings Implemented
+1. **UI-002: DiagnosticsDialog {Binding} migration** — 20+ {Binding} expressions converted to compiled {x:Bind} with x:DataType
+2. **MVVM-001: SettingsViewModel brush removal** — SolidColorBrush properties replaced with Color properties + ColorToBrushConverter
+
+### High Priority Implemented
+- **UI-001/003**: MainWindow and CommandPalette {Binding} → {x:Bind} with x:DataType
+- **MVVM-002/003**: DashboardViewModel Visibility enum → bool properties; extracted MainWindow diagnostics logic to ViewModel
+- **MVVM-005**: Background-thread property updates — DispatcherQueue marshaling added
+- **UI-005/006/007**: Event subscription cleanup — Unsubscribe in OnNavigatedFrom and ContentDialog.Closing
+- **FLUENT-005**: Responsive layout — VisualStateManager with AdaptiveTrigger breakpoints (1200px/860px/0px)
+- **FLUENT-006/007**: Accessibility — Session cards converted to Button; CommandPalette focus trapping and automation properties
+
+### Medium Priority Implemented
+- **UI-004**: Diagnostics panel deferred loading — Changed to x:Load="False"
+- **UI-008/009**: Brush caching — SessionTerminalControl and MainWindow status brush optimization
+- **FLUENT-002/003/004**: Hardcoded colors → theme resources (TimelineScrubber, SessionPage, CommandPalette)
+- **FLUENT-008/009**: Accessibility enhancements (AutomationProperties)
+- **MVVM-004**: LaunchSessionDialog MVVM — Manual Bindings.Update() → ObservableProperty
+
+### Low Priority Implemented
+- **FLUENT-010**: ThemeShadow elevation to CockpitPanelStyle
+- **FLUENT-011**: Page transition animations with SlideNavigationTransitionInfo
+- **UI-010**: SquadStatusPanel opacity layering fixed
+
+---
+
+## Dead Code & Dependency Cleanup
+**By:** Woz (Lead Dev)  
+**Date:** 2026-04-14  
+**Status:** Implemented
+
+### What
+Removed all dead code, orphaned files, and unused dependencies from the project. **137 files deleted** (~31,900 lines).
+
+### Key Changes
+1. **WebView2 removed** — No `.cs` or `.xaml` file uses `Microsoft.Web.WebView2`. SessionTerminalControl uses native WinUI XAML, not WebView2.
+2. **wwwroot/ deleted** — `terminal.html` and `terminal.js` were from abandoned xterm.js plan. Content glob removed from `.csproj`.
+3. **React/Vite v1 source removed** — Entire old web app (React 19, Vite 8, TypeScript, xterm.js, Zustand, CSS, themes, hooks, tests) deleted alongside WinUI 3 project.
+4. **Old scripts removed** — `squad-rc-launch.mjs` and `generate-icons.mjs` for old web app. `build-release.ps1` (WinUI Velopack) retained.
+5. **README updated** — xterm.js/WebView2/wwwroot references replaced with native XAML equivalents.
+6. **Tests updated** — WebView2 presence assertion flipped to absence assertion.
+
+### Why
+Project migrated from React SPA to WinUI 3 desktop app but carried ~32K lines of dead code, unused NuGet packages, and orphaned web artifacts.
+
+### Risk
+Low. WebView2 was only pinned for transitive CsWinRT crash workaround — removing it with 0 build errors confirms Windows App SDK 1.7 resolved the issue. All tests pass.
+
 
 ---
 
