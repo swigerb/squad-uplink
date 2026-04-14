@@ -1,49 +1,48 @@
 using System.Diagnostics;
-using System.Runtime.ExceptionServices;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.UI.Xaml;
 using Serilog;
-using Serilog.Sinks.InMemory;
 using SquadUplink.Contracts;
-using SquadUplink.Helpers;
 using SquadUplink.Views;
 
 namespace SquadUplink;
 
+/// <summary>
+/// WinUI Application. DI and logging are configured in Program.cs;
+/// this class handles XAML init, splash screen, and service startup.
+/// </summary>
 public partial class App : Application
 {
     private readonly Stopwatch _startupTimer = Stopwatch.StartNew();
 
-    public static IServiceProvider Services { get; private set; } = null!;
+    /// <summary>
+    /// Application-wide service provider, set by Program.cs before app launch.
+    /// </summary>
+    public static IServiceProvider Services { get; set; } = null!;
+
+    /// <summary>
+    /// Resolves a service from the DI container.
+    /// </summary>
+    public static T GetService<T>() where T : class =>
+        Services.GetRequiredService<T>();
 
     public App()
     {
-        // 1. Logging — before anything else
-        ConfigureLogging();
         Log.Information("App constructor entered ({ElapsedMs}ms)", _startupTimer.ElapsedMilliseconds);
 
-        // 2. Global crash handler — catches exceptions the XAML runtime swallows
+        // Global crash handler — catches exceptions the XAML runtime swallows
         UnhandledException += OnUnhandledException;
-
-        // 3. CLR-level first-chance observer for TypeLoadException diagnostics
-        AppDomain.CurrentDomain.FirstChanceException += OnFirstChanceException;
-        AppDomain.CurrentDomain.UnhandledException += OnDomainUnhandledException;
+        TaskScheduler.UnobservedTaskException += OnUnobservedTaskException;
 
         try
         {
-            Log.Debug("Calling InitializeComponent...");
             InitializeComponent();
             Log.Debug("InitializeComponent succeeded ({ElapsedMs}ms)", _startupTimer.ElapsedMilliseconds);
-
-            Log.Debug("Calling ConfigureServices...");
-            Services = ConfigureServices();
-            Log.Debug("ConfigureServices succeeded ({ElapsedMs}ms)", _startupTimer.ElapsedMilliseconds);
         }
         catch (Exception ex)
         {
             Log.Fatal(ex, "FATAL: App constructor failed — {Type}: {Message}",
                 ex.GetType().FullName, ex.Message);
-            LogTypeLoadDetails(ex);
             Log.CloseAndFlush();
             throw;
         }
@@ -53,14 +52,22 @@ public partial class App : Application
     {
         Log.Information("OnLaunched entered ({ElapsedMs}ms)", _startupTimer.ElapsedMilliseconds);
 
+        // Show splash screen while services initialize
+        var splash = new SplashWindow();
+        splash.Activate();
+
         try
         {
-            // Initialize async services before showing the real UI
-            await InitializeServicesAsync();
+            await InitializeServicesAsync(splash);
+
+            splash.UpdateStatus("Ready!");
+            await Task.Delay(300); // Brief pause so user sees "Ready!"
 
             Log.Debug("Creating MainWindow...");
             MainWindow = new MainWindow();
             MainWindow.Activate();
+
+            splash.Close();
 
             Log.Information("App launched successfully ({ElapsedMs}ms total startup)",
                 _startupTimer.ElapsedMilliseconds);
@@ -69,9 +76,8 @@ public partial class App : Application
         {
             Log.Fatal(ex, "FATAL: OnLaunched failed — {Type}: {Message}",
                 ex.GetType().FullName, ex.Message);
-            LogTypeLoadDetails(ex);
 
-            // Fall back to a bare error window so the user sees something
+            splash.Close();
             ShowFallbackErrorWindow(ex);
         }
 
@@ -96,11 +102,12 @@ public partial class App : Application
 
     // ── Service Initialization ──────────────────────────────────────
 
-    private static async Task InitializeServicesAsync()
+    private static async Task InitializeServicesAsync(SplashWindow splash)
     {
         // DataService must create tables before anything reads/writes
         try
         {
+            splash.UpdateStatus("Initializing database...");
             var dataService = Services.GetRequiredService<IDataService>();
             await dataService.InitializeAsync();
             Log.Debug("DataService initialized");
@@ -113,6 +120,7 @@ public partial class App : Application
         // NotificationService registration
         try
         {
+            splash.UpdateStatus("Setting up notifications...");
             var notificationService = Services.GetRequiredService<INotificationService>();
             await notificationService.InitializeAsync();
             Log.Debug("NotificationService initialized");
@@ -125,6 +133,7 @@ public partial class App : Application
         // Start background session scanning
         try
         {
+            splash.UpdateStatus("Starting session scanner...");
             var sessionManager = Services.GetRequiredService<ISessionManager>();
             _ = Task.Run(() => sessionManager.StartScanningAsync(CancellationToken.None));
             Log.Debug("Session scanning started");
@@ -135,96 +144,48 @@ public partial class App : Application
         }
     }
 
-    // ── Logging ─────────────────────────────────────────────────────
-
-    private static void ConfigureLogging()
-    {
-        var logDir = Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-            "SquadUplink", "logs");
-        Directory.CreateDirectory(logDir);
-
-        var logPath = Path.Combine(logDir, "squad-uplink-.log");
-
-        Log.Logger = new LoggerConfiguration()
-            .MinimumLevel.Debug()
-            .WriteTo.File(logPath, rollingInterval: RollingInterval.Day, retainedFileCountLimit: 14)
-            .WriteTo.Debug()
-            .WriteTo.InMemory()
-            .CreateLogger();
-
-        Log.Information("Squad Uplink starting — {Version}", typeof(App).Assembly.GetName().Version);
-    }
-
-    // ── DI Container ────────────────────────────────────────────────
-
-    private static IServiceProvider ConfigureServices()
-    {
-        var services = new ServiceCollection();
-        services.AddSquadUplinkServices();
-        return services.BuildServiceProvider();
-    }
-
     // ── Global Exception Handlers ───────────────────────────────────
 
     private void OnUnhandledException(object sender, Microsoft.UI.Xaml.UnhandledExceptionEventArgs e)
     {
         Log.Fatal(e.Exception, "UNHANDLED EXCEPTION — {Type}: {Message}",
             e.Exception.GetType().FullName, e.Message);
-        LogTypeLoadDetails(e.Exception);
         Log.CloseAndFlush();
-        e.Handled = true; // Prevent immediate crash so log can flush
+        e.Handled = true;
+
+        ShowErrorDialog("Unexpected Error", e.Exception.Message);
     }
 
-    private static void OnDomainUnhandledException(object sender, System.UnhandledExceptionEventArgs e)
+    private void OnUnobservedTaskException(object? sender, UnobservedTaskExceptionEventArgs e)
     {
-        if (e.ExceptionObject is Exception ex)
-        {
-            Log.Fatal(ex, "DOMAIN UNHANDLED — {Type}: {Message} (IsTerminating={IsTerminating})",
-                ex.GetType().FullName, ex.Message, e.IsTerminating);
-            LogTypeLoadDetails(ex);
-            Log.CloseAndFlush();
-        }
+        Log.Error(e.Exception, "Unobserved task exception");
+        e.SetObserved();
+
+        MainWindow?.DispatcherQueue?.TryEnqueue(() =>
+            ShowErrorDialog("Background Error", e.Exception.InnerException?.Message ?? e.Exception.Message));
     }
 
-    private static void OnFirstChanceException(object? sender, FirstChanceExceptionEventArgs e)
+    private void ShowErrorDialog(string title, string message)
     {
-        // Only log TypeLoadException at first chance for diagnostics
-        if (e.Exception is TypeLoadException tle)
+        try
         {
-            Log.Error("FIRST-CHANCE TypeLoadException: TypeName={TypeName} Message={Message}",
-                tle.TypeName, tle.Message);
+            if (MainWindow?.Content is not FrameworkElement root) return;
+            var dialog = new Microsoft.UI.Xaml.Controls.ContentDialog
+            {
+                Title = title,
+                Content = message,
+                CloseButtonText = "OK",
+                XamlRoot = root.XamlRoot
+            };
+            _ = dialog.ShowAsync();
         }
-        else if (e.Exception is System.IO.FileNotFoundException fnf && fnf.FileName?.Contains("Version=") == true)
+        catch
         {
-            Log.Error("FIRST-CHANCE Assembly not found: {FileName}", fnf.FileName);
-        }
-    }
-
-    // ── Diagnostic Helpers ──────────────────────────────────────────
-
-    private static void LogTypeLoadDetails(Exception ex)
-    {
-        if (ex is TypeLoadException tle)
-            Log.Fatal("TypeLoadException.TypeName = {TypeName}", tle.TypeName);
-
-        if (ex is System.IO.FileNotFoundException fnf)
-            Log.Fatal("FileNotFoundException.FileName = {FileName}", fnf.FileName);
-
-        if (ex is System.IO.FileLoadException fle)
-            Log.Fatal("FileLoadException.FileName = {FileName} FusionLog = {FusionLog}",
-                fle.FileName, fle.FusionLog);
-
-        var inner = ex.InnerException;
-        var depth = 0;
-        while (inner is not null && depth < 10)
-        {
-            depth++;
-            Log.Fatal(inner, "Inner [{Depth}]: {Type}: {Message}", depth, inner.GetType().FullName, inner.Message);
-            LogTypeLoadDetails(inner);
-            inner = inner.InnerException;
+            // Last resort — can't even show a dialog
         }
     }
+
+    // ── Fallback Error Window ───────────────────────────────────────
 
     private void ShowFallbackErrorWindow(Exception ex)
     {

@@ -1,5 +1,6 @@
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging;
 using Moq;
-using Serilog;
 using SquadUplink.Contracts;
 using SquadUplink.Models;
 using SquadUplink.Services;
@@ -15,7 +16,6 @@ namespace SquadUplink.Tests.SmokeTests;
 /// </summary>
 public class ServiceConstructionTests
 {
-    private static readonly ILogger TestLogger = new LoggerConfiguration().CreateLogger();
 
     // --- Services ---
 
@@ -116,7 +116,8 @@ public class ServiceConstructionTests
         var vm = new DashboardViewModel(
             sessionManager.Object,
             dataService.Object,
-            squadDetector.Object);
+            squadDetector.Object,
+            new Mock<ILogger<DashboardViewModel>>().Object);
         Assert.NotNull(vm);
     }
 
@@ -124,7 +125,9 @@ public class ServiceConstructionTests
     public void SessionViewModel_CanBeConstructed()
     {
         var sessionManager = new Mock<ISessionManager>();
-        var vm = new SessionViewModel(sessionManager.Object);
+        var vm = new SessionViewModel(
+            sessionManager.Object,
+            new Mock<ILogger<SessionViewModel>>().Object);
         Assert.NotNull(vm);
     }
 
@@ -139,7 +142,10 @@ public class ServiceConstructionTests
         dataMock.Setup(d => d.GetSettingsAsync())
             .ReturnsAsync(new AppSettings());
 
-        var vm = new SettingsViewModel(themeMock.Object, dataMock.Object);
+        var vm = new SettingsViewModel(
+            themeMock.Object,
+            dataMock.Object,
+            new Mock<ILogger<SettingsViewModel>>().Object);
         Assert.NotNull(vm);
     }
 
