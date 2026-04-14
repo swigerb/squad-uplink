@@ -17,7 +17,7 @@
 # The packaged app is self-contained (no .NET runtime needed on target machine).
 
 param(
-    [string]$Version = "2.0.0",
+    [string]$Version = "3.0.0",
     [string]$Configuration = "Release",
     [string]$Platform = "x64"
 )

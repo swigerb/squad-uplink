@@ -32,6 +32,9 @@ public static class Program
     [STAThread]
     public static void Main(string[] args)
     {
+        // Velopack must run before anything else — handles install/uninstall/update hooks
+        Velopack.VelopackApp.Build().Run();
+
         try
         {
             // Ensure crash log directory exists before anything else
