@@ -13,6 +13,7 @@ public class SessionManager : ISessionManager
     private readonly ISquadDetector _squadDetector;
     private readonly IDataService _dataService;
     private readonly INotificationService _notificationService;
+    private readonly ICopilotSessionService? _copilotSessionService;
     private readonly ILogger _logger;
     private readonly DispatcherQueue? _dispatcherQueue;
     private readonly object _sessionsLock = new();
@@ -26,8 +27,9 @@ public class SessionManager : ISessionManager
         IProcessLauncher launcher,
         ISquadDetector squadDetector,
         IDataService dataService,
-        INotificationService notificationService)
-        : this(scanner, launcher, squadDetector, dataService, notificationService, Log.Logger)
+        INotificationService notificationService,
+        ICopilotSessionService? copilotSessionService = null)
+        : this(scanner, launcher, squadDetector, dataService, notificationService, Log.Logger, copilotSessionService: copilotSessionService)
     {
     }
 
@@ -39,13 +41,15 @@ public class SessionManager : ISessionManager
         INotificationService notificationService,
         ILogger logger,
         int scanIntervalSeconds = 5,
-        DispatcherQueue? dispatcherQueue = null)
+        DispatcherQueue? dispatcherQueue = null,
+        ICopilotSessionService? copilotSessionService = null)
     {
         _scanner = scanner;
         _launcher = launcher;
         _squadDetector = squadDetector;
         _dataService = dataService;
         _notificationService = notificationService;
+        _copilotSessionService = copilotSessionService;
         _logger = logger;
         _scanIntervalMs = scanIntervalSeconds * 1000;
         _dispatcherQueue = dispatcherQueue ?? ResolveDispatcherQueue();
@@ -120,6 +124,19 @@ public class SessionManager : ISessionManager
             {
                 _logger.Warning(ex, "Squad detection failed for session {Id}", session.Id);
                 session.Status = SessionStatus.Running;
+            }
+
+            // Enrich with Copilot session-state data (summary, branch, events path)
+            if (_copilotSessionService is not null)
+            {
+                try
+                {
+                    await _copilotSessionService.EnrichSessionAsync(session, ct);
+                }
+                catch (Exception ex)
+                {
+                    _logger.Warning(ex, "Copilot session enrichment failed for {Id}", session.Id);
+                }
             }
 
             lock (_sessionsLock)

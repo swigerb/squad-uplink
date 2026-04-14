@@ -32,10 +32,12 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<IAudioService, AudioService>();
         services.AddSingleton<IDataService, DataService>();
         services.AddSingleton<INotificationService, NotificationService>();
+        services.AddSingleton<ICopilotSessionService, CopilotSessionService>();
         services.AddSingleton<ISessionManager, SessionManager>();
         services.AddSingleton<ITrayIconService, TrayIconService>();
         services.AddSingleton<ITelemetryService, TelemetryService>();
         services.AddSingleton<IRoiCalculatorService, RoiCalculatorService>();
+        services.AddSingleton<ISessionStoreService, SessionStoreService>();
         services.AddSingleton<SquadFileWatcher>();
         services.AddSingleton<OtlpListener>();
 

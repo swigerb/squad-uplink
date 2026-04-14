@@ -61,6 +61,18 @@ public partial class SessionState : ObservableObject
     [ObservableProperty]
     private Uri? _gitHubTaskUri;
 
+    [ObservableProperty]
+    private string? _copilotSessionId;
+
+    [ObservableProperty]
+    private string? _sessionSummary;
+
+    [ObservableProperty]
+    private string? _gitBranch;
+
+    [ObservableProperty]
+    private string? _eventsJsonlPath;
+
     partial void OnGitHubTaskUrlChanged(string? value)
     {
         HasGitHubUrl = !string.IsNullOrEmpty(value);
