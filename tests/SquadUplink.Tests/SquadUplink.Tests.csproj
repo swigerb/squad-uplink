@@ -17,10 +17,14 @@
     <PackageReference Include="Moq" Version="4.20.72" />
     <PackageReference Include="coverlet.collector" Version="6.0.4" />
     <PackageReference Include="Microsoft.Data.Sqlite" Version="10.0.0-preview.5.25277.114" />
+    <!-- For future local UI automation testing (not CI-compatible):
+    <PackageReference Include="FlaUI.UIA3" Version="4.0.0" />
+    -->
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\SquadUplink\SquadUplink.csproj" />
+    <ProjectReference Include="..\..\src\SquadUplink.Core\SquadUplink.Core.csproj" />
   </ItemGroup>
 
 </Project>
