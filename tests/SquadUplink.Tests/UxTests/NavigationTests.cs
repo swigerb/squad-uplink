@@ -24,15 +24,20 @@ public class NavigationTests
         mockDataService.Setup(d => d.GetRecentSessionsAsync(It.IsAny<int>()))
             .ReturnsAsync(new List<SessionHistoryEntry>().AsReadOnly());
 
+        var mockTelemetry = new Mock<ITelemetryService>();
+        mockTelemetry.Setup(t => t.GetCurrentMetrics()).Returns(new TokenMetrics());
+        mockTelemetry.Setup(t => t.GetAgentBreakdown()).Returns(new List<AgentTokenSummary>().AsReadOnly());
+
         return new DashboardViewModel(
             mockSessionManager.Object,
             mockDataService.Object,
             new Mock<ISquadDetector>().Object,
+            mockTelemetry.Object,
             new InMemorySink(),
             new Mock<ILogger<DashboardViewModel>>().Object);
     }
 
-    private static SessionViewModel CreateSessionViewModel() =>
+    private static SessionViewModel CreateSessionViewModel()=>
         new(new Mock<ISessionManager>().Object, new Mock<ILogger<SessionViewModel>>().Object);
 
     private static SettingsViewModel CreateSettingsViewModel()
@@ -73,10 +78,15 @@ public class NavigationTests
         mockDataService.Setup(d => d.GetRecentSessionsAsync(It.IsAny<int>()))
             .ReturnsAsync(new List<SessionHistoryEntry>().AsReadOnly());
 
+        var mockTelemetry = new Mock<ITelemetryService>();
+        mockTelemetry.Setup(t => t.GetCurrentMetrics()).Returns(new TokenMetrics());
+        mockTelemetry.Setup(t => t.GetAgentBreakdown()).Returns(new List<AgentTokenSummary>().AsReadOnly());
+
         var vm = new DashboardViewModel(
             mockSessionManager.Object,
             mockDataService.Object,
             new Mock<ISquadDetector>().Object,
+            mockTelemetry.Object,
             new InMemorySink(),
             new Mock<ILogger<DashboardViewModel>>().Object);
 

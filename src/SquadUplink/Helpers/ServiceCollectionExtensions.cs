@@ -30,6 +30,10 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<IDataService, DataService>();
         services.AddSingleton<INotificationService, NotificationService>();
         services.AddSingleton<ISessionManager, SessionManager>();
+        services.AddSingleton<ITelemetryService, TelemetryService>();
+        services.AddSingleton<SquadFileWatcher>();
+        services.AddSingleton<ITelemetryService, TelemetryService>();
+        services.AddSingleton<OtlpListener>();
 
         // ViewModels
         services.AddTransient<DashboardViewModel>();

@@ -23,12 +23,16 @@ public class DashboardViewModelTests
         dataService.Setup(d => d.GetRecentSessionsAsync(It.IsAny<int>()))
             .ReturnsAsync(new List<SessionHistoryEntry>().AsReadOnly());
         var mockSquadDetector = new Mock<ISquadDetector>();
+        var mockTelemetry = new Mock<ITelemetryService>();
+        mockTelemetry.Setup(t => t.GetCurrentMetrics()).Returns(new TokenMetrics());
+        mockTelemetry.Setup(t => t.GetAgentBreakdown()).Returns(new List<AgentTokenSummary>().AsReadOnly());
         var mockLogger = new Mock<ILogger<DashboardViewModel>>();
 
         return new DashboardViewModel(
             mockSessionManager.Object,
             dataService.Object,
             mockSquadDetector.Object,
+            mockTelemetry.Object,
             sink ?? new InMemorySink(),
             mockLogger.Object);
     }
@@ -131,10 +135,15 @@ public class DashboardViewModelTests
         mockDataService.Setup(d => d.GetRecentSessionsAsync(It.IsAny<int>()))
             .ReturnsAsync(new List<SessionHistoryEntry>().AsReadOnly());
 
+        var mockTelemetry = new Mock<ITelemetryService>();
+        mockTelemetry.Setup(t => t.GetCurrentMetrics()).Returns(new TokenMetrics());
+        mockTelemetry.Setup(t => t.GetAgentBreakdown()).Returns(new List<AgentTokenSummary>().AsReadOnly());
+
         var vm = new DashboardViewModel(
             mockSessionManager.Object,
             mockDataService.Object,
             new Mock<ISquadDetector>().Object,
+            mockTelemetry.Object,
             new InMemorySink(),
             new Mock<ILogger<DashboardViewModel>>().Object);
 
@@ -423,10 +432,15 @@ public class DashboardViewModelTests
         mockDataService.Setup(d => d.GetRecentSessionsAsync(It.IsAny<int>()))
             .ReturnsAsync(new List<SessionHistoryEntry>().AsReadOnly());
 
+        var mockTelemetry = new Mock<ITelemetryService>();
+        mockTelemetry.Setup(t => t.GetCurrentMetrics()).Returns(new TokenMetrics());
+        mockTelemetry.Setup(t => t.GetAgentBreakdown()).Returns(new List<AgentTokenSummary>().AsReadOnly());
+
         var vm = new DashboardViewModel(
             mockSessionManager.Object,
             mockDataService.Object,
             new Mock<ISquadDetector>().Object,
+            mockTelemetry.Object,
             new InMemorySink(),
             new Mock<ILogger<DashboardViewModel>>().Object);
 

@@ -8,6 +8,7 @@ using Serilog.Events;
 using SquadUplink.Contracts;
 using SquadUplink.Core.Logging;
 using SquadUplink.Models;
+using SquadUplink.Services;
 
 namespace SquadUplink.ViewModels;
 
@@ -16,8 +17,11 @@ public partial class DashboardViewModel : ViewModelBase
     private readonly ISessionManager _sessionManager;
     private readonly IDataService _dataService;
     private readonly ISquadDetector _squadDetector;
+    private readonly ITelemetryService _telemetryService;
+    private readonly SquadFileWatcher? _fileWatcher;
     private readonly InMemorySink _diagnosticsSink;
     private CancellationTokenSource? _uptimeCts;
+    private CancellationTokenSource? _telemetryCts;
 
     /// <summary>Approximate time the application started (static, set once at class load).</summary>
     internal static readonly DateTime AppStartedAt = DateTime.UtcNow;
@@ -94,6 +98,32 @@ public partial class DashboardViewModel : ViewModelBase
     [ObservableProperty]
     private string _scanStatusText = "Scanning...";
 
+    [ObservableProperty]
+    private int _tokenGaugeCurrentTokens;
+
+    [ObservableProperty]
+    private int _tokenGaugeMaxTokens = 128_000;
+
+    [ObservableProperty]
+    private double _tokenGaugeEstimatedCost;
+
+    // ─── Telemetry widget properties ─────────────────────────────
+
+    [ObservableProperty]
+    private double _burnRatePerHour;
+
+    [ObservableProperty]
+    private double _sessionTotalCost;
+
+    [ObservableProperty]
+    private int _contextCurrentTokens;
+
+    [ObservableProperty]
+    private int _contextMaxTokens = 128_000;
+
+    [ObservableProperty]
+    private IReadOnlyList<AgentTokenSummary>? _agentBreakdown;
+
     /// <summary>
     /// Raised when the ViewModel wants the View to show the launch dialog.
     /// </summary>
@@ -117,13 +147,17 @@ public partial class DashboardViewModel : ViewModelBase
         ISessionManager sessionManager,
         IDataService dataService,
         ISquadDetector squadDetector,
+        ITelemetryService telemetryService,
         InMemorySink diagnosticsSink,
-        ILogger<DashboardViewModel> logger)
+        ILogger<DashboardViewModel> logger,
+        SquadFileWatcher? fileWatcher = null)
         : base(logger)
     {
         _sessionManager = sessionManager;
         _dataService = dataService;
         _squadDetector = squadDetector;
+        _telemetryService = telemetryService;
+        _fileWatcher = fileWatcher;
         _diagnosticsSink = diagnosticsSink;
         Log.Debug("DashboardViewModel created");
         UpdateStats();
@@ -132,6 +166,8 @@ public partial class DashboardViewModel : ViewModelBase
         _ = LoadRecentSessionsAsync();
         _ = LoadLayoutPreferencesAsync();
         StartUptimeTimer();
+        StartTelemetryRefresh();
+        SubscribeToFileWatcher();
     }
 
     [RelayCommand]
@@ -350,6 +386,7 @@ public partial class DashboardViewModel : ViewModelBase
 
         UpdateUptime();
         UpdateErrorCount();
+        UpdateTokenGauge();
 
         // Rebuild squad tree
         RebuildSquadTree();
@@ -386,7 +423,87 @@ public partial class DashboardViewModel : ViewModelBase
     {
         _uptimeCts?.Cancel();
         _uptimeCts?.Dispose();
+        _telemetryCts?.Cancel();
+        _telemetryCts?.Dispose();
+        if (_fileWatcher is not null)
+            _fileWatcher.FileChanged -= OnSquadFileChanged;
         base.Dispose();
+    }
+
+    private void UpdateTokenGauge()
+    {
+        var metrics = _telemetryService.GetCurrentMetrics();
+        if (metrics is null) return;
+        TokenGaugeCurrentTokens = metrics.TotalTokens;
+        TokenGaugeEstimatedCost = (double)metrics.TotalCost;
+    }
+
+    // ─── Telemetry widget refresh ───────────────────────────────
+
+    private void StartTelemetryRefresh()
+    {
+        _telemetryCts = new CancellationTokenSource();
+        var token = _telemetryCts.Token;
+        _ = Task.Run(async () =>
+        {
+            while (!token.IsCancellationRequested)
+            {
+                await Task.Delay(TimeSpan.FromSeconds(10), token).ConfigureAwait(false);
+                RefreshTelemetryWidgets();
+            }
+        }, token);
+    }
+
+    /// <summary>
+    /// Refreshes all telemetry widget data from the TelemetryService.
+    /// Called on a 10-second timer and also on-demand after file changes.
+    /// </summary>
+    internal void RefreshTelemetryWidgets()
+    {
+        try
+        {
+            var metrics = _telemetryService.GetCurrentMetrics();
+            if (metrics is null) return;
+            BurnRatePerHour = (double)metrics.BurnRatePerHour;
+            SessionTotalCost = (double)metrics.TotalCost;
+
+            // Context pressure: use the aggregate tokens against a default model window
+            ContextCurrentTokens = metrics.TotalTokens;
+            ContextMaxTokens = 128_000; // default; updated per-session if available
+
+            AgentBreakdown = _telemetryService.GetAgentBreakdown();
+        }
+        catch (Exception ex)
+        {
+            Log.Warning(ex, "Failed to refresh telemetry widgets");
+        }
+    }
+
+    // ─── File watcher integration ───────────────────────────────
+
+    private void SubscribeToFileWatcher()
+    {
+        if (_fileWatcher is null) return;
+        _fileWatcher.FileChanged += OnSquadFileChanged;
+    }
+
+    private void OnSquadFileChanged(SquadFileChangeEvent evt)
+    {
+        Logger.SquadFileWatcherTriggered(evt.ChangeType.ToString(), evt.FilePath);
+
+        if (evt.IsTeamFile)
+        {
+            // Rebuild squad tree/roster
+            RebuildSquadTree();
+        }
+        else if (evt.IsDecisionsFile)
+        {
+            // Refresh decision feed
+            RebuildSquadTree(); // decisions are populated during tree rebuild
+        }
+
+        // Always refresh telemetry on file changes
+        RefreshTelemetryWidgets();
     }
 
     private void RebuildSquadTree()

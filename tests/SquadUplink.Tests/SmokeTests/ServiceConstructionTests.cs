@@ -120,6 +120,7 @@ public class ServiceConstructionTests
             sessionManager.Object,
             dataService.Object,
             squadDetector.Object,
+            MockHelpers.CreateTelemetryMock().Object,
             new InMemorySink(),
             new Mock<ILogger<DashboardViewModel>>().Object);
         Assert.NotNull(vm);

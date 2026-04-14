@@ -239,7 +239,7 @@
                 SessionFocusRequested="SessionLayout_SessionFocusRequested" />
         </Grid>
 
-        <!-- ═══ RIGHT PANEL — Stats &amp; Graphs ═══ -->
+        <!-- ═══ RIGHT PANEL — Stats &amp; Telemetry Widgets ═══ -->
         <ScrollViewer Grid.Column="2" Grid.Row="1" VerticalScrollBarVisibility="Auto">
             <StackPanel Spacing="12">
 
@@ -269,83 +269,22 @@
                     </StackPanel>
                 </Border>
 
-                <!-- Messages Processed -->
-                <Border Style="{StaticResource CockpitPanelStyle}">
-                    <StackPanel>
-                        <TextBlock Text="MESSAGES" Style="{StaticResource SectionHeaderStyle}"
-                                   CharacterSpacing="80" FontSize="10" />
-                        <TextBlock Text="{x:Bind ViewModel.MessagesProcessed, Mode=OneWay}"
-                                   Style="{StaticResource StatCounterTextStyle}" FontSize="28" />
-                        <TextBlock Text="output lines captured"
-                                   Style="{StaticResource StatLabelTextStyle}" />
-                    </StackPanel>
-                </Border>
+                <!-- Burn Rate Widget -->
+                <controls:BurnRateWidget
+                    x:Name="BurnRateGauge"
+                    BurnRatePerHour="{x:Bind ViewModel.BurnRatePerHour, Mode=OneWay}"
+                    SessionTotalCost="{x:Bind ViewModel.SessionTotalCost, Mode=OneWay}" />
 
-                <!-- CPU &amp; Memory Gauges -->
-                <Border Style="{StaticResource CockpitPanelStyle}">
-                    <Grid>
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="*" />
-                        </Grid.ColumnDefinitions>
+                <!-- Context Pressure Widget -->
+                <controls:ContextPressureWidget
+                    x:Name="ContextPressure"
+                    CurrentTokens="{x:Bind ViewModel.ContextCurrentTokens, Mode=OneWay}"
+                    MaxTokens="{x:Bind ViewModel.ContextMaxTokens, Mode=OneWay}" />
 
-                        <!-- CPU Gauge -->
-                        <StackPanel Grid.Column="0" HorizontalAlignment="Center" Spacing="4">
-                            <Grid Width="64" Height="64">
-                                <ProgressRing Style="{StaticResource GaugeRingStyle}"
-                                              Value="{x:Bind ViewModel.CpuUsage, Mode=OneWay}"
-                                              Foreground="{StaticResource SquadAccentBlueBrush}" />
-                                <TextBlock HorizontalAlignment="Center" VerticalAlignment="Center"
-                                           FontSize="13" FontWeight="SemiBold">
-                                    <Run Text="{x:Bind ViewModel.CpuUsageDisplay, Mode=OneWay}" />
-                                </TextBlock>
-                            </Grid>
-                            <TextBlock Text="CPU" Style="{StaticResource StatLabelTextStyle}" />
-                        </StackPanel>
-
-                        <!-- Memory Gauge -->
-                        <StackPanel Grid.Column="1" HorizontalAlignment="Center" Spacing="4">
-                            <Grid Width="64" Height="64">
-                                <ProgressRing Style="{StaticResource GaugeRingStyle}"
-                                              Value="{x:Bind ViewModel.MemoryUsage, Mode=OneWay}"
-                                              Foreground="{StaticResource SquadWarningYellowBrush}" />
-                                <TextBlock HorizontalAlignment="Center" VerticalAlignment="Center"
-                                           FontSize="13" FontWeight="SemiBold">
-                                    <Run Text="{x:Bind ViewModel.MemoryUsageDisplay, Mode=OneWay}" />
-                                </TextBlock>
-                            </Grid>
-                            <TextBlock Text="MEM" Style="{StaticResource StatLabelTextStyle}" />
-                        </StackPanel>
-                    </Grid>
-                </Border>
-
-                <!-- Token Usage Gauge -->
-                <Border Style="{StaticResource CockpitPanelStyle}">
-                    <StackPanel Spacing="4">
-                        <TextBlock Text="TOKEN USAGE" Style="{StaticResource SectionHeaderStyle}"
-                                   CharacterSpacing="80" FontSize="10" />
-                        <controls:TokenGaugeControl x:Name="TokenGauge" />
-                    </StackPanel>
-                </Border>
-
-                <!-- Session Activity — Empty State -->
-                <Border Style="{StaticResource CockpitPanelStyle}">
-                    <StackPanel Spacing="8">
-                        <TextBlock Text="SESSION ACTIVITY" Style="{StaticResource SectionHeaderStyle}"
-                                   CharacterSpacing="80" FontSize="10" />
-                        <Grid Height="80">
-                            <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="4">
-                                <FontIcon Glyph="&#xE9D9;" FontSize="24" Opacity="0.4"
-                                          HorizontalAlignment="Center"
-                                          Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
-                                <TextBlock Text="No activity data"
-                                           FontSize="11" FontStyle="Italic" Opacity="0.5"
-                                           HorizontalAlignment="Center"
-                                           Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
-                            </StackPanel>
-                        </Grid>
-                    </StackPanel>
-                </Border>
+                <!-- Agent ROI Widget -->
+                <controls:AgentRoiWidget
+                    x:Name="AgentRoi"
+                    AgentBreakdown="{x:Bind ViewModel.AgentBreakdown, Mode=OneWay}" />
 
                 <!-- Error Count -->
                 <Border Style="{StaticResource CockpitPanelStyle}">

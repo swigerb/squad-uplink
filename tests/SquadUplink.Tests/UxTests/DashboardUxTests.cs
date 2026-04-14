@@ -26,12 +26,16 @@ public class DashboardUxTests
         dataService.Setup(d => d.GetRecentSessionsAsync(It.IsAny<int>()))
             .ReturnsAsync(new List<SessionHistoryEntry>().AsReadOnly());
         var mockSquadDetector = new Mock<ISquadDetector>();
+        var mockTelemetry = new Mock<ITelemetryService>();
+        mockTelemetry.Setup(t => t.GetCurrentMetrics()).Returns(new TokenMetrics());
+        mockTelemetry.Setup(t => t.GetAgentBreakdown()).Returns(new List<AgentTokenSummary>().AsReadOnly());
         var mockLogger = new Mock<ILogger<DashboardViewModel>>();
 
         return new DashboardViewModel(
             mockSessionManager.Object,
             dataService.Object,
             mockSquadDetector.Object,
+            mockTelemetry.Object,
             new InMemorySink(),
             mockLogger.Object);
     }

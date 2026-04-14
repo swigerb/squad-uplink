@@ -149,4 +149,34 @@ public static partial class LogMessages
     [LoggerMessage(EventId = 9004, Level = LogLevel.Warning,
         Message = "Operation timed out: {OperationName} after {TimeoutMs}ms")]
     public static partial void OperationTimedOut(this ILogger logger, string operationName, long timeoutMs);
+
+    // ─── Telemetry ──────────────────────────────────────────────
+
+    [LoggerMessage(EventId = 8001, Level = LogLevel.Information,
+        Message = "Token usage recorded: session={SessionId} agent={AgentName} model={ModelName} tokens={TotalTokens}")]
+    public static partial void TokenUsageRecorded(this ILogger logger, string sessionId, string agentName, string modelName, int totalTokens);
+
+    [LoggerMessage(EventId = 8002, Level = LogLevel.Information,
+        Message = "OTLP listener started on {Endpoint}")]
+    public static partial void OtlpListenerStarted(this ILogger logger, string endpoint);
+
+    [LoggerMessage(EventId = 8003, Level = LogLevel.Warning,
+        Message = "OTLP listener failed to start: {Reason}")]
+    public static partial void OtlpListenerFailed(this ILogger logger, string reason);
+
+    [LoggerMessage(EventId = 8004, Level = LogLevel.Debug,
+        Message = "OTLP metrics received: {RecordCount} records extracted")]
+    public static partial void OtlpMetricsReceived(this ILogger logger, int recordCount);
+
+    [LoggerMessage(EventId = 8005, Level = LogLevel.Information,
+        Message = "Telemetry loaded from database: {RecordCount} records")]
+    public static partial void TelemetryLoaded(this ILogger logger, int recordCount);
+
+    [LoggerMessage(EventId = 8006, Level = LogLevel.Debug,
+        Message = "Telemetry widgets refreshed: burnRate=${BurnRate}/hr totalCost=${TotalCost}")]
+    public static partial void TelemetryWidgetsRefreshed(this ILogger logger, decimal burnRate, decimal totalCost);
+
+    [LoggerMessage(EventId = 4007, Level = LogLevel.Debug,
+        Message = "Squad file change processed: type={ChangeType} file={FileName} isTeam={IsTeam} isDecisions={IsDecisions}")]
+    public static partial void SquadFileChangeProcessed(this ILogger logger, string changeType, string fileName, bool isTeam, bool isDecisions);
 }

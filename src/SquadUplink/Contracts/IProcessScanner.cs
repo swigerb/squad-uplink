@@ -68,6 +68,11 @@ public interface IDataService
     Task<IReadOnlyList<SessionHistoryEntry>> GetRecentSessionsAsync(int count = 20);
     Task<AppSettings> GetSettingsAsync();
     Task SaveSettingsAsync(AppSettings settings);
+
+    // Token telemetry persistence
+    Task SaveTokenUsageAsync(TokenUsageRecord record);
+    Task<IReadOnlyList<TokenUsageRecord>> GetTokenUsageAsync(int limit = 1000);
+    Task<IReadOnlyList<TokenUsageRecord>> GetTokenUsageBySessionAsync(string sessionId);
 }
 
 public interface INotificationService

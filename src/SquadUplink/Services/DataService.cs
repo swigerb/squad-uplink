@@ -50,6 +50,17 @@ public class DataService : IDataService
                 key TEXT PRIMARY KEY,
                 value TEXT NOT NULL
             );
+
+            CREATE TABLE IF NOT EXISTS token_usage (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                session_id TEXT NOT NULL,
+                agent_name TEXT NOT NULL,
+                model_name TEXT NOT NULL,
+                input_tokens INTEGER NOT NULL,
+                output_tokens INTEGER NOT NULL,
+                estimated_cost REAL NOT NULL,
+                timestamp TEXT NOT NULL
+            );
             """;
         await command.ExecuteNonQueryAsync();
 
@@ -201,5 +212,80 @@ public class DataService : IDataService
         command.Parameters.AddWithValue("$key", key);
         command.Parameters.AddWithValue("$value", value);
         await command.ExecuteNonQueryAsync();
+    }
+
+    public async Task SaveTokenUsageAsync(TokenUsageRecord record)
+    {
+        await using var connection = new SqliteConnection(ConnectionString);
+        await connection.OpenAsync();
+
+        var command = connection.CreateCommand();
+        command.CommandText = """
+            INSERT INTO token_usage (session_id, agent_name, model_name, input_tokens, output_tokens, estimated_cost, timestamp)
+            VALUES ($sessionId, $agentName, $modelName, $inputTokens, $outputTokens, $estimatedCost, $timestamp)
+            """;
+        command.Parameters.AddWithValue("$sessionId", record.SessionId);
+        command.Parameters.AddWithValue("$agentName", record.AgentName);
+        command.Parameters.AddWithValue("$modelName", record.ModelName);
+        command.Parameters.AddWithValue("$inputTokens", record.InputTokens);
+        command.Parameters.AddWithValue("$outputTokens", record.OutputTokens);
+        command.Parameters.AddWithValue("$estimatedCost", (double)record.EstimatedCost);
+        command.Parameters.AddWithValue("$timestamp", record.Timestamp.ToString("O"));
+
+        await command.ExecuteNonQueryAsync();
+    }
+
+    public async Task<IReadOnlyList<TokenUsageRecord>> GetTokenUsageAsync(int limit = 1000)
+    {
+        await using var connection = new SqliteConnection(ConnectionString);
+        await connection.OpenAsync();
+
+        var command = connection.CreateCommand();
+        command.CommandText = """
+            SELECT session_id, agent_name, model_name, input_tokens, output_tokens, estimated_cost, timestamp
+            FROM token_usage
+            ORDER BY timestamp DESC
+            LIMIT $limit
+            """;
+        command.Parameters.AddWithValue("$limit", limit);
+
+        return await ReadTokenUsageRecords(command);
+    }
+
+    public async Task<IReadOnlyList<TokenUsageRecord>> GetTokenUsageBySessionAsync(string sessionId)
+    {
+        await using var connection = new SqliteConnection(ConnectionString);
+        await connection.OpenAsync();
+
+        var command = connection.CreateCommand();
+        command.CommandText = """
+            SELECT session_id, agent_name, model_name, input_tokens, output_tokens, estimated_cost, timestamp
+            FROM token_usage
+            WHERE session_id = $sessionId
+            ORDER BY timestamp DESC
+            """;
+        command.Parameters.AddWithValue("$sessionId", sessionId);
+
+        return await ReadTokenUsageRecords(command);
+    }
+
+    private static async Task<IReadOnlyList<TokenUsageRecord>> ReadTokenUsageRecords(SqliteCommand command)
+    {
+        var results = new List<TokenUsageRecord>();
+        await using var reader = await command.ExecuteReaderAsync();
+        while (await reader.ReadAsync())
+        {
+            results.Add(new TokenUsageRecord
+            {
+                SessionId = reader.GetString(0),
+                AgentName = reader.GetString(1),
+                ModelName = reader.GetString(2),
+                InputTokens = reader.GetInt32(3),
+                OutputTokens = reader.GetInt32(4),
+                EstimatedCost = (decimal)reader.GetDouble(5),
+                Timestamp = DateTime.Parse(reader.GetString(6))
+            });
+        }
+        return results.AsReadOnly();
     }
 }
