@@ -4,6 +4,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.UI.Dispatching;
 using Microsoft.UI.Xaml;
 using Serilog;
+using Serilog.Core;
 using Serilog.Sinks.InMemory;
 using SquadUplink.Helpers;
 
@@ -15,6 +16,11 @@ namespace SquadUplink;
 /// </summary>
 public static class Program
 {
+    /// <summary>
+    /// Runtime-adjustable log level. Changing MinimumLevel takes effect immediately.
+    /// </summary>
+    public static LoggingLevelSwitch LevelSwitch { get; } = new(Serilog.Events.LogEventLevel.Debug);
+
     private static readonly string CrashLogPath = Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
         "SquadUplink", "crash.log");
@@ -82,7 +88,7 @@ public static class Program
         var logPath = Path.Combine(logDir, "squad-uplink-.log");
 
         Log.Logger = new LoggerConfiguration()
-            .MinimumLevel.Debug()
+            .MinimumLevel.ControlledBy(LevelSwitch)
             .WriteTo.File(logPath, rollingInterval: RollingInterval.Day, retainedFileCountLimit: 14)
             .WriteTo.Debug()
             .WriteTo.InMemory()

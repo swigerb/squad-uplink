@@ -30,6 +30,7 @@ public static class ServiceCollectionExtensions
         services.AddTransient<DashboardViewModel>();
         services.AddTransient<SessionViewModel>();
         services.AddTransient<SettingsViewModel>();
+        services.AddTransient<DiagnosticsViewModel>();
 
         return services;
     }

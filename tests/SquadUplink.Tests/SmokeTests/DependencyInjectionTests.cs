@@ -47,6 +47,7 @@ public class DependencyInjectionTests
     [InlineData(typeof(DashboardViewModel))]
     [InlineData(typeof(SessionViewModel))]
     [InlineData(typeof(SettingsViewModel))]
+    [InlineData(typeof(DiagnosticsViewModel))]
     public void ServiceProvider_CanResolveViewModel(Type vmType)
     {
         var services = new ServiceCollection();

@@ -4,6 +4,8 @@ using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Input;
 using Microsoft.UI.Xaml.Media;
 using Serilog;
+using Serilog.Events;
+using Serilog.Sinks.InMemory;
 using SquadUplink.Contracts;
 using SquadUplink.ViewModels;
 using SquadUplink.Views;
@@ -16,6 +18,7 @@ public sealed partial class MainWindow : Window
     private readonly ISessionManager _sessionManager;
     private int _sessionCount;
     private string _statusMessage = "Scanning for sessions...";
+    private int _logLevelIndex; // 0=Debug, 1=Info, 2=Warning, 3=Error
 
     public int SessionCount
     {
@@ -45,6 +48,28 @@ public sealed partial class MainWindow : Window
         }
     }
 
+    public int LogLevelIndex
+    {
+        get => _logLevelIndex;
+        set
+        {
+            if (_logLevelIndex != value)
+            {
+                _logLevelIndex = value;
+                Program.LevelSwitch.MinimumLevel = value switch
+                {
+                    0 => LogEventLevel.Debug,
+                    1 => LogEventLevel.Information,
+                    2 => LogEventLevel.Warning,
+                    3 => LogEventLevel.Error,
+                    _ => LogEventLevel.Information
+                };
+                Bindings.Update();
+                Log.Information("Log level changed to {Level}", Program.LevelSwitch.MinimumLevel);
+            }
+        }
+    }
+
     public MainWindow()
     {
         Log.Debug("MainWindow constructor entered");
@@ -65,7 +90,25 @@ public sealed partial class MainWindow : Window
         NavView.SelectedItem = NavView.MenuItems[0];
 
         UpdateStatus();
+        SubscribeToLogErrors();
         Log.Information("MainWindow initialized, navigated to Dashboard");
+    }
+
+    private void SubscribeToLogErrors()
+    {
+        // Flash status bar when an error is logged via InMemorySink
+        if (InMemorySink.Instance is { } sink)
+        {
+            // Poll is lightweight — InMemorySink doesn't expose events,
+            // so we check on session updates and diagnostics opens instead.
+        }
+    }
+
+    private async void OpenDiagnostics_Click(object sender, RoutedEventArgs e)
+    {
+        var vm = App.Services.GetRequiredService<DiagnosticsViewModel>();
+        var dialog = new DiagnosticsDialog(vm) { XamlRoot = Content.XamlRoot };
+        await dialog.ShowAsync();
     }
 
     private void NavView_SelectionChanged(NavigationView sender, NavigationViewSelectionChangedEventArgs args)
@@ -101,6 +144,22 @@ public sealed partial class MainWindow : Window
                 ? "Scanning for sessions..."
                 : $"{count} session{(count != 1 ? "s" : "")} active";
             FooterStatusText.Text = StatusMessage;
+
+            // Check for recent errors in the InMemorySink
+            var recentErrors = InMemorySink.Instance?.LogEvents
+                .Where(e => e.Level >= LogEventLevel.Error)
+                .OrderByDescending(e => e.Timestamp)
+                .FirstOrDefault();
+
+            if (recentErrors is not null
+                && recentErrors.Timestamp > DateTimeOffset.Now.AddMinutes(-1))
+            {
+                StatusDot.Fill = new SolidColorBrush(Microsoft.UI.ColorHelper.FromArgb(255, 255, 59, 48));
+            }
+            else
+            {
+                StatusDot.Fill = (Microsoft.UI.Xaml.Media.Brush)Application.Current.Resources["SquadAccentGreenBrush"];
+            }
         });
     }
 

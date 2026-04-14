@@ -1,0 +1,39 @@
+<ContentDialog
+    x:Class="SquadUplink.Views.DiagnosticsDialog"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    Title="📋 Application Diagnostics"
+    CloseButtonText="Close"
+    DefaultButton="Close"
+    MinWidth="700"
+    MinHeight="500">
+
+    <Grid RowSpacing="8">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <StackPanel Grid.Row="0" Orientation="Horizontal" Spacing="8">
+            <ComboBox x:Name="LevelFilter" MinWidth="120"
+                      SelectedIndex="{x:Bind ViewModel.SelectedLevelIndex, Mode=TwoWay}">
+                <ComboBoxItem Content="Verbose" />
+                <ComboBoxItem Content="Debug" />
+                <ComboBoxItem Content="Info" />
+                <ComboBoxItem Content="Warning" />
+                <ComboBoxItem Content="Error" />
+            </ComboBox>
+            <Button Content="🔄 Refresh" Command="{x:Bind ViewModel.RefreshLogsCommand}" />
+            <Button Content="🗑️ Clear" Command="{x:Bind ViewModel.ClearLogsCommand}" />
+        </StackPanel>
+
+        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto"
+                      HorizontalScrollBarVisibility="Auto"
+                      Margin="0,4,0,0">
+            <TextBlock Text="{x:Bind ViewModel.LogOutput, Mode=OneWay}"
+                       FontFamily="Cascadia Mono,Consolas,monospace"
+                       FontSize="11" IsTextSelectionEnabled="True"
+                       TextWrapping="NoWrap" />
+        </ScrollViewer>
+    </Grid>
+</ContentDialog>

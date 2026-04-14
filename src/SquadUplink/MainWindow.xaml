@@ -48,6 +48,7 @@
         <Grid.RowDefinitions>
             <RowDefinition Height="48" />
             <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
 
         <!-- Custom Title Bar -->
@@ -127,5 +128,56 @@
 
             <Frame x:Name="ContentFrame" />
         </NavigationView>
+
+        <!-- Footer Status Bar -->
+        <Border Grid.Row="2"
+                Background="{ThemeResource CardBackgroundFillColorSecondaryBrush}"
+                BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                BorderThickness="0,1,0,0"
+                Padding="12,6">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+
+                <!-- Scanning indicator (animated dot) -->
+                <Ellipse x:Name="StatusDot" Width="8" Height="8"
+                         Fill="{StaticResource SquadAccentGreenBrush}"
+                         Margin="0,0,8,0" VerticalAlignment="Center" />
+
+                <!-- Status message -->
+                <TextBlock Grid.Column="1" Text="{x:Bind StatusMessage, Mode=OneWay}"
+                           Style="{StaticResource CaptionTextBlockStyle}"
+                           VerticalAlignment="Center" />
+
+                <!-- Session count pill -->
+                <Border Grid.Column="2" CornerRadius="10" Padding="8,2"
+                        Background="{StaticResource SquadAccentGreenBrush}" Margin="8,0"
+                        VerticalAlignment="Center">
+                    <TextBlock Text="{x:Bind SessionCountDisplay, Mode=OneWay}"
+                               FontSize="11" Foreground="White" FontWeight="SemiBold" />
+                </Border>
+
+                <!-- Log level dropdown -->
+                <ComboBox Grid.Column="3" VerticalAlignment="Center"
+                          FontSize="11" MinWidth="100"
+                          SelectedIndex="{x:Bind LogLevelIndex, Mode=TwoWay}">
+                    <ComboBoxItem Content="🔍 Debug" />
+                    <ComboBoxItem Content="ℹ️ Info" />
+                    <ComboBoxItem Content="🟡 Warning" />
+                    <ComboBoxItem Content="🔴 Error" />
+                </ComboBox>
+
+                <!-- Diagnostics button -->
+                <Button Grid.Column="4" Content="📋 Logs"
+                        VerticalAlignment="Center" Margin="8,0,0,0"
+                        Click="OpenDiagnostics_Click"
+                        Style="{ThemeResource DefaultButtonStyle}" FontSize="11" />
+            </Grid>
+        </Border>
     </Grid>
 </Window>
