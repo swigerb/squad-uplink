@@ -318,6 +318,94 @@ public class DashboardViewModelTests
         Assert.Equal(GridSize.Default, result);
     }
 
+    // ═══ SessionState Null-Safety Tests ═══
+
+    [Fact]
+    public void SessionState_NullGitHubTaskUrl_HasGitHubUrlIsFalse()
+    {
+        var session = new SessionState
+        {
+            Id = "null-url",
+            WorkingDirectory = @"C:\test",
+            StartedAt = DateTime.UtcNow
+        };
+
+        Assert.Null(session.GitHubTaskUrl);
+        Assert.False(session.HasGitHubUrl);
+        Assert.Null(session.GitHubTaskUri);
+    }
+
+    [Fact]
+    public void SessionState_EmptyGitHubTaskUrl_HasGitHubUrlIsFalse()
+    {
+        var session = new SessionState
+        {
+            Id = "empty-url",
+            WorkingDirectory = @"C:\test",
+            StartedAt = DateTime.UtcNow,
+            GitHubTaskUrl = ""
+        };
+
+        Assert.False(session.HasGitHubUrl);
+        Assert.Null(session.GitHubTaskUri);
+    }
+
+    [Fact]
+    public void SessionState_ValidGitHubTaskUrl_HasGitHubUrlIsTrue()
+    {
+        var session = new SessionState
+        {
+            Id = "valid-url",
+            WorkingDirectory = @"C:\test",
+            StartedAt = DateTime.UtcNow,
+            GitHubTaskUrl = "https://github.com/org/repo/issues/1"
+        };
+
+        Assert.True(session.HasGitHubUrl);
+        Assert.NotNull(session.GitHubTaskUri);
+        Assert.Contains("issues/1", session.GitHubTaskUri!.ToString());
+    }
+
+    [Fact]
+    public void SessionState_SetGitHubTaskUrl_UpdatesComputedProperties()
+    {
+        var session = new SessionState
+        {
+            Id = "update-url",
+            WorkingDirectory = @"C:\test",
+            StartedAt = DateTime.UtcNow
+        };
+
+        Assert.False(session.HasGitHubUrl);
+        Assert.Null(session.GitHubTaskUri);
+
+        session.GitHubTaskUrl = "https://github.com/org/repo/pull/42";
+
+        Assert.True(session.HasGitHubUrl);
+        Assert.NotNull(session.GitHubTaskUri);
+
+        session.GitHubTaskUrl = null;
+
+        Assert.False(session.HasGitHubUrl);
+        Assert.Null(session.GitHubTaskUri);
+    }
+
+    [Fact]
+    public void SessionState_NullableProperties_HaveSafeDefaults()
+    {
+        var session = new SessionState { Id = "defaults" };
+
+        // All nullable properties should be null/safe by default
+        Assert.Null(session.RepositoryName);
+        Assert.Null(session.GitHubTaskUrl);
+        Assert.Null(session.Squad);
+        Assert.False(session.HasGitHubUrl);
+        Assert.Null(session.GitHubTaskUri);
+        Assert.Equal(string.Empty, session.CommandLineArgs);
+        Assert.Equal(string.Empty, session.WorkingDirectory);
+        Assert.NotNull(session.OutputLines);
+    }
+
     [Fact]
     public async Task CloseSessionCommand_StopsSession()
     {

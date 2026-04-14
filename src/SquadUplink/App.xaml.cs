@@ -91,6 +91,10 @@ public partial class App : Application
                 if (update is not null)
                     Log.Information("Update available: {Version}", update.TargetFullRelease.Version);
             }
+            catch (Velopack.Exceptions.NotInstalledException)
+            {
+                Log.Debug("Velopack: running in dev mode, skipping update check");
+            }
             catch (Exception ex)
             {
                 Log.Debug(ex, "Velopack update check skipped — {Message}", ex.Message);

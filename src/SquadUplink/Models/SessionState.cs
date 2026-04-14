@@ -47,5 +47,19 @@ public partial class SessionState : ObservableObject
     [ObservableProperty]
     private bool _isPinned;
 
+    /// <summary>True when <see cref="GitHubTaskUrl"/> contains a non-empty value.</summary>
+    [ObservableProperty]
+    private bool _hasGitHubUrl;
+
+    /// <summary>Parsed URI for safe x:Bind to NavigateUri (null when no URL).</summary>
+    [ObservableProperty]
+    private Uri? _gitHubTaskUri;
+
+    partial void OnGitHubTaskUrlChanged(string? value)
+    {
+        HasGitHubUrl = !string.IsNullOrEmpty(value);
+        GitHubTaskUri = HasGitHubUrl && Uri.TryCreate(value, UriKind.Absolute, out var uri) ? uri : null;
+    }
+
     public ObservableCollection<string> OutputLines { get; } = [];
 }

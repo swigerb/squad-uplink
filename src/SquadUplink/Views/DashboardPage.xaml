@@ -194,12 +194,12 @@
                                         <!-- Row 4: GitHub link + indicators -->
                                         <StackPanel Grid.Row="4" Orientation="Horizontal" Spacing="8">
                                             <HyperlinkButton Content="Open in GitHub"
-                                                             NavigateUri="{x:Bind GitHubTaskUrl, Mode=OneWay}"
-                                                             Visibility="{x:Bind GitHubTaskUrl, Mode=OneWay, Converter={StaticResource NullToVisibility}}"
+                                                             NavigateUri="{x:Bind GitHubTaskUri, Mode=OneWay}"
+                                                             Visibility="{x:Bind HasGitHubUrl, Mode=OneWay, Converter={StaticResource BoolToVis}}"
                                                              FontSize="11" Padding="0" />
                                             <FontIcon Glyph="&#xE71B;" FontSize="12"
                                                       Foreground="{StaticResource SquadAccentGreenBrush}"
-                                                      Visibility="{x:Bind GitHubTaskUrl, Mode=OneWay, Converter={StaticResource NullToVisibility}}"
+                                                      Visibility="{x:Bind HasGitHubUrl, Mode=OneWay, Converter={StaticResource BoolToVis}}"
                                                       ToolTipService.ToolTip="Has GitHub task URL" />
                                         </StackPanel>
                                     </Grid>

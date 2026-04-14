@@ -141,6 +141,7 @@ public class SessionViewModelTests
         vm.LoadSession(session);
 
         Assert.Null(vm.GitHubUri);
+        Assert.False(vm.HasGitHubUrl);
         Assert.Equal("Unknown", vm.RepositoryName);
     }
 
