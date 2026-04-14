@@ -319,6 +319,15 @@
                     </Grid>
                 </Border>
 
+                <!-- Token Usage Gauge -->
+                <Border Style="{StaticResource CockpitPanelStyle}">
+                    <StackPanel Spacing="4">
+                        <TextBlock Text="TOKEN USAGE" Style="{StaticResource SectionHeaderStyle}"
+                                   CharacterSpacing="80" FontSize="10" />
+                        <controls:TokenGaugeControl x:Name="TokenGauge" />
+                    </StackPanel>
+                </Border>
+
                 <!-- Session Activity Chart Placeholder -->
                 <Border Style="{StaticResource CockpitPanelStyle}">
                     <StackPanel Spacing="8">

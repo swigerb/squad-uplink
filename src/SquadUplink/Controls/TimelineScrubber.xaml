@@ -1,0 +1,84 @@
+<UserControl
+    x:Class="SquadUplink.Controls.TimelineScrubber"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <Border Background="#1A1A2E" CornerRadius="6" Padding="12,8" MinHeight="48">
+        <Grid RowSpacing="4">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
+
+            <!-- Header -->
+            <Grid Grid.Row="0">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <TextBlock Grid.Column="0" Text="BLACK BOX REPLAY"
+                           FontSize="10" CharacterSpacing="80"
+                           FontFamily="Cascadia Mono,Consolas,monospace"
+                           Foreground="#00C853" />
+                <TextBlock Grid.Column="2"
+                           Text="{x:Bind DurationDisplay, Mode=OneWay}"
+                           FontSize="10"
+                           FontFamily="Cascadia Mono,Consolas,monospace"
+                           Foreground="#9E9E9E" />
+            </Grid>
+
+            <!-- Scrub bar track -->
+            <Grid Grid.Row="1" Height="20" Margin="0,4">
+                <!-- Track background -->
+                <Border Height="4" VerticalAlignment="Center"
+                        CornerRadius="2"
+                        Background="#333333" />
+                <!-- Filled portion -->
+                <Border x:Name="FilledTrack" Height="4" VerticalAlignment="Center"
+                        CornerRadius="2"
+                        Background="#00C853"
+                        HorizontalAlignment="Left"
+                        Width="{x:Bind PlayheadWidth, Mode=OneWay}" />
+                <!-- Playhead -->
+                <Border x:Name="Playhead" Width="12" Height="12"
+                        CornerRadius="6" VerticalAlignment="Center"
+                        HorizontalAlignment="Left"
+                        Background="#00C853"
+                        Margin="{x:Bind PlayheadMargin, Mode=OneWay}" />
+                <!-- Slider (transparent, for interaction in future) -->
+                <Slider x:Name="ScrubSlider"
+                        Minimum="0" Maximum="100"
+                        Value="{x:Bind PlayheadPosition, Mode=TwoWay}"
+                        Opacity="0" Height="20" />
+            </Grid>
+
+            <!-- Time markers -->
+            <Grid Grid.Row="2">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+                <TextBlock Grid.Column="0" Text="{x:Bind TimeMarker0, Mode=OneWay}"
+                           FontSize="9" FontFamily="Cascadia Mono,Consolas,monospace"
+                           Foreground="#666666" HorizontalAlignment="Left" />
+                <TextBlock Grid.Column="1" Text="{x:Bind TimeMarker1, Mode=OneWay}"
+                           FontSize="9" FontFamily="Cascadia Mono,Consolas,monospace"
+                           Foreground="#666666" HorizontalAlignment="Center" />
+                <TextBlock Grid.Column="2" Text="{x:Bind TimeMarker2, Mode=OneWay}"
+                           FontSize="9" FontFamily="Cascadia Mono,Consolas,monospace"
+                           Foreground="#666666" HorizontalAlignment="Center" />
+                <TextBlock Grid.Column="3" Text="{x:Bind TimeMarker3, Mode=OneWay}"
+                           FontSize="9" FontFamily="Cascadia Mono,Consolas,monospace"
+                           Foreground="#666666" HorizontalAlignment="Center" />
+                <TextBlock Grid.Column="4" Text="{x:Bind TimeMarker4, Mode=OneWay}"
+                           FontSize="9" FontFamily="Cascadia Mono,Consolas,monospace"
+                           Foreground="#666666" HorizontalAlignment="Right" />
+            </Grid>
+        </Grid>
+    </Border>
+</UserControl>

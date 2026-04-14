@@ -7,6 +7,7 @@ using Serilog;
 using Serilog.Events;
 using Serilog.Sinks.InMemory;
 using SquadUplink.Contracts;
+using SquadUplink.Models;
 using SquadUplink.ViewModels;
 using SquadUplink.Views;
 using Windows.System;
@@ -91,6 +92,7 @@ public sealed partial class MainWindow : Window
 
         UpdateStatus();
         SubscribeToLogErrors();
+        InitializeCommandPalette();
         Log.Information("MainWindow initialized, navigated to Dashboard");
     }
 
@@ -223,5 +225,120 @@ public sealed partial class MainWindow : Window
         args.Handled = true;
         var dashboard = GetDashboardPage();
         dashboard?.ViewModel.ToggleFocusedModeCommand.Execute(null);
+    }
+
+    private void CommandPalette_Invoked(KeyboardAccelerator sender, KeyboardAcceleratorInvokedEventArgs args)
+    {
+        args.Handled = true;
+        CommandPaletteControl.Toggle();
+    }
+
+    private void DismissOverlay_Invoked(KeyboardAccelerator sender, KeyboardAcceleratorInvokedEventArgs args)
+    {
+        if (CommandPaletteControl.IsOpen)
+        {
+            args.Handled = true;
+            CommandPaletteControl.Hide();
+        }
+    }
+
+    private void InitializeCommandPalette()
+    {
+        var themeService = App.Services.GetRequiredService<IThemeService>();
+        CommandPaletteControl.SetCommands(BuildCommandList(themeService));
+    }
+
+    /// <summary>
+    /// Builds the canonical command list for the command palette.
+    /// Internal for testability.
+    /// </summary>
+    internal static List<CommandItem> BuildCommandList(IThemeService themeService)
+    {
+        var commands = new List<CommandItem>
+        {
+            new()
+            {
+                Id = "launch-session",
+                DisplayName = "Launch new session",
+                Description = "Open the launch session dialog",
+                IconGlyph = "\uE710",
+                Category = "Session",
+                Execute = () => Log.Information("Command: Launch new session")
+            },
+            new()
+            {
+                Id = "view-cards",
+                DisplayName = "Switch to Cards view",
+                Description = "Display sessions as cards",
+                IconGlyph = "\uF0E2",
+                Category = "Layout",
+                Execute = () => Log.Information("Command: Switch to Cards view")
+            },
+            new()
+            {
+                Id = "view-tabs",
+                DisplayName = "Switch to Tabs view",
+                Description = "Display sessions as tabs",
+                IconGlyph = "\uE8A0",
+                Category = "Layout",
+                Execute = () => Log.Information("Command: Switch to Tabs view")
+            },
+            new()
+            {
+                Id = "view-grid",
+                DisplayName = "Switch to Grid view",
+                Description = "Display sessions in a grid layout",
+                IconGlyph = "\uE80A",
+                Category = "Layout",
+                Execute = () => Log.Information("Command: Switch to Grid view")
+            },
+            new()
+            {
+                Id = "open-diagnostics",
+                DisplayName = "Open diagnostics",
+                Description = "View logs and diagnostic information",
+                IconGlyph = "\uE9D9",
+                Category = "Tools",
+                Execute = () => Log.Information("Command: Open diagnostics")
+            },
+            new()
+            {
+                Id = "stop-all",
+                DisplayName = "Stop all sessions",
+                Description = "Terminate all running sessions",
+                IconGlyph = "\uE71A",
+                Category = "Session",
+                Execute = () => Log.Information("Command: Stop all sessions")
+            },
+            new()
+            {
+                Id = "export-diagnostic",
+                DisplayName = "Export diagnostic report",
+                Description = "Export logs to file",
+                IconGlyph = "\uEDE1",
+                Category = "Tools",
+                Execute = () => Log.Information("Command: Export diagnostic report")
+            },
+        };
+
+        // Add theme switch commands
+        foreach (var theme in themeService.AvailableThemes)
+        {
+            commands.Add(new CommandItem
+            {
+                Id = $"theme-{theme.ToLowerInvariant()}",
+                DisplayName = $"Switch theme: {theme}",
+                Description = $"Apply the {theme} visual theme",
+                IconGlyph = "\uE790",
+                Category = "Theme",
+                Execute = () =>
+                {
+                    themeService.ApplyTheme(theme);
+                    Log.Information("Command: Switched theme to {Theme}", theme);
+                }
+            });
+        }
+
+        return commands;
     }
 }

@@ -4,6 +4,7 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:local="using:SquadUplink"
     xmlns:views="using:SquadUplink.Views"
+    xmlns:controls="using:SquadUplink.Controls"
     xmlns:auto="using:Microsoft.UI.Xaml.Automation"
     Title="Squad Uplink">
 
@@ -43,6 +44,12 @@
             <!-- F11: Toggle focused mode -->
             <KeyboardAccelerator Key="F11"
                                  Invoked="ToggleFocusedMode_Invoked" />
+            <!-- Ctrl+Shift+U: Command Palette -->
+            <KeyboardAccelerator Key="U" Modifiers="Control,Shift"
+                                 Invoked="CommandPalette_Invoked" />
+            <!-- Escape: Dismiss Command Palette -->
+            <KeyboardAccelerator Key="Escape"
+                                 Invoked="DismissOverlay_Invoked" />
         </Grid.KeyboardAccelerators>
 
         <Grid.RowDefinitions>
@@ -179,5 +186,9 @@
                         Style="{ThemeResource DefaultButtonStyle}" FontSize="11" />
             </Grid>
         </Border>
+
+        <!-- Command Palette Overlay (spans all rows) -->
+        <controls:CommandPalette x:Name="CommandPaletteControl"
+                                  Grid.Row="0" Grid.RowSpan="3" />
     </Grid>
 </Window>
