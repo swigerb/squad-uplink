@@ -78,6 +78,10 @@ public partial class SettingsViewModel : ViewModelBase
     [ObservableProperty]
     private bool _notifySessionDiscovered = true;
 
+    // System tray
+    [ObservableProperty]
+    private bool _minimizeToTray = true;
+
     // Logs
     [ObservableProperty]
     private int _selectedLogLevelIndex = 2; // Information
@@ -142,6 +146,7 @@ public partial class SettingsViewModel : ViewModelBase
             NotifyPermissionRequest = settings.NotifyPermissionRequest;
             NotifyError = settings.NotifyError;
             NotifySessionDiscovered = settings.NotifySessionDiscovered;
+            MinimizeToTray = settings.MinimizeToTray;
             UpdateThemePreview();
         }
         catch (Exception ex)
@@ -172,6 +177,7 @@ public partial class SettingsViewModel : ViewModelBase
     partial void OnNotifyPermissionRequestChanged(bool value) => _ = SaveSettingsAsync();
     partial void OnNotifyErrorChanged(bool value) => _ = SaveSettingsAsync();
     partial void OnNotifySessionDiscoveredChanged(bool value) => _ = SaveSettingsAsync();
+    partial void OnMinimizeToTrayChanged(bool value) => _ = SaveSettingsAsync();
 
     private void UpdateThemePreview()
     {
@@ -365,7 +371,8 @@ public partial class SettingsViewModel : ViewModelBase
                 NotifySessionCompleted = NotifySessionCompleted,
                 NotifyPermissionRequest = NotifyPermissionRequest,
                 NotifyError = NotifyError,
-                NotifySessionDiscovered = NotifySessionDiscovered
+                NotifySessionDiscovered = NotifySessionDiscovered,
+                MinimizeToTray = MinimizeToTray
             };
             await _dataService.SaveSettingsAsync(settings);
         }

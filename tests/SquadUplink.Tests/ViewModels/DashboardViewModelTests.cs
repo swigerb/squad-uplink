@@ -491,7 +491,7 @@ public class DashboardViewModelTests
             s.LayoutMode == "Grid")), Times.AtLeastOnce);
     }
 
-    // ═══ Phase B Tests ═══
+    // ═══ Dashboard Cockpit Tests ═══
 
     [Fact]
     public void HasNoSessions_TrueWhenEmpty()

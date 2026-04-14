@@ -37,13 +37,13 @@ Squad Uplink is a native Windows 11 desktop application that serves as your miss
 - **FileSystemWatcher with Debounce** — Real-time `.squad/` directory monitoring
 - **Markdig Markdown Parsing** — Rich rendering of Squad config files
 
-### 📋 MESS-Style Diagnostics
+### 📋 Diagnostics & Logging
 
-- **Expandable Footer Log Panel** — ▶/▼ toggle for quick log inspection
-- **Full DiagnosticsDialog** — 3-stage filtering: log level → text search → source
+- **Expandable Footer Log Panel** — ▶/▼ toggle for quick log inspection without leaving your workflow
+- **Full Diagnostics View** — 3-stage filtering pipeline: log level → text search → source context
 - **Source-Generated Structured Logging** — 30+ `[LoggerMessage]` definitions, zero-allocation hot paths
-- **Custom InMemorySink** — Circular-buffer Serilog sink bridging logs to the diagnostics UI
-- **LogPayloadFormatter** — Auto-detects JSON, stack traces, and CLI output for syntax-aware display
+- **Circular-Buffer Log Sink** — Custom Serilog sink that bridges real-time logs to the diagnostics UI
+- **Smart Log Formatting** — Auto-detects JSON, stack traces, and CLI output for syntax-aware display
 - **Runtime Log Level Switching** — Change verbosity without restarting
 - **Markdown Diagnostic Report Export** — One-click export of filtered logs for sharing
 
@@ -108,7 +108,7 @@ Squad Uplink will receive token usage in real-time and update the Burn Rate, Con
 
 ```
 ┌──────────────────────────────────────────────────┐
-│              Squad Uplink v3                      │
+│              Squad Uplink                          │
 │          (WinUI 3 / .NET 10 / C# 14)            │
 ├──────────────────────────────────────────────────┤
 │  PRESENTATION    Views, Controls, Themes          │
@@ -214,7 +214,7 @@ dotnet build SquadUplink.sln -p:Platform=x64 -c Release
 3. Sessions appear in the dashboard with live terminal output
 4. Switch themes via **Settings → Appearance** (11 themes available)
 5. Toggle layout (tabs/cards/grid) in **Settings → Layout**
-6. Open **Diagnostics** for MESS-style log inspection and report export
+6. Open **Diagnostics** for log inspection and report export
 7. Enable OTLP telemetry for real-time token tracking widgets
 
 ---
@@ -315,6 +315,6 @@ MIT License — see [LICENSE](LICENSE) for details.
 
 <div align="center">
 
-**Squad Uplink v3** © 2026 — Command Center for modern Copilot CLI workflows
+**Squad Uplink** © 2026 — Command Center for modern Copilot CLI workflows
 
 </div>

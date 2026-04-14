@@ -14,6 +14,7 @@ namespace SquadUplink;
 public partial class App : Application
 {
     private readonly Stopwatch _startupTimer = Stopwatch.StartNew();
+    private ITrayIconService? _trayIconService;
 
     /// <summary>
     /// Application-wide service provider, set by Program.cs before app launch.
@@ -68,6 +69,9 @@ public partial class App : Application
             MainWindow.Activate();
 
             splash.Close();
+
+            // Initialize system tray icon
+            InitializeTrayIcon();
 
             Log.Information("App launched successfully ({ElapsedMs}ms total startup)",
                 _startupTimer.ElapsedMilliseconds);
@@ -259,5 +263,88 @@ public partial class App : Application
             Log.Fatal(fallbackEx, "Even the fallback error window failed");
             Log.CloseAndFlush();
         }
+    }
+
+    // ── System Tray ─────────────────────────────────────────────────
+
+    private void InitializeTrayIcon()
+    {
+        try
+        {
+            _trayIconService = Services.GetRequiredService<ITrayIconService>();
+
+            _trayIconService.ShowWindowRequested += () =>
+            {
+                if (MainWindow is not null)
+                {
+                    MainWindow.Activate();
+                    Log.Debug("Window restored from tray");
+                }
+            };
+
+            _trayIconService.LaunchSessionRequested += () =>
+            {
+                if (MainWindow is not null)
+                {
+                    MainWindow.Activate();
+                    // Navigate to dashboard if needed and trigger launch
+                    var sessionManager = Services.GetRequiredService<ISessionManager>();
+                    _ = sessionManager.LaunchSessionAsync(
+                        Environment.GetFolderPath(Environment.SpecialFolder.UserProfile));
+                    Log.Information("Session launched from tray menu");
+                }
+            };
+
+            _trayIconService.ExitRequested += () =>
+            {
+                Log.Information("Exit requested from tray menu");
+                ExitApplication();
+            };
+
+            // Sync tray icon animation with session count
+            var sessionManager = Services.GetRequiredService<ISessionManager>();
+            sessionManager.Sessions.CollectionChanged += (_, _) =>
+            {
+                _trayIconService.ActiveSessionCount = sessionManager.Sessions.Count;
+            };
+
+            _trayIconService.Show();
+            Log.Debug("Tray icon service initialized");
+        }
+        catch (Exception ex)
+        {
+            Log.Warning(ex, "Tray icon initialization failed — running without tray support");
+        }
+    }
+
+    /// <summary>
+    /// Checks whether the window close should be intercepted (minimize to tray)
+    /// or allowed to proceed (real exit).
+    /// </summary>
+    internal async Task<bool> ShouldMinimizeToTrayAsync()
+    {
+        try
+        {
+            var dataService = Services.GetRequiredService<IDataService>();
+            var settings = await dataService.GetSettingsAsync();
+            return settings.MinimizeToTray && _trayIconService is { IsVisible: true };
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
+    /// <summary>
+    /// Fully exits the application, disposing the tray icon first.
+    /// </summary>
+    public void ExitApplication()
+    {
+        Log.Information("Application exiting");
+        _trayIconService?.Dispose();
+        _trayIconService = null;
+        MainWindow?.Close();
+        Log.CloseAndFlush();
+        Environment.Exit(0);
     }
 }

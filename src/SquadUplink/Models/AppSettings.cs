@@ -15,6 +15,7 @@ public class AppSettings
     public bool AlwaysUseRemote { get; set; }
     public string LayoutMode { get; set; } = "Tabs";
     public string GridSize { get; set; } = "2x2";
+    public bool MinimizeToTray { get; set; } = true;
 
     // Notification preferences
     public bool NotifySessionCompleted { get; set; } = true;

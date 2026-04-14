@@ -96,6 +96,9 @@ public sealed partial class MainWindow : Window
         _formatter = App.Services.GetRequiredService<ILogPayloadFormatter>();
         _sessionManager.Sessions.CollectionChanged += (_, _) => UpdateStatus();
 
+        // Intercept window close to support minimize-to-tray
+        this.Closed += OnWindowClosed;
+
         // Navigate to Dashboard on startup
         ContentFrame.Navigate(typeof(DashboardPage));
         NavView.SelectedItem = NavView.MenuItems[0];
@@ -283,6 +286,20 @@ public sealed partial class MainWindow : Window
                 StatusDot.Fill = (Microsoft.UI.Xaml.Media.Brush)Application.Current.Resources["SquadAccentGreenBrush"];
             }
         });
+    }
+
+    // --- Minimize to Tray ---
+
+    private async void OnWindowClosed(object sender, WindowEventArgs args)
+    {
+        var app = (App)Application.Current;
+        if (await app.ShouldMinimizeToTrayAsync())
+        {
+            // Cancel the close and hide the window instead
+            args.Handled = true;
+            this.AppWindow.Hide();
+            Log.Debug("Window hidden to tray");
+        }
     }
 
     // --- Keyboard Accelerator Handlers ---

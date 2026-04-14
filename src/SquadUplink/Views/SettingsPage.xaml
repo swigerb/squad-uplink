@@ -140,6 +140,24 @@
                 </StackPanel>
             </Expander>
 
+            <!-- ═══ SYSTEM TRAY ═══ -->
+            <Expander HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch">
+                <Expander.Header>
+                    <StackPanel Orientation="Horizontal" Spacing="12" Padding="0,8">
+                        <FontIcon Glyph="&#xE7C4;" FontSize="16" />
+                        <TextBlock Text="System Tray" Style="{StaticResource BodyStrongTextBlockStyle}"
+                                   VerticalAlignment="Center" />
+                    </StackPanel>
+                </Expander.Header>
+                <StackPanel Spacing="16" Padding="4,8">
+                    <ToggleSwitch Header="Minimize to system tray"
+                                  IsOn="{x:Bind ViewModel.MinimizeToTray, Mode=TwoWay}" />
+                    <TextBlock Text="When enabled, closing the window keeps Squad Uplink running in the notification area. Right-click the tray icon for options."
+                               FontSize="12" TextWrapping="Wrap"
+                               Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                </StackPanel>
+            </Expander>
+
             <!-- ═══ AUDIO ═══ -->
             <Expander HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch">
                 <Expander.Header>

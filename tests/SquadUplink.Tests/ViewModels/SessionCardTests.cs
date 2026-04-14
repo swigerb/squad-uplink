@@ -7,7 +7,7 @@ using Xunit;
 
 namespace SquadUplink.Tests.ViewModels;
 
-public class PhaseBTests
+public class SessionCardTests
 {
     // ═══ GitHub URL Extraction ═══
 

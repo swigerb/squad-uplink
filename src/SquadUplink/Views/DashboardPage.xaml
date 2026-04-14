@@ -302,12 +302,12 @@
                     </StackPanel>
                 </Border>
 
-                <!-- Decision Feed (Phase C) -->
+                <!-- Decision Feed -->
                 <controls:DecisionFeedControl
                     x:Name="DecisionFeed"
                     Decisions="{x:Bind ViewModel.DecisionFeed, Mode=OneWay}" />
 
-                <!-- Orchestration Timeline (Phase C) -->
+                <!-- Orchestration Timeline -->
                 <controls:OrchestrationTimelineControl
                     x:Name="OrchestrationTimeline"
                     Entries="{x:Bind ViewModel.OrchestrationTimeline, Mode=OneWay}" />

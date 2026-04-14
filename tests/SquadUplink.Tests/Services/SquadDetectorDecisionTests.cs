@@ -5,14 +5,14 @@ using Xunit;
 
 namespace SquadUplink.Tests.Services;
 
-public class SquadDetectorPhaseCTests : IDisposable
+public class SquadDetectorDecisionTests : IDisposable
 {
     private static readonly ILogger TestLogger = new LoggerConfiguration().CreateLogger();
     private readonly string _tempRoot;
 
-    public SquadDetectorPhaseCTests()
+    public SquadDetectorDecisionTests()
     {
-        _tempRoot = Path.Combine(Path.GetTempPath(), $"squad-phasec-{Guid.NewGuid():N}");
+        _tempRoot = Path.Combine(Path.GetTempPath(), $"squad-decisions-{Guid.NewGuid():N}");
         Directory.CreateDirectory(_tempRoot);
     }
 

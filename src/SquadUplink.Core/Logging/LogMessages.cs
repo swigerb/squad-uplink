@@ -114,7 +114,7 @@ public static partial class LogMessages
         Message = "Session output line captured: session={SessionId} lineCount={LineCount}")]
     public static partial void SessionOutputCaptured(this ILogger logger, string sessionId, int lineCount);
 
-    // ─── Squad awareness (Phase C) ─────────────────────────────
+    // ─── Squad awareness ─────────────────────────────────────────
 
     [LoggerMessage(EventId = 4003, Level = LogLevel.Information,
         Message = "Squad state changed: team={TeamName} decisions={DecisionCount}")]

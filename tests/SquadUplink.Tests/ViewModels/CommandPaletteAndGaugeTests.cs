@@ -7,9 +7,9 @@ using Xunit;
 namespace SquadUplink.Tests.ViewModels;
 
 /// <summary>
-/// Phase D tests: Command palette, token gauge, timeline scrubber.
+/// Command palette, token gauge, and timeline scrubber tests.
 /// </summary>
-public class PhaseDTests
+public class CommandPaletteAndGaugeTests
 {
     // ═══ Command Item — fuzzy search filtering ═══
 
