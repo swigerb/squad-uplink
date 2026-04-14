@@ -1,6 +1,8 @@
+using Microsoft.Extensions.Logging;
 using Microsoft.UI.Xaml;
 using Serilog;
 using SquadUplink.Contracts;
+using SquadUplink.Core.Logging;
 
 namespace SquadUplink.Services;
 
@@ -24,11 +26,36 @@ public class ThemeService : IThemeService
         ["PipBoy"] = "ms-appx:///Themes/PipBoy.xaml",
     };
 
+    private readonly IDataService _dataService;
+    private readonly ILogger<ThemeService> _logger;
+
     public string CurrentThemeId { get; private set; } = "FluentDark";
 
     public IReadOnlyList<string> AvailableThemes => s_themes;
 
     public event Action<string>? ThemeChanged;
+
+    public ThemeService(IDataService dataService, ILogger<ThemeService> logger)
+    {
+        _dataService = dataService;
+        _logger = logger;
+    }
+
+    public async Task LoadSavedThemeAsync()
+    {
+        try
+        {
+            var settings = await _dataService.GetSettingsAsync();
+            if (s_themes.Contains(settings.ThemeId))
+            {
+                ApplyTheme(settings.ThemeId);
+            }
+        }
+        catch (Exception ex)
+        {
+            Log.Warning(ex, "Failed to load saved theme — using default");
+        }
+    }
 
     public void ApplyTheme(string themeId)
     {
@@ -39,7 +66,7 @@ public class ThemeService : IThemeService
         }
 
         CurrentThemeId = themeId;
-        Log.Information("Theme changed to {ThemeId}", themeId);
+        _logger.ThemeChanged(themeId);
 
         try
         {
@@ -84,6 +111,23 @@ public class ThemeService : IThemeService
             Log.Warning(ex, "Failed to apply theme resources for {ThemeId}", themeId);
         }
 
+        // Persist theme choice (fire-and-forget)
+        _ = PersistThemeAsync(themeId);
+
         ThemeChanged?.Invoke(themeId);
+    }
+
+    private async Task PersistThemeAsync(string themeId)
+    {
+        try
+        {
+            var settings = await _dataService.GetSettingsAsync();
+            settings.ThemeId = themeId;
+            await _dataService.SaveSettingsAsync(settings);
+        }
+        catch (Exception ex)
+        {
+            Log.Warning(ex, "Failed to persist theme choice {ThemeId}", themeId);
+        }
     }
 }

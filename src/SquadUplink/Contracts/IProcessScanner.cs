@@ -37,6 +37,7 @@ public interface IThemeService
 {
     string CurrentThemeId { get; }
     void ApplyTheme(string themeId);
+    Task LoadSavedThemeAsync();
     IReadOnlyList<string> AvailableThemes { get; }
     event Action<string>? ThemeChanged;
 }

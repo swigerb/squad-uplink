@@ -22,7 +22,41 @@
     <SolidColorBrush x:Key="SquadErrorRedBrush" Color="#FF4400" />
     <SolidColorBrush x:Key="SquadNeutralGrayBrush" Color="{StaticResource PipBoyDimText}" />
 
+    <!-- Interactive brushes -->
+    <SolidColorBrush x:Key="SquadInteractiveHoverBrush" Color="#22FFB000" />
+    <SolidColorBrush x:Key="SquadInteractivePressedBrush" Color="#11FFB000" />
+
     <SolidColorBrush x:Key="ApplicationPageBackgroundThemeBrush" Color="{StaticResource PipBoyBackground}" />
+
+    <!-- ═══ Status Badges — amber variants ═══ -->
+    <Style x:Key="StatusBadgeRunning" TargetType="Border">
+        <Setter Property="Background">
+            <Setter.Value><SolidColorBrush Color="#FFB000" /></Setter.Value>
+        </Setter>
+        <Setter Property="CornerRadius" Value="4" />
+        <Setter Property="Padding" Value="8,3" />
+    </Style>
+    <Style x:Key="StatusBadgeIdle" TargetType="Border">
+        <Setter Property="Background">
+            <Setter.Value><SolidColorBrush Color="{StaticResource PipBoyDimText}" /></Setter.Value>
+        </Setter>
+        <Setter Property="CornerRadius" Value="4" />
+        <Setter Property="Padding" Value="8,3" />
+    </Style>
+    <Style x:Key="StatusBadgeError" TargetType="Border">
+        <Setter Property="Background">
+            <Setter.Value><SolidColorBrush Color="#FF4400" /></Setter.Value>
+        </Setter>
+        <Setter Property="CornerRadius" Value="4" />
+        <Setter Property="Padding" Value="8,3" />
+    </Style>
+    <Style x:Key="StatusBadgeCompleted" TargetType="Border">
+        <Setter Property="Background">
+            <Setter.Value><SolidColorBrush Color="#4D3300" /></Setter.Value>
+        </Setter>
+        <Setter Property="CornerRadius" Value="4" />
+        <Setter Property="Padding" Value="8,3" />
+    </Style>
 
     <!-- Session Card — gauge-inspired borders -->
     <Style x:Key="SessionCardStyle" TargetType="Border">
@@ -63,14 +97,17 @@
         <Setter Property="FontFamily" Value="Cascadia Code,Cascadia Mono,Consolas,monospace" />
         <Setter Property="Foreground" Value="{StaticResource PipBoyDimText}" />
         <Setter Property="HorizontalAlignment" Value="Center" />
+        <Setter Property="CharacterSpacing" Value="40" />
         <Setter Property="Margin" Value="0,4,0,0" />
     </Style>
 
+    <!-- Vault-Tec section header: all caps, tracked -->
     <Style x:Key="SectionHeaderStyle" TargetType="TextBlock">
         <Setter Property="FontSize" Value="13" />
         <Setter Property="FontWeight" Value="Bold" />
         <Setter Property="FontFamily" Value="Cascadia Code,Cascadia Mono,Consolas,monospace" />
         <Setter Property="Foreground" Value="{StaticResource PipBoyText}" />
+        <Setter Property="CharacterSpacing" Value="100" />
         <Setter Property="Margin" Value="0,0,0,8" />
     </Style>
 
@@ -91,6 +128,41 @@
     <Style x:Key="SettingsSectionStyle" TargetType="StackPanel">
         <Setter Property="Spacing" Value="12" />
         <Setter Property="Margin" Value="0,0,0,8" />
+    </Style>
+
+    <!-- ═══ Typography Hierarchy — Vault-Tec amber, all-caps tracked headers ═══ -->
+    <Style x:Key="SquadTitleStyle" TargetType="TextBlock">
+        <Setter Property="FontSize" Value="24" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="FontFamily" Value="Cascadia Code,Cascadia Mono,Consolas,monospace" />
+        <Setter Property="CharacterSpacing" Value="80" />
+        <Setter Property="Foreground">
+            <Setter.Value><SolidColorBrush Color="{StaticResource PipBoyText}" /></Setter.Value>
+        </Setter>
+    </Style>
+    <Style x:Key="SquadSubtitleStyle" TargetType="TextBlock">
+        <Setter Property="FontSize" Value="18" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="FontFamily" Value="Cascadia Code,Cascadia Mono,Consolas,monospace" />
+        <Setter Property="CharacterSpacing" Value="60" />
+        <Setter Property="Foreground">
+            <Setter.Value><SolidColorBrush Color="{StaticResource PipBoyText}" /></Setter.Value>
+        </Setter>
+    </Style>
+    <Style x:Key="SquadBodyStyle" TargetType="TextBlock">
+        <Setter Property="FontSize" Value="14" />
+        <Setter Property="FontFamily" Value="Cascadia Code,Cascadia Mono,Consolas,monospace" />
+        <Setter Property="Foreground">
+            <Setter.Value><SolidColorBrush Color="{StaticResource PipBoyText}" /></Setter.Value>
+        </Setter>
+    </Style>
+    <Style x:Key="SquadCaptionStyle" TargetType="TextBlock">
+        <Setter Property="FontSize" Value="12" />
+        <Setter Property="FontFamily" Value="Cascadia Code,Cascadia Mono,Consolas,monospace" />
+        <Setter Property="CharacterSpacing" Value="40" />
+        <Setter Property="Foreground">
+            <Setter.Value><SolidColorBrush Color="{StaticResource PipBoyDimText}" /></Setter.Value>
+        </Setter>
     </Style>
 
 </ResourceDictionary>

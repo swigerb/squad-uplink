@@ -23,7 +23,41 @@
     <SolidColorBrush x:Key="SquadErrorRedBrush" Color="#FF4040" />
     <SolidColorBrush x:Key="SquadNeutralGrayBrush" Color="{StaticResource C64DimText}" />
 
+    <!-- Interactive brushes -->
+    <SolidColorBrush x:Key="SquadInteractiveHoverBrush" Color="#22A0A0FF" />
+    <SolidColorBrush x:Key="SquadInteractivePressedBrush" Color="#11A0A0FF" />
+
     <SolidColorBrush x:Key="ApplicationPageBackgroundThemeBrush" Color="{StaticResource C64Background}" />
+
+    <!-- ═══ Status Badges — blue/white variants ═══ -->
+    <Style x:Key="StatusBadgeRunning" TargetType="Border">
+        <Setter Property="Background">
+            <Setter.Value><SolidColorBrush Color="#FFFFFF" /></Setter.Value>
+        </Setter>
+        <Setter Property="CornerRadius" Value="0" />
+        <Setter Property="Padding" Value="8,3" />
+    </Style>
+    <Style x:Key="StatusBadgeIdle" TargetType="Border">
+        <Setter Property="Background">
+            <Setter.Value><SolidColorBrush Color="{StaticResource C64Border}" /></Setter.Value>
+        </Setter>
+        <Setter Property="CornerRadius" Value="0" />
+        <Setter Property="Padding" Value="8,3" />
+    </Style>
+    <Style x:Key="StatusBadgeError" TargetType="Border">
+        <Setter Property="Background">
+            <Setter.Value><SolidColorBrush Color="#FF4040" /></Setter.Value>
+        </Setter>
+        <Setter Property="CornerRadius" Value="0" />
+        <Setter Property="Padding" Value="8,3" />
+    </Style>
+    <Style x:Key="StatusBadgeCompleted" TargetType="Border">
+        <Setter Property="Background">
+            <Setter.Value><SolidColorBrush Color="{StaticResource C64DimText}" /></Setter.Value>
+        </Setter>
+        <Setter Property="CornerRadius" Value="0" />
+        <Setter Property="Padding" Value="8,3" />
+    </Style>
 
     <!-- Session Card — PETSCII-style border -->
     <Style x:Key="SessionCardStyle" TargetType="Border">
@@ -92,6 +126,38 @@
     <Style x:Key="SettingsSectionStyle" TargetType="StackPanel">
         <Setter Property="Spacing" Value="12" />
         <Setter Property="Margin" Value="0,0,0,8" />
+    </Style>
+
+    <!-- ═══ Typography Hierarchy — PETSCII-style ═══ -->
+    <Style x:Key="SquadTitleStyle" TargetType="TextBlock">
+        <Setter Property="FontSize" Value="24" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="FontFamily" Value="Cascadia Code,Cascadia Mono,Consolas,monospace" />
+        <Setter Property="Foreground">
+            <Setter.Value><SolidColorBrush Color="{StaticResource C64Accent}" /></Setter.Value>
+        </Setter>
+    </Style>
+    <Style x:Key="SquadSubtitleStyle" TargetType="TextBlock">
+        <Setter Property="FontSize" Value="18" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="FontFamily" Value="Cascadia Code,Cascadia Mono,Consolas,monospace" />
+        <Setter Property="Foreground">
+            <Setter.Value><SolidColorBrush Color="{StaticResource C64Accent}" /></Setter.Value>
+        </Setter>
+    </Style>
+    <Style x:Key="SquadBodyStyle" TargetType="TextBlock">
+        <Setter Property="FontSize" Value="14" />
+        <Setter Property="FontFamily" Value="Cascadia Code,Cascadia Mono,Consolas,monospace" />
+        <Setter Property="Foreground">
+            <Setter.Value><SolidColorBrush Color="{StaticResource C64Text}" /></Setter.Value>
+        </Setter>
+    </Style>
+    <Style x:Key="SquadCaptionStyle" TargetType="TextBlock">
+        <Setter Property="FontSize" Value="12" />
+        <Setter Property="FontFamily" Value="Cascadia Code,Cascadia Mono,Consolas,monospace" />
+        <Setter Property="Foreground">
+            <Setter.Value><SolidColorBrush Color="{StaticResource C64DimText}" /></Setter.Value>
+        </Setter>
     </Style>
 
 </ResourceDictionary>

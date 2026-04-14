@@ -130,6 +130,19 @@ public partial class App : Application
             Log.Warning(ex, "NotificationService initialization failed — toasts disabled");
         }
 
+        // Theme service — load saved theme
+        try
+        {
+            splash.UpdateStatus("Applying theme...");
+            var themeService = Services.GetRequiredService<IThemeService>();
+            await themeService.LoadSavedThemeAsync();
+            Log.Debug("Theme loaded");
+        }
+        catch (Exception ex)
+        {
+            Log.Warning(ex, "Theme initialization failed — using default theme");
+        }
+
         // Start background session scanning
         try
         {

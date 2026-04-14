@@ -53,7 +53,10 @@ public class ServiceConstructionTests
     [Fact]
     public void ThemeService_CanBeConstructed()
     {
-        var service = new ThemeService();
+        var dataService = new Moq.Mock<IDataService>();
+        dataService.Setup(d => d.GetSettingsAsync()).ReturnsAsync(new Models.AppSettings());
+        dataService.Setup(d => d.SaveSettingsAsync(Moq.It.IsAny<Models.AppSettings>())).Returns(Task.CompletedTask);
+        var service = new ThemeService(dataService.Object, Microsoft.Extensions.Logging.Abstractions.NullLogger<ThemeService>.Instance);
         Assert.NotNull(service);
         Assert.IsAssignableFrom<IThemeService>(service);
     }
