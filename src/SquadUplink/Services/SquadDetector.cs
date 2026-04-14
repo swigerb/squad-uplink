@@ -88,6 +88,9 @@ public partial class SquadDetector : ISquadDetector, IDisposable
             // Detect sub-squads in child directories
             await DetectSubSquadsAsync(workingDirectory, info, ct);
 
+            // Read agent charters for mission summaries
+            await ReadMemberChartersAsync(workingDirectory, info.Members, ct);
+
             _logger.Debug("Detected squad {Team} with {MemberCount} members in {Dir}",
                 info.TeamName, info.Members.Count, workingDirectory);
             _msLogger?.SquadDetected(info.TeamName, info.Members.Count, info.Universe);
@@ -562,4 +565,91 @@ public partial class SquadDetector : ISquadDetector, IDisposable
         StopWatching();
         GC.SuppressFinalize(this);
     }
+
+    private async Task ReadMemberChartersAsync(string workingDirectory, List<SquadMember> members, CancellationToken ct)
+    {
+        foreach (var member in members)
+        {
+            ct.ThrowIfCancellationRequested();
+            var nameLower = member.Name.ToLowerInvariant();
+
+            // Search for charter in multiple locations
+            string[] charterPaths =
+            [
+                Path.Combine(workingDirectory, ".squad", "agents", nameLower, "charter.md"),
+                Path.Combine(workingDirectory, ".squad", "agents", nameLower, "AGENT.md"),
+                Path.Combine(workingDirectory, ".github", "agents", $"{nameLower}.agent.md"),
+            ];
+
+            foreach (var path in charterPaths)
+            {
+                if (!File.Exists(path)) continue;
+
+                try
+                {
+                    var content = await File.ReadAllTextAsync(path, ct);
+                    member.MissionSummary = ExtractMissionSummary(content);
+                    if (member.MissionSummary is not null) break;
+                }
+                catch (Exception ex) when (ex is not OperationCanceledException)
+                {
+                    _logger.Debug(ex, "Failed to read charter at {Path}", path);
+                }
+            }
+        }
+    }
+
+    internal static string? ExtractMissionSummary(string content)
+    {
+        if (string.IsNullOrWhiteSpace(content)) return null;
+
+        var lines = content.Split('\n');
+
+        // Look for ## Mission or ## Charter section
+        for (int i = 0; i < lines.Length; i++)
+        {
+            var trimmed = lines[i].Trim();
+            if (trimmed.StartsWith("## Mission", StringComparison.OrdinalIgnoreCase) ||
+                trimmed.StartsWith("## Charter", StringComparison.OrdinalIgnoreCase))
+            {
+                // Collect the paragraph after the heading
+                var paragraph = new System.Text.StringBuilder();
+                for (int j = i + 1; j < lines.Length; j++)
+                {
+                    var line = lines[j].Trim();
+                    if (line.StartsWith('#')) break; // next section
+                    if (string.IsNullOrEmpty(line))
+                    {
+                        if (paragraph.Length > 0) break; // end of paragraph
+                        continue; // skip leading blank lines
+                    }
+                    if (paragraph.Length > 0) paragraph.Append(' ');
+                    paragraph.Append(line);
+                }
+
+                if (paragraph.Length > 0)
+                    return Truncate(paragraph.ToString(), 200);
+            }
+        }
+
+        // Fallback: first non-empty, non-heading paragraph
+        var fallback = new System.Text.StringBuilder();
+        foreach (var line in lines)
+        {
+            var trimmed = line.Trim();
+            if (trimmed.StartsWith('#') || trimmed.StartsWith("---")) continue;
+            if (string.IsNullOrEmpty(trimmed))
+            {
+                if (fallback.Length > 0) break;
+                continue;
+            }
+            if (fallback.Length > 0) fallback.Append(' ');
+            fallback.Append(trimmed);
+        }
+
+        return fallback.Length > 0 ? Truncate(fallback.ToString(), 200) : null;
+    }
+
+    private static string Truncate(string text, int maxLength) =>
+        text.Length <= maxLength ? text : text[..(maxLength - 3)] + "...";
 }

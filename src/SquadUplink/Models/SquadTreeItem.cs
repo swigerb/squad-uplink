@@ -8,4 +8,7 @@ public record SquadTreeItem
     public string StatusText { get; set; } = string.Empty;
     public int IndentLevel { get; set; }
     public string Role { get; set; } = string.Empty;
+    public string? MissionSummary { get; set; }
+
+    public override string ToString() => DisplayText;
 }

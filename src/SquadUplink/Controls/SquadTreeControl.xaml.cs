@@ -105,7 +105,8 @@ public sealed partial class SquadTreeControl : UserControl
                     Icon = emoji,
                     IsHeader = false,
                     Role = member.Role,
-                    StatusText = member.Status
+                    StatusText = member.Status,
+                    MissionSummary = member.MissionSummary
                 }
             };
             node.Children.Add(memberNode);

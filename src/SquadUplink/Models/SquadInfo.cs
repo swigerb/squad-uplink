@@ -16,4 +16,5 @@ public class SquadMember
     public string Role { get; set; } = string.Empty;
     public string Emoji { get; set; } = string.Empty;
     public string Status { get; set; } = string.Empty;
+    public string? MissionSummary { get; set; }
 }

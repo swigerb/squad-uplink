@@ -25,6 +25,34 @@
                   ItemInvoked="SquadTree_ItemInvoked"
                   Visibility="{x:Bind HasSquads, Mode=OneWay}"
                   AutomationProperties.Name="Squad hierarchy tree">
+            <TreeView.ItemTemplate>
+                <DataTemplate x:DataType="models:SquadTreeItem">
+                    <Border Margin="0,2" Padding="8,6" CornerRadius="4"
+                            Background="{ThemeResource CardBackgroundFillColorSecondaryBrush}">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Grid.Column="0" Text="{x:Bind Icon, Mode=OneTime}"
+                                       FontSize="16" VerticalAlignment="Center"
+                                       Margin="0,0,8,0" />
+                            <StackPanel Grid.Column="1" Spacing="1" VerticalAlignment="Center">
+                                <TextBlock Text="{x:Bind DisplayText, Mode=OneTime}"
+                                           FontSize="13" FontWeight="SemiBold" />
+                                <TextBlock Text="{x:Bind Role, Mode=OneTime}" FontSize="11"
+                                           Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                            </StackPanel>
+                            <Border Grid.Column="2" CornerRadius="4" Padding="6,2"
+                                    VerticalAlignment="Center"
+                                    Background="{ThemeResource CardBackgroundFillColorDefaultBrush}">
+                                <TextBlock Text="{x:Bind StatusText, Mode=OneTime}" FontSize="10" />
+                            </Border>
+                        </Grid>
+                    </Border>
+                </DataTemplate>
+            </TreeView.ItemTemplate>
         </TreeView>
 
         <!-- No Squad Placeholder -->

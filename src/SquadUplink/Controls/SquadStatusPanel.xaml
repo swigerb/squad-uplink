@@ -104,6 +104,10 @@
                                                    FontSize="13" FontWeight="SemiBold" />
                                         <TextBlock Text="{x:Bind Role, Mode=OneTime}" FontSize="11"
                                                    Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                        <TextBlock Text="{x:Bind MissionSummary, Mode=OneTime}"
+                                                   FontSize="10" FontStyle="Italic" MaxLines="2"
+                                                   TextTrimming="CharacterEllipsis" TextWrapping="Wrap"
+                                                   Foreground="{ThemeResource TextFillColorTertiaryBrush}" />
                                     </StackPanel>
                                     <Border Grid.Column="2" CornerRadius="4" Padding="6,2"
                                             VerticalAlignment="Center"
