@@ -5,229 +5,447 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:local="using:SquadUplink.Views"
     xmlns:vm="using:SquadUplink.ViewModels"
-    xmlns:converters="using:SquadUplink.Converters">
+    xmlns:converters="using:SquadUplink.Converters"
+    Background="{ThemeResource ApplicationPageBackgroundThemeBrush}">
 
     <Page.Resources>
         <converters:ColorToSolidColorBrushConverter x:Key="ColorToBrush" />
     </Page.Resources>
 
-    <ScrollViewer Padding="24,16">
-        <StackPanel Spacing="4" MaxWidth="800">
+    <NavigationView
+        x:Name="SettingsNav"
+        IsBackButtonVisible="Collapsed"
+        IsPaneToggleButtonVisible="False"
+        PaneDisplayMode="Left"
+        OpenPaneLength="220"
+        IsSettingsVisible="False"
+        SelectionChanged="SettingsNav_SelectionChanged"
+        Loaded="SettingsNav_Loaded">
 
-            <TextBlock Text="Settings" Style="{StaticResource TitleTextBlockStyle}"
-                       Margin="0,0,0,16" />
+        <NavigationView.PaneHeader>
+            <TextBlock Text="Settings" Style="{StaticResource SubtitleTextBlockStyle}"
+                       Margin="16,20,16,8" />
+        </NavigationView.PaneHeader>
 
-            <!-- ═══ APPEARANCE ═══ -->
-            <Expander HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch"
-                      IsExpanded="True">
-                <Expander.Header>
-                    <StackPanel Orientation="Horizontal" Spacing="12" Padding="0,8">
-                        <FontIcon Glyph="&#xE790;" FontSize="16" />
-                        <TextBlock Text="Appearance" Style="{StaticResource BodyStrongTextBlockStyle}"
-                                   VerticalAlignment="Center" />
-                    </StackPanel>
-                </Expander.Header>
-                <StackPanel Spacing="16" Padding="4,8">
-                    <!-- Theme Selector -->
-                    <StackPanel Spacing="4">
-                        <TextBlock Text="Theme" FontSize="13" />
-                        <ComboBox SelectedIndex="{x:Bind ViewModel.SelectedThemeIndex, Mode=TwoWay}"
-                                  Width="260">
-                            <ComboBoxItem Content="☀️  Fluent Light" />
-                            <ComboBoxItem Content="🌙  Fluent Dark" />
-                            <ComboBoxItem Content="🍏  Apple IIe" />
-                            <ComboBoxItem Content="📺  Commodore 64" />
-                            <ComboBoxItem Content="☢️  Pip-Boy" />
-                            <ComboBoxItem Content="👽  MU-TH-UR 6000" />
-                            <ComboBoxItem Content="🎮  W.O.P.R." />
-                            <ComboBoxItem Content="💊  The Matrix" />
-                            <ComboBoxItem Content="🖥️  Windows 95" />
-                            <ComboBoxItem Content="🖖  LCARS" />
-                            <ComboBoxItem Content="⭐  Star Wars" />
-                        </ComboBox>
-                    </StackPanel>
+        <NavigationView.MenuItems>
+            <NavigationViewItem Content="Appearance" Tag="Appearance">
+                <NavigationViewItem.Icon>
+                    <FontIcon Glyph="&#xE790;" />
+                </NavigationViewItem.Icon>
+            </NavigationViewItem>
+            <NavigationViewItem Content="Scanning" Tag="Scanning">
+                <NavigationViewItem.Icon>
+                    <FontIcon Glyph="&#xE773;" />
+                </NavigationViewItem.Icon>
+            </NavigationViewItem>
+            <NavigationViewItem Content="Launching" Tag="Launching">
+                <NavigationViewItem.Icon>
+                    <FontIcon Glyph="&#xE895;" />
+                </NavigationViewItem.Icon>
+            </NavigationViewItem>
+            <NavigationViewItem Content="System Tray" Tag="SystemTray">
+                <NavigationViewItem.Icon>
+                    <FontIcon Glyph="&#xE7C4;" />
+                </NavigationViewItem.Icon>
+            </NavigationViewItem>
+            <NavigationViewItem Content="Audio" Tag="Audio">
+                <NavigationViewItem.Icon>
+                    <FontIcon Glyph="&#xE767;" />
+                </NavigationViewItem.Icon>
+            </NavigationViewItem>
+            <NavigationViewItem Content="Logs" Tag="Logs">
+                <NavigationViewItem.Icon>
+                    <FontIcon Glyph="&#xE9D9;" />
+                </NavigationViewItem.Icon>
+            </NavigationViewItem>
+            <NavigationViewItem Content="About" Tag="About">
+                <NavigationViewItem.Icon>
+                    <FontIcon Glyph="&#xE946;" />
+                </NavigationViewItem.Icon>
+            </NavigationViewItem>
+        </NavigationView.MenuItems>
 
-                    <!-- Theme Preview -->
-                    <StackPanel Spacing="4">
-                        <TextBlock Text="Preview" FontSize="13" />
-                        <StackPanel Orientation="Horizontal" Spacing="6">
-                            <Border Width="40" Height="28" CornerRadius="4"
-                                    Background="{x:Bind ViewModel.PreviewAccentColor, Mode=OneWay, Converter={StaticResource ColorToBrush}}" />
-                            <Border Width="40" Height="28" CornerRadius="4"
-                                    Background="{x:Bind ViewModel.PreviewBackgroundColor, Mode=OneWay, Converter={StaticResource ColorToBrush}}" />
-                            <Border Width="40" Height="28" CornerRadius="4"
-                                    Background="{x:Bind ViewModel.PreviewSurfaceColor, Mode=OneWay, Converter={StaticResource ColorToBrush}}" />
-                            <Border Width="40" Height="28" CornerRadius="4"
-                                    Background="{x:Bind ViewModel.PreviewTextColor, Mode=OneWay, Converter={StaticResource ColorToBrush}}" />
+        <!-- Content area — shows only the selected category -->
+        <ScrollViewer Padding="36,24,36,36">
+            <Grid MaxWidth="600">
+
+                <!-- ═══ APPEARANCE ═══ -->
+                <StackPanel x:Name="AppearancePanel" Spacing="4">
+                    <TextBlock Text="Appearance" Style="{StaticResource TitleTextBlockStyle}"
+                               Margin="0,0,0,4" />
+                    <TextBlock Text="Customize the look and feel of Squad Uplink"
+                               Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                               Margin="0,0,0,16" />
+
+                    <!-- Theme Selector + Preview card -->
+                    <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                            CornerRadius="8"
+                            BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                            BorderThickness="1" Padding="16">
+                        <StackPanel Spacing="12">
+                            <Grid ColumnSpacing="16">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <StackPanel Grid.Column="0" VerticalAlignment="Center">
+                                    <TextBlock Text="Theme" />
+                                    <TextBlock Text="Choose a visual theme for the application"
+                                               FontSize="12"
+                                               Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                </StackPanel>
+                                <ComboBox Grid.Column="1"
+                                          SelectedIndex="{x:Bind ViewModel.SelectedThemeIndex, Mode=TwoWay}"
+                                          Width="220" VerticalAlignment="Center">
+                                    <ComboBoxItem Content="☀️  Fluent Light" />
+                                    <ComboBoxItem Content="🌙  Fluent Dark" />
+                                    <ComboBoxItem Content="🍏  Apple IIe" />
+                                    <ComboBoxItem Content="📺  Commodore 64" />
+                                    <ComboBoxItem Content="☢️  Pip-Boy" />
+                                    <ComboBoxItem Content="👽  MU-TH-UR 6000" />
+                                    <ComboBoxItem Content="🎮  W.O.P.R." />
+                                    <ComboBoxItem Content="💊  The Matrix" />
+                                    <ComboBoxItem Content="🖥️  Windows 95" />
+                                    <ComboBoxItem Content="🖖  LCARS" />
+                                    <ComboBoxItem Content="⭐  Star Wars" />
+                                </ComboBox>
+                            </Grid>
+                            <StackPanel Spacing="4">
+                                <TextBlock Text="Preview" FontSize="12"
+                                           Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                <StackPanel Orientation="Horizontal" Spacing="6">
+                                    <Border Width="40" Height="28" CornerRadius="4"
+                                            Background="{x:Bind ViewModel.PreviewAccentColor, Mode=OneWay, Converter={StaticResource ColorToBrush}}" />
+                                    <Border Width="40" Height="28" CornerRadius="4"
+                                            Background="{x:Bind ViewModel.PreviewBackgroundColor, Mode=OneWay, Converter={StaticResource ColorToBrush}}" />
+                                    <Border Width="40" Height="28" CornerRadius="4"
+                                            Background="{x:Bind ViewModel.PreviewSurfaceColor, Mode=OneWay, Converter={StaticResource ColorToBrush}}" />
+                                    <Border Width="40" Height="28" CornerRadius="4"
+                                            Background="{x:Bind ViewModel.PreviewTextColor, Mode=OneWay, Converter={StaticResource ColorToBrush}}" />
+                                </StackPanel>
+                            </StackPanel>
                         </StackPanel>
-                    </StackPanel>
+                    </Border>
 
-                    <!-- CRT Effects -->
-                    <ToggleSwitch Header="CRT scan-line effects (retro themes)"
-                                  IsOn="{x:Bind ViewModel.CrtEffectsEnabled, Mode=TwoWay}" />
+                    <!-- CRT Effects card -->
+                    <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                            CornerRadius="8"
+                            BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                            BorderThickness="1" Padding="16,12">
+                        <Grid ColumnSpacing="16">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <StackPanel Grid.Column="0" VerticalAlignment="Center">
+                                <TextBlock Text="CRT scan-line effects" />
+                                <TextBlock Text="Apply vintage CRT overlay for retro themes"
+                                           FontSize="12"
+                                           Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                            </StackPanel>
+                            <ToggleSwitch Grid.Column="1"
+                                          IsOn="{x:Bind ViewModel.CrtEffectsEnabled, Mode=TwoWay}"
+                                          VerticalAlignment="Center" />
+                        </Grid>
+                    </Border>
 
-                    <!-- Font Size -->
-                    <StackPanel Spacing="4">
-                        <TextBlock Text="Terminal font size" FontSize="13" />
-                        <Slider Minimum="9" Maximum="24" StepFrequency="1"
-                                Value="{x:Bind ViewModel.FontSize, Mode=TwoWay}"
-                                Width="260" HorizontalAlignment="Left" />
-                    </StackPanel>
-                </StackPanel>
-            </Expander>
-
-            <!-- ═══ SCANNING ═══ -->
-            <Expander HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch">
-                <Expander.Header>
-                    <StackPanel Orientation="Horizontal" Spacing="12" Padding="0,8">
-                        <FontIcon Glyph="&#xE773;" FontSize="16" />
-                        <TextBlock Text="Scanning" Style="{StaticResource BodyStrongTextBlockStyle}"
-                                   VerticalAlignment="Center" />
-                    </StackPanel>
-                </Expander.Header>
-                <StackPanel Spacing="16" Padding="4,8">
-                    <StackPanel Spacing="4">
-                        <TextBlock FontSize="13">
-                            <Run Text="Scan interval: " />
-                            <Run Text="{x:Bind ViewModel.ScanIntervalSeconds, Mode=OneWay}" FontWeight="SemiBold" />
-                            <Run Text=" seconds" />
-                        </TextBlock>
-                        <Slider Minimum="1" Maximum="30" StepFrequency="1"
-                                Value="{x:Bind ViewModel.ScanIntervalSeconds, Mode=TwoWay}"
-                                Width="300" HorizontalAlignment="Left" />
-                    </StackPanel>
-                    <ToggleSwitch Header="Auto-scan on startup"
-                                  IsOn="{x:Bind ViewModel.AutoScanOnStartup, Mode=TwoWay}" />
-                </StackPanel>
-            </Expander>
-
-            <!-- ═══ LAUNCHING ═══ -->
-            <Expander HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch">
-                <Expander.Header>
-                    <StackPanel Orientation="Horizontal" Spacing="12" Padding="0,8">
-                        <FontIcon Glyph="&#xE895;" FontSize="16" />
-                        <TextBlock Text="Launching" Style="{StaticResource BodyStrongTextBlockStyle}"
-                                   VerticalAlignment="Center" />
-                    </StackPanel>
-                </Expander.Header>
-                <StackPanel Spacing="16" Padding="4,8">
-                    <!-- Default working directory -->
-                    <StackPanel Spacing="4">
-                        <TextBlock Text="Default working directory" FontSize="13" />
-                        <StackPanel Orientation="Horizontal" Spacing="8">
-                            <TextBox Text="{x:Bind ViewModel.DefaultWorkingDirectory, Mode=TwoWay}"
-                                     PlaceholderText="C:\Users\..."
-                                     Width="400"
-                                     FontFamily="Cascadia Mono,Consolas,monospace"
-                                     FontSize="12" />
-                            <Button Command="{x:Bind ViewModel.BrowseDirectoryCommand}"
-                                    ToolTipService.ToolTip="Browse...">
-                                <FontIcon Glyph="&#xE8B7;" FontSize="14" />
-                            </Button>
+                    <!-- Font Size card -->
+                    <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                            CornerRadius="8"
+                            BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                            BorderThickness="1" Padding="16">
+                        <StackPanel Spacing="8">
+                            <TextBlock Text="Terminal font size" />
+                            <TextBlock Text="Adjust the font size used in terminal sessions"
+                                       FontSize="12"
+                                       Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                            <Slider Minimum="9" Maximum="24" StepFrequency="1"
+                                    Value="{x:Bind ViewModel.FontSize, Mode=TwoWay}"
+                                    Width="300" HorizontalAlignment="Left" />
                         </StackPanel>
-                    </StackPanel>
-
-                    <!-- Default model -->
-                    <StackPanel Spacing="4">
-                        <TextBlock Text="Default model override" FontSize="13" />
-                        <ComboBox SelectedIndex="{x:Bind ViewModel.SelectedModelIndex, Mode=TwoWay}"
-                                  Width="260">
-                            <ComboBoxItem Content="auto (detect)" />
-                            <ComboBoxItem Content="claude-sonnet-4-20250514" />
-                            <ComboBoxItem Content="claude-opus-4-20250514" />
-                            <ComboBoxItem Content="gpt-4.1" />
-                            <ComboBoxItem Content="o4-mini" />
-                        </ComboBox>
-                    </StackPanel>
-
-                    <!-- Always use remote -->
-                    <ToggleSwitch Header="Always use --remote flag"
-                                  IsOn="{x:Bind ViewModel.AlwaysUseRemote, Mode=TwoWay}" />
+                    </Border>
                 </StackPanel>
-            </Expander>
 
-            <!-- ═══ SYSTEM TRAY ═══ -->
-            <Expander HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch">
-                <Expander.Header>
-                    <StackPanel Orientation="Horizontal" Spacing="12" Padding="0,8">
-                        <FontIcon Glyph="&#xE7C4;" FontSize="16" />
-                        <TextBlock Text="System Tray" Style="{StaticResource BodyStrongTextBlockStyle}"
-                                   VerticalAlignment="Center" />
-                    </StackPanel>
-                </Expander.Header>
-                <StackPanel Spacing="16" Padding="4,8">
-                    <ToggleSwitch Header="Minimize to system tray"
-                                  IsOn="{x:Bind ViewModel.MinimizeToTray, Mode=TwoWay}" />
-                    <TextBlock Text="When enabled, closing the window keeps Squad Uplink running in the notification area. Right-click the tray icon for options."
-                               FontSize="12" TextWrapping="Wrap"
-                               Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                <!-- ═══ SCANNING ═══ -->
+                <StackPanel x:Name="ScanningPanel" Spacing="4" Visibility="Collapsed">
+                    <TextBlock Text="Scanning" Style="{StaticResource TitleTextBlockStyle}"
+                               Margin="0,0,0,4" />
+                    <TextBlock Text="Configure how Squad Uplink discovers sessions"
+                               Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                               Margin="0,0,0,16" />
+
+                    <!-- Scan Interval card -->
+                    <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                            CornerRadius="8"
+                            BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                            BorderThickness="1" Padding="16">
+                        <StackPanel Spacing="8">
+                            <TextBlock>
+                                <Run Text="Scan interval: " />
+                                <Run Text="{x:Bind ViewModel.ScanIntervalSeconds, Mode=OneWay}" FontWeight="SemiBold" />
+                                <Run Text=" seconds" />
+                            </TextBlock>
+                            <TextBlock Text="How often to check for new or updated sessions"
+                                       FontSize="12"
+                                       Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                            <Slider Minimum="1" Maximum="30" StepFrequency="1"
+                                    Value="{x:Bind ViewModel.ScanIntervalSeconds, Mode=TwoWay}"
+                                    Width="300" HorizontalAlignment="Left" />
+                        </StackPanel>
+                    </Border>
+
+                    <!-- Auto-scan card -->
+                    <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                            CornerRadius="8"
+                            BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                            BorderThickness="1" Padding="16,12">
+                        <Grid ColumnSpacing="16">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <StackPanel Grid.Column="0" VerticalAlignment="Center">
+                                <TextBlock Text="Auto-scan on startup" />
+                                <TextBlock Text="Begin scanning for sessions when the app launches"
+                                           FontSize="12"
+                                           Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                            </StackPanel>
+                            <ToggleSwitch Grid.Column="1"
+                                          IsOn="{x:Bind ViewModel.AutoScanOnStartup, Mode=TwoWay}"
+                                          VerticalAlignment="Center" />
+                        </Grid>
+                    </Border>
                 </StackPanel>
-            </Expander>
 
-            <!-- ═══ AUDIO ═══ -->
-            <Expander HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch">
-                <Expander.Header>
-                    <StackPanel Orientation="Horizontal" Spacing="12" Padding="0,8">
-                        <FontIcon Glyph="&#xE767;" FontSize="16" />
-                        <TextBlock Text="Audio" Style="{StaticResource BodyStrongTextBlockStyle}"
-                                   VerticalAlignment="Center" />
-                    </StackPanel>
-                </Expander.Header>
-                <StackPanel Spacing="16" Padding="4,8">
-                    <ToggleSwitch Header="Enable audio feedback"
-                                  IsOn="{x:Bind ViewModel.AudioEnabled, Mode=TwoWay}" />
+                <!-- ═══ LAUNCHING ═══ -->
+                <StackPanel x:Name="LaunchingPanel" Spacing="4" Visibility="Collapsed">
+                    <TextBlock Text="Launching" Style="{StaticResource TitleTextBlockStyle}"
+                               Margin="0,0,0,4" />
+                    <TextBlock Text="Configure default options for new Copilot sessions"
+                               Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                               Margin="0,0,0,16" />
 
-                    <StackPanel Spacing="4">
-                        <TextBlock FontSize="13">
-                            <Run Text="Volume: " />
-                            <Run Text="{x:Bind ViewModel.Volume, Mode=OneWay}" FontWeight="SemiBold" />
-                            <Run Text="%" />
-                        </TextBlock>
-                        <Slider Minimum="0" Maximum="100" StepFrequency="5"
-                                Value="{x:Bind ViewModel.Volume, Mode=TwoWay}"
-                                IsEnabled="{x:Bind ViewModel.AudioEnabled, Mode=OneWay}"
-                                Width="260" HorizontalAlignment="Left" />
-                    </StackPanel>
+                    <!-- Default working directory card -->
+                    <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                            CornerRadius="8"
+                            BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                            BorderThickness="1" Padding="16">
+                        <StackPanel Spacing="8">
+                            <TextBlock Text="Default working directory" />
+                            <TextBlock Text="Starting directory for new sessions"
+                                       FontSize="12"
+                                       Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                <TextBox Text="{x:Bind ViewModel.DefaultWorkingDirectory, Mode=TwoWay}"
+                                         PlaceholderText="C:\Users\..."
+                                         Width="400"
+                                         FontFamily="Cascadia Mono,Consolas,monospace"
+                                         FontSize="12" />
+                                <Button Command="{x:Bind ViewModel.BrowseDirectoryCommand}"
+                                        ToolTipService.ToolTip="Browse...">
+                                    <FontIcon Glyph="&#xE8B7;" FontSize="14" />
+                                </Button>
+                            </StackPanel>
+                        </StackPanel>
+                    </Border>
 
-                    <StackPanel Spacing="4">
-                        <TextBlock Text="Sound pack" FontSize="13" />
-                        <ComboBox SelectedIndex="{x:Bind ViewModel.SelectedSoundPackIndex, Mode=TwoWay}"
-                                  IsEnabled="{x:Bind ViewModel.AudioEnabled, Mode=OneWay}"
-                                  Width="260">
-                            <ComboBoxItem Content="🔔  Fluent" />
-                            <ComboBoxItem Content="🍏  Apple IIe" />
-                            <ComboBoxItem Content="📺  C64" />
-                            <ComboBoxItem Content="☢️  Pip-Boy" />
-                        </ComboBox>
-                    </StackPanel>
+                    <!-- Default model card -->
+                    <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                            CornerRadius="8"
+                            BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                            BorderThickness="1" Padding="16,12">
+                        <Grid ColumnSpacing="16">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <StackPanel Grid.Column="0" VerticalAlignment="Center">
+                                <TextBlock Text="Default model override" />
+                                <TextBlock Text="AI model to use for new sessions"
+                                           FontSize="12"
+                                           Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                            </StackPanel>
+                            <ComboBox Grid.Column="1"
+                                      SelectedIndex="{x:Bind ViewModel.SelectedModelIndex, Mode=TwoWay}"
+                                      Width="220" VerticalAlignment="Center">
+                                <ComboBoxItem Content="auto (detect)" />
+                                <ComboBoxItem Content="claude-sonnet-4-20250514" />
+                                <ComboBoxItem Content="claude-opus-4-20250514" />
+                                <ComboBoxItem Content="gpt-4.1" />
+                                <ComboBoxItem Content="o4-mini" />
+                            </ComboBox>
+                        </Grid>
+                    </Border>
+
+                    <!-- Always use remote card -->
+                    <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                            CornerRadius="8"
+                            BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                            BorderThickness="1" Padding="16,12">
+                        <Grid ColumnSpacing="16">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <StackPanel Grid.Column="0" VerticalAlignment="Center">
+                                <TextBlock Text="Always use --remote flag" />
+                                <TextBlock Text="Force remote mode for all launched sessions"
+                                           FontSize="12"
+                                           Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                            </StackPanel>
+                            <ToggleSwitch Grid.Column="1"
+                                          IsOn="{x:Bind ViewModel.AlwaysUseRemote, Mode=TwoWay}"
+                                          VerticalAlignment="Center" />
+                        </Grid>
+                    </Border>
                 </StackPanel>
-            </Expander>
 
-            <!-- ═══ LOGS ═══ -->
-            <Expander HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch">
-                <Expander.Header>
-                    <StackPanel Orientation="Horizontal" Spacing="12" Padding="0,8">
-                        <FontIcon Glyph="&#xE9D9;" FontSize="16" />
-                        <TextBlock Text="Logs" Style="{StaticResource BodyStrongTextBlockStyle}"
-                                   VerticalAlignment="Center" />
-                    </StackPanel>
-                </Expander.Header>
-                <StackPanel Spacing="12" Padding="4,8">
-                    <!-- Log level filter -->
-                    <StackPanel Spacing="4">
-                        <TextBlock Text="Minimum log level" FontSize="13" />
-                        <ComboBox SelectedIndex="{x:Bind ViewModel.SelectedLogLevelIndex, Mode=TwoWay}"
-                                  Width="200">
-                            <ComboBoxItem Content="Verbose" />
-                            <ComboBoxItem Content="Debug" />
-                            <ComboBoxItem Content="Information" />
-                            <ComboBoxItem Content="Warning" />
-                            <ComboBoxItem Content="Error" />
-                        </ComboBox>
-                    </StackPanel>
+                <!-- ═══ SYSTEM TRAY ═══ -->
+                <StackPanel x:Name="SystemTrayPanel" Spacing="4" Visibility="Collapsed">
+                    <TextBlock Text="System Tray" Style="{StaticResource TitleTextBlockStyle}"
+                               Margin="0,0,0,4" />
+                    <TextBlock Text="Control how Squad Uplink behaves in the notification area"
+                               Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                               Margin="0,0,0,16" />
+
+                    <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                            CornerRadius="8"
+                            BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                            BorderThickness="1" Padding="16">
+                        <StackPanel Spacing="12">
+                            <Grid ColumnSpacing="16">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Grid.Column="0" Text="Minimize to system tray"
+                                           VerticalAlignment="Center" />
+                                <ToggleSwitch Grid.Column="1"
+                                              IsOn="{x:Bind ViewModel.MinimizeToTray, Mode=TwoWay}"
+                                              VerticalAlignment="Center" />
+                            </Grid>
+                            <TextBlock Text="When enabled, closing the window keeps Squad Uplink running in the notification area. Right-click the tray icon for options."
+                                       FontSize="12" TextWrapping="Wrap"
+                                       Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                        </StackPanel>
+                    </Border>
+                </StackPanel>
+
+                <!-- ═══ AUDIO ═══ -->
+                <StackPanel x:Name="AudioPanel" Spacing="4" Visibility="Collapsed">
+                    <TextBlock Text="Audio" Style="{StaticResource TitleTextBlockStyle}"
+                               Margin="0,0,0,4" />
+                    <TextBlock Text="Configure audio feedback and sound effects"
+                               Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                               Margin="0,0,0,16" />
+
+                    <!-- Audio enable card -->
+                    <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                            CornerRadius="8"
+                            BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                            BorderThickness="1" Padding="16,12">
+                        <Grid ColumnSpacing="16">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <StackPanel Grid.Column="0" VerticalAlignment="Center">
+                                <TextBlock Text="Enable audio feedback" />
+                                <TextBlock Text="Play sound effects for events and actions"
+                                           FontSize="12"
+                                           Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                            </StackPanel>
+                            <ToggleSwitch Grid.Column="1"
+                                          IsOn="{x:Bind ViewModel.AudioEnabled, Mode=TwoWay}"
+                                          VerticalAlignment="Center" />
+                        </Grid>
+                    </Border>
+
+                    <!-- Volume card -->
+                    <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                            CornerRadius="8"
+                            BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                            BorderThickness="1" Padding="16">
+                        <StackPanel Spacing="8">
+                            <TextBlock>
+                                <Run Text="Volume: " />
+                                <Run Text="{x:Bind ViewModel.Volume, Mode=OneWay}" FontWeight="SemiBold" />
+                                <Run Text="%" />
+                            </TextBlock>
+                            <Slider Minimum="0" Maximum="100" StepFrequency="5"
+                                    Value="{x:Bind ViewModel.Volume, Mode=TwoWay}"
+                                    IsEnabled="{x:Bind ViewModel.AudioEnabled, Mode=OneWay}"
+                                    Width="300" HorizontalAlignment="Left" />
+                        </StackPanel>
+                    </Border>
+
+                    <!-- Sound pack card -->
+                    <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                            CornerRadius="8"
+                            BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                            BorderThickness="1" Padding="16,12">
+                        <Grid ColumnSpacing="16">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <StackPanel Grid.Column="0" VerticalAlignment="Center">
+                                <TextBlock Text="Sound pack" />
+                                <TextBlock Text="Choose sound effects to match the current theme"
+                                           FontSize="12"
+                                           Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                            </StackPanel>
+                            <ComboBox Grid.Column="1"
+                                      SelectedIndex="{x:Bind ViewModel.SelectedSoundPackIndex, Mode=TwoWay}"
+                                      IsEnabled="{x:Bind ViewModel.AudioEnabled, Mode=OneWay}"
+                                      Width="180" VerticalAlignment="Center">
+                                <ComboBoxItem Content="🔔  Fluent" />
+                                <ComboBoxItem Content="🍏  Apple IIe" />
+                                <ComboBoxItem Content="📺  C64" />
+                                <ComboBoxItem Content="☢️  Pip-Boy" />
+                            </ComboBox>
+                        </Grid>
+                    </Border>
+                </StackPanel>
+
+                <!-- ═══ LOGS ═══ -->
+                <StackPanel x:Name="LogsPanel" Spacing="4" Visibility="Collapsed">
+                    <TextBlock Text="Logs" Style="{StaticResource TitleTextBlockStyle}"
+                               Margin="0,0,0,4" />
+                    <TextBlock Text="View and manage application diagnostic logs"
+                               Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                               Margin="0,0,0,16" />
+
+                    <!-- Log level card -->
+                    <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                            CornerRadius="8"
+                            BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                            BorderThickness="1" Padding="16,12">
+                        <Grid ColumnSpacing="16">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <StackPanel Grid.Column="0" VerticalAlignment="Center">
+                                <TextBlock Text="Minimum log level" />
+                                <TextBlock Text="Filter log entries by severity"
+                                           FontSize="12"
+                                           Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                            </StackPanel>
+                            <ComboBox Grid.Column="1"
+                                      SelectedIndex="{x:Bind ViewModel.SelectedLogLevelIndex, Mode=TwoWay}"
+                                      Width="160" VerticalAlignment="Center">
+                                <ComboBoxItem Content="Verbose" />
+                                <ComboBoxItem Content="Debug" />
+                                <ComboBoxItem Content="Information" />
+                                <ComboBoxItem Content="Warning" />
+                                <ComboBoxItem Content="Error" />
+                            </ComboBox>
+                        </Grid>
+                    </Border>
 
                     <!-- Log actions -->
-                    <StackPanel Orientation="Horizontal" Spacing="8">
+                    <StackPanel Orientation="Horizontal" Spacing="8" Margin="0,4">
                         <Button Command="{x:Bind ViewModel.RefreshLogsCommand}">
                             <StackPanel Orientation="Horizontal" Spacing="6">
                                 <FontIcon Glyph="&#xE72C;" FontSize="12" />
@@ -250,7 +468,7 @@
 
                     <!-- Log viewer -->
                     <Border Background="{ThemeResource CardBackgroundFillColorSecondaryBrush}"
-                            CornerRadius="8" Padding="12" MaxHeight="300"
+                            CornerRadius="8" Padding="12" MaxHeight="400"
                             BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
                             BorderThickness="1">
                         <ScrollViewer>
@@ -268,40 +486,43 @@
                         </ScrollViewer>
                     </Border>
                 </StackPanel>
-            </Expander>
 
-            <!-- ═══ ABOUT ═══ -->
-            <Expander HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch">
-                <Expander.Header>
-                    <StackPanel Orientation="Horizontal" Spacing="12" Padding="0,8">
-                        <FontIcon Glyph="&#xE946;" FontSize="16" />
-                        <TextBlock Text="About" Style="{StaticResource BodyStrongTextBlockStyle}"
-                                   VerticalAlignment="Center" />
-                    </StackPanel>
-                </Expander.Header>
-                <StackPanel Spacing="12" Padding="4,8">
-                    <StackPanel Spacing="4">
-                        <TextBlock Text="Squad Uplink" FontSize="18" FontWeight="SemiBold" />
-                        <TextBlock Text="Multi-session Copilot CLI Dashboard"
-                                   Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
-                        <TextBlock Text="{x:Bind ViewModel.VersionText, Mode=OneWay}"
-                                   Foreground="{ThemeResource TextFillColorTertiaryBrush}"
-                                   FontFamily="Cascadia Mono,Consolas,monospace" FontSize="12" />
-                    </StackPanel>
+                <!-- ═══ ABOUT ═══ -->
+                <StackPanel x:Name="AboutPanel" Spacing="4" Visibility="Collapsed">
+                    <TextBlock Text="About" Style="{StaticResource TitleTextBlockStyle}"
+                               Margin="0,0,0,4" />
+                    <TextBlock Text="Application information and updates"
+                               Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                               Margin="0,0,0,16" />
 
-                    <StackPanel Orientation="Horizontal" Spacing="8">
-                        <HyperlinkButton Content="GitHub Repository"
-                                         NavigateUri="https://github.com/swigerb/squad-uplink" />
-                        <Button Command="{x:Bind ViewModel.CheckForUpdatesCommand}">
-                            <StackPanel Orientation="Horizontal" Spacing="6">
-                                <FontIcon Glyph="&#xE895;" FontSize="12" />
-                                <TextBlock Text="Check for Updates" />
+                    <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                            CornerRadius="8"
+                            BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                            BorderThickness="1" Padding="16">
+                        <StackPanel Spacing="12">
+                            <StackPanel Spacing="4">
+                                <TextBlock Text="Squad Uplink" FontSize="18" FontWeight="SemiBold" />
+                                <TextBlock Text="Multi-session Copilot CLI Dashboard"
+                                           Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                <TextBlock Text="{x:Bind ViewModel.VersionText, Mode=OneWay}"
+                                           Foreground="{ThemeResource TextFillColorTertiaryBrush}"
+                                           FontFamily="Cascadia Mono,Consolas,monospace" FontSize="12" />
                             </StackPanel>
-                        </Button>
-                    </StackPanel>
+                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                <HyperlinkButton Content="GitHub Repository"
+                                                 NavigateUri="https://github.com/swigerb/squad-uplink" />
+                                <Button Command="{x:Bind ViewModel.CheckForUpdatesCommand}">
+                                    <StackPanel Orientation="Horizontal" Spacing="6">
+                                        <FontIcon Glyph="&#xE895;" FontSize="12" />
+                                        <TextBlock Text="Check for Updates" />
+                                    </StackPanel>
+                                </Button>
+                            </StackPanel>
+                        </StackPanel>
+                    </Border>
                 </StackPanel>
-            </Expander>
 
-        </StackPanel>
-    </ScrollViewer>
+            </Grid>
+        </ScrollViewer>
+    </NavigationView>
 </Page>
