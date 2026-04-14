@@ -2,6 +2,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using SquadUplink.Contracts;
+using SquadUplink.Core.Logging;
 using SquadUplink.Services;
 using SquadUplink.ViewModels;
 
@@ -14,6 +15,10 @@ public static class ServiceCollectionExtensions
         // Logging — NullLoggerFactory for now; App.xaml.cs can override with a real provider
         services.AddSingleton<ILoggerFactory, NullLoggerFactory>();
         services.AddSingleton(typeof(ILogger<>), typeof(NullLogger<>));
+
+        // Diagnostics logging core
+        services.AddSingleton(Program.DiagnosticsSink);
+        services.AddSingleton<ILogPayloadFormatter, LogPayloadFormatter>();
 
         // Services
         services.AddSingleton<IProcessScanner, ProcessScanner>();

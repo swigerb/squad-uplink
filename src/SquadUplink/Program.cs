@@ -6,6 +6,7 @@ using Microsoft.UI.Xaml;
 using Serilog;
 using Serilog.Core;
 using Serilog.Sinks.InMemory;
+using SquadUplink.Core.Logging;
 using SquadUplink.Helpers;
 
 namespace SquadUplink;
@@ -20,6 +21,9 @@ public static class Program
     /// Runtime-adjustable log level. Changing MinimumLevel takes effect immediately.
     /// </summary>
     public static LoggingLevelSwitch LevelSwitch { get; } = new(Serilog.Events.LogEventLevel.Debug);
+
+    /// <summary>Custom in-memory sink shared with the Diagnostics UI via DI.</summary>
+    internal static Core.Logging.InMemorySink DiagnosticsSink { get; } = new(maxCapacity: 1000);
 
     private static readonly string CrashLogPath = Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
@@ -92,6 +96,7 @@ public static class Program
             .WriteTo.File(logPath, rollingInterval: RollingInterval.Day, retainedFileCountLimit: 14)
             .WriteTo.Debug()
             .WriteTo.InMemory()
+            .WriteTo.Sink(DiagnosticsSink)
             .CreateLogger();
     }
 
