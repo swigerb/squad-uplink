@@ -14,7 +14,13 @@ public class ThemeService : IThemeService
         "FluentDark",
         "AppleIIe",
         "C64",
-        "PipBoy"
+        "PipBoy",
+        "MUTHUR",
+        "WOPR",
+        "Matrix",
+        "Win95",
+        "LCARS",
+        "StarWars"
     ];
 
     private static readonly Dictionary<string, string> s_themeResourcePaths = new()
@@ -24,6 +30,12 @@ public class ThemeService : IThemeService
         ["AppleIIe"] = "ms-appx:///Themes/AppleIIe.xaml",
         ["C64"] = "ms-appx:///Themes/C64.xaml",
         ["PipBoy"] = "ms-appx:///Themes/PipBoy.xaml",
+        ["MUTHUR"] = "ms-appx:///Themes/MUTHUR.xaml",
+        ["WOPR"] = "ms-appx:///Themes/WOPR.xaml",
+        ["Matrix"] = "ms-appx:///Themes/Matrix.xaml",
+        ["Win95"] = "ms-appx:///Themes/Win95.xaml",
+        ["LCARS"] = "ms-appx:///Themes/LCARS.xaml",
+        ["StarWars"] = "ms-appx:///Themes/StarWars.xaml",
     };
 
     private readonly IDataService _dataService;
@@ -81,7 +93,7 @@ public class ThemeService : IThemeService
                 merged.Add(new ResourceDictionary { Source = new Uri("ms-appx:///Themes/Fluent.xaml") });
 
                 // For retro themes, also add the RetroBase + specific theme
-                if (themeId is "AppleIIe" or "C64" or "PipBoy")
+                if (themeId is "AppleIIe" or "C64" or "PipBoy" or "MUTHUR" or "WOPR" or "Matrix" or "Win95" or "LCARS" or "StarWars")
                 {
                     merged.Add(new ResourceDictionary { Source = new Uri("ms-appx:///Themes/RetroBase.xaml") });
 

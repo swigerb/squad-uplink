@@ -208,6 +208,36 @@ public partial class SettingsViewModel : ViewModelBase
                     new SolidColorBrush(ColorHelper.FromArgb(255, 10, 20, 10)),
                     new SolidColorBrush(ColorHelper.FromArgb(255, 15, 30, 15)),
                     new SolidColorBrush(ColorHelper.FromArgb(255, 18, 255, 128))),
+                "MUTHUR" => (
+                    new SolidColorBrush(ColorHelper.FromArgb(255, 0, 255, 65)),
+                    new SolidColorBrush(ColorHelper.FromArgb(255, 0, 0, 0)),
+                    new SolidColorBrush(ColorHelper.FromArgb(255, 10, 15, 10)),
+                    new SolidColorBrush(ColorHelper.FromArgb(255, 51, 255, 0))),
+                "WOPR" => (
+                    new SolidColorBrush(ColorHelper.FromArgb(255, 255, 51, 51)),
+                    new SolidColorBrush(ColorHelper.FromArgb(255, 10, 10, 26)),
+                    new SolidColorBrush(ColorHelper.FromArgb(255, 15, 15, 36)),
+                    new SolidColorBrush(ColorHelper.FromArgb(255, 0, 255, 0))),
+                "Matrix" => (
+                    new SolidColorBrush(ColorHelper.FromArgb(255, 0, 143, 17)),
+                    new SolidColorBrush(ColorHelper.FromArgb(255, 0, 0, 0)),
+                    new SolidColorBrush(ColorHelper.FromArgb(255, 0, 26, 0)),
+                    new SolidColorBrush(ColorHelper.FromArgb(255, 0, 255, 65))),
+                "Win95" => (
+                    new SolidColorBrush(ColorHelper.FromArgb(255, 0, 0, 128)),
+                    new SolidColorBrush(ColorHelper.FromArgb(255, 192, 192, 192)),
+                    new SolidColorBrush(ColorHelper.FromArgb(255, 255, 255, 255)),
+                    new SolidColorBrush(ColorHelper.FromArgb(255, 0, 0, 0))),
+                "LCARS" => (
+                    new SolidColorBrush(ColorHelper.FromArgb(255, 204, 153, 204)),
+                    new SolidColorBrush(ColorHelper.FromArgb(255, 0, 0, 0)),
+                    new SolidColorBrush(ColorHelper.FromArgb(255, 10, 10, 20)),
+                    new SolidColorBrush(ColorHelper.FromArgb(255, 255, 153, 0))),
+                "StarWars" => (
+                    new SolidColorBrush(ColorHelper.FromArgb(255, 68, 136, 255)),
+                    new SolidColorBrush(ColorHelper.FromArgb(255, 10, 10, 20)),
+                    new SolidColorBrush(ColorHelper.FromArgb(255, 13, 17, 23)),
+                    new SolidColorBrush(ColorHelper.FromArgb(255, 224, 224, 255))),
                 _ => (
                     new SolidColorBrush(ColorHelper.FromArgb(255, 0, 200, 83)),
                     new SolidColorBrush(ColorHelper.FromArgb(255, 26, 26, 46)),

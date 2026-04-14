@@ -251,12 +251,18 @@ public class IntegrationTests : IDisposable
             new Mock<IDataService>().Object,
             NullLogger<ThemeService>.Instance);
 
-        Assert.Equal(5, service.AvailableThemes.Count);
+        Assert.Equal(11, service.AvailableThemes.Count);
         Assert.Contains("FluentLight", service.AvailableThemes);
         Assert.Contains("FluentDark", service.AvailableThemes);
         Assert.Contains("AppleIIe", service.AvailableThemes);
         Assert.Contains("C64", service.AvailableThemes);
         Assert.Contains("PipBoy", service.AvailableThemes);
+        Assert.Contains("MUTHUR", service.AvailableThemes);
+        Assert.Contains("WOPR", service.AvailableThemes);
+        Assert.Contains("Matrix", service.AvailableThemes);
+        Assert.Contains("Win95", service.AvailableThemes);
+        Assert.Contains("LCARS", service.AvailableThemes);
+        Assert.Contains("StarWars", service.AvailableThemes);
     }
 
     // ── DiagnosticsViewModel 3-Stage Filter Pipeline ────────────

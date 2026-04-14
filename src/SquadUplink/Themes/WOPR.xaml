@@ -1,0 +1,169 @@
+<ResourceDictionary
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <!-- ═══════════════════════════════════════════════════════════════ -->
+    <!-- W.O.P.R. / Joshua — NORAD war simulation (WarGames, 1983)     -->
+    <!-- Background: #0A0A1A  Text: #00FF00  Accent: #FF3333            -->
+    <!-- Military, strategic — SHALL WE PLAY A GAME?                    -->
+    <!-- ═══════════════════════════════════════════════════════════════ -->
+
+    <!-- Colors -->
+    <Color x:Key="WOPRBackground">#0A0A1A</Color>
+    <Color x:Key="WOPRText">#00FF00</Color>
+    <Color x:Key="WOPRAccent">#FF3333</Color>
+    <Color x:Key="WOPRDimText">#00CC00</Color>
+    <Color x:Key="WOPRSurface">#0F0F24</Color>
+    <Color x:Key="WOPRBorder">#006600</Color>
+    <Color x:Key="WOPRWarning">#FFFF00</Color>
+    <Color x:Key="WOPRDefcon">#FF0000</Color>
+
+    <!-- Brushes -->
+    <SolidColorBrush x:Key="SquadAccentGreenBrush" Color="{StaticResource WOPRText}" />
+    <SolidColorBrush x:Key="SquadAccentBlueBrush" Color="{StaticResource WOPRText}" />
+    <SolidColorBrush x:Key="SquadWarningYellowBrush" Color="{StaticResource WOPRWarning}" />
+    <SolidColorBrush x:Key="SquadErrorRedBrush" Color="{StaticResource WOPRDefcon}" />
+    <SolidColorBrush x:Key="SquadNeutralGrayBrush" Color="{StaticResource WOPRDimText}" />
+
+    <!-- Interactive brushes -->
+    <SolidColorBrush x:Key="SquadInteractiveHoverBrush" Color="#2200FF00" />
+    <SolidColorBrush x:Key="SquadInteractivePressedBrush" Color="#1100FF00" />
+
+    <SolidColorBrush x:Key="ApplicationPageBackgroundThemeBrush" Color="{StaticResource WOPRBackground}" />
+
+    <!-- ═══ Status Badges — DEFCON-style ═══ -->
+    <Style x:Key="StatusBadgeRunning" TargetType="Border">
+        <Setter Property="Background">
+            <Setter.Value><SolidColorBrush Color="#00FF00" /></Setter.Value>
+        </Setter>
+        <Setter Property="CornerRadius" Value="4" />
+        <Setter Property="Padding" Value="8,3" />
+    </Style>
+    <Style x:Key="StatusBadgeIdle" TargetType="Border">
+        <Setter Property="Background">
+            <Setter.Value><SolidColorBrush Color="#FFFF00" /></Setter.Value>
+        </Setter>
+        <Setter Property="CornerRadius" Value="4" />
+        <Setter Property="Padding" Value="8,3" />
+    </Style>
+    <Style x:Key="StatusBadgeError" TargetType="Border">
+        <Setter Property="Background">
+            <Setter.Value><SolidColorBrush Color="#FF0000" /></Setter.Value>
+        </Setter>
+        <Setter Property="CornerRadius" Value="4" />
+        <Setter Property="Padding" Value="8,3" />
+    </Style>
+    <Style x:Key="StatusBadgeCompleted" TargetType="Border">
+        <Setter Property="Background">
+            <Setter.Value><SolidColorBrush Color="#006600" /></Setter.Value>
+        </Setter>
+        <Setter Property="CornerRadius" Value="4" />
+        <Setter Property="Padding" Value="8,3" />
+    </Style>
+
+    <!-- Session Card — dark with green border, rounded corners -->
+    <Style x:Key="SessionCardStyle" TargetType="Border">
+        <Setter Property="Background" Value="{StaticResource WOPRSurface}" />
+        <Setter Property="CornerRadius" Value="6" />
+        <Setter Property="Padding" Value="16" />
+        <Setter Property="BorderBrush" Value="{StaticResource WOPRBorder}" />
+        <Setter Property="BorderThickness" Value="1" />
+    </Style>
+
+    <Style x:Key="LaunchCardStyle" TargetType="Border">
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="CornerRadius" Value="6" />
+        <Setter Property="Padding" Value="16" />
+        <Setter Property="BorderBrush" Value="{StaticResource WOPRDimText}" />
+        <Setter Property="BorderThickness" Value="1" />
+    </Style>
+
+    <Style x:Key="CockpitPanelStyle" TargetType="Border">
+        <Setter Property="Background" Value="{StaticResource WOPRSurface}" />
+        <Setter Property="CornerRadius" Value="6" />
+        <Setter Property="Padding" Value="16" />
+        <Setter Property="BorderBrush" Value="{StaticResource WOPRBorder}" />
+        <Setter Property="BorderThickness" Value="1" />
+    </Style>
+
+    <!-- Typography — military tracked, ALL CAPS style -->
+    <Style x:Key="StatCounterTextStyle" TargetType="TextBlock">
+        <Setter Property="FontSize" Value="36" />
+        <Setter Property="FontWeight" Value="Bold" />
+        <Setter Property="FontFamily" Value="Cascadia Code,Cascadia Mono,Consolas,monospace" />
+        <Setter Property="Foreground" Value="{StaticResource WOPRText}" />
+        <Setter Property="HorizontalAlignment" Value="Center" />
+    </Style>
+
+    <Style x:Key="StatLabelTextStyle" TargetType="TextBlock">
+        <Setter Property="FontSize" Value="11" />
+        <Setter Property="FontFamily" Value="Cascadia Code,Cascadia Mono,Consolas,monospace" />
+        <Setter Property="Foreground" Value="{StaticResource WOPRDimText}" />
+        <Setter Property="HorizontalAlignment" Value="Center" />
+        <Setter Property="CharacterSpacing" Value="100" />
+        <Setter Property="Margin" Value="0,4,0,0" />
+    </Style>
+
+    <Style x:Key="SectionHeaderStyle" TargetType="TextBlock">
+        <Setter Property="FontSize" Value="13" />
+        <Setter Property="FontWeight" Value="Bold" />
+        <Setter Property="FontFamily" Value="Cascadia Code,Cascadia Mono,Consolas,monospace" />
+        <Setter Property="Foreground" Value="{StaticResource WOPRText}" />
+        <Setter Property="CharacterSpacing" Value="120" />
+        <Setter Property="Margin" Value="0,0,0,8" />
+    </Style>
+
+    <Style x:Key="MonoTextStyle" TargetType="TextBlock">
+        <Setter Property="FontFamily" Value="Cascadia Code,Cascadia Mono,Consolas,monospace" />
+        <Setter Property="FontSize" Value="12" />
+        <Setter Property="Foreground" Value="{StaticResource WOPRText}" />
+    </Style>
+
+    <!-- Gauge -->
+    <Style x:Key="GaugeRingStyle" TargetType="ProgressRing">
+        <Setter Property="Width" Value="64" />
+        <Setter Property="Height" Value="64" />
+        <Setter Property="IsIndeterminate" Value="False" />
+        <Setter Property="Foreground" Value="{StaticResource WOPRText}" />
+    </Style>
+
+    <Style x:Key="SettingsSectionStyle" TargetType="StackPanel">
+        <Setter Property="Spacing" Value="12" />
+        <Setter Property="Margin" Value="0,0,0,8" />
+    </Style>
+
+    <!-- ═══ Typography Hierarchy — NORAD military display ═══ -->
+    <Style x:Key="SquadTitleStyle" TargetType="TextBlock">
+        <Setter Property="FontSize" Value="24" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="FontFamily" Value="Cascadia Code,Cascadia Mono,Consolas,monospace" />
+        <Setter Property="CharacterSpacing" Value="100" />
+        <Setter Property="Foreground">
+            <Setter.Value><SolidColorBrush Color="{StaticResource WOPRText}" /></Setter.Value>
+        </Setter>
+    </Style>
+    <Style x:Key="SquadSubtitleStyle" TargetType="TextBlock">
+        <Setter Property="FontSize" Value="18" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="FontFamily" Value="Cascadia Code,Cascadia Mono,Consolas,monospace" />
+        <Setter Property="CharacterSpacing" Value="80" />
+        <Setter Property="Foreground">
+            <Setter.Value><SolidColorBrush Color="{StaticResource WOPRText}" /></Setter.Value>
+        </Setter>
+    </Style>
+    <Style x:Key="SquadBodyStyle" TargetType="TextBlock">
+        <Setter Property="FontSize" Value="14" />
+        <Setter Property="FontFamily" Value="Cascadia Code,Cascadia Mono,Consolas,monospace" />
+        <Setter Property="Foreground">
+            <Setter.Value><SolidColorBrush Color="{StaticResource WOPRText}" /></Setter.Value>
+        </Setter>
+    </Style>
+    <Style x:Key="SquadCaptionStyle" TargetType="TextBlock">
+        <Setter Property="FontSize" Value="12" />
+        <Setter Property="FontFamily" Value="Cascadia Code,Cascadia Mono,Consolas,monospace" />
+        <Setter Property="Foreground">
+            <Setter.Value><SolidColorBrush Color="{StaticResource WOPRDimText}" /></Setter.Value>
+        </Setter>
+    </Style>
+
+</ResourceDictionary>

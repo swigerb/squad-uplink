@@ -32,6 +32,12 @@
                             <ComboBoxItem Content="🍏  Apple IIe" />
                             <ComboBoxItem Content="📺  Commodore 64" />
                             <ComboBoxItem Content="☢️  Pip-Boy" />
+                            <ComboBoxItem Content="👽  MU-TH-UR 6000" />
+                            <ComboBoxItem Content="🎮  W.O.P.R." />
+                            <ComboBoxItem Content="💊  The Matrix" />
+                            <ComboBoxItem Content="🖥️  Windows 95" />
+                            <ComboBoxItem Content="🖖  LCARS" />
+                            <ComboBoxItem Content="⭐  Star Wars" />
                         </ComboBox>
                     </StackPanel>
 
