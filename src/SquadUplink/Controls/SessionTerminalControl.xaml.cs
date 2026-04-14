@@ -23,6 +23,9 @@ public sealed partial class SessionTerminalControl : UserControl
             typeof(SessionTerminalControl),
             new PropertyMetadata(true, OnShowCloseButtonChanged));
 
+    private static SolidColorBrush? _inactiveBrush;
+    private static SolidColorBrush InactiveBrush => _inactiveBrush ??= new SolidColorBrush(ColorHelper.FromArgb(255, 158, 158, 158));
+
     public SessionState? Session
     {
         get => (SessionState?)GetValue(SessionProperty);
@@ -93,7 +96,7 @@ public sealed partial class SessionTerminalControl : UserControl
             TerminalScrollViewer.Visibility = Visibility.Collapsed;
             RepoNameText.Text = "—";
             PidText.Text = string.Empty;
-            StatusDot.Fill = new SolidColorBrush(ColorHelper.FromArgb(255, 158, 158, 158));
+            StatusDot.Fill = InactiveBrush;
             OutputItemsControl.ItemsSource = null;
             return;
         }

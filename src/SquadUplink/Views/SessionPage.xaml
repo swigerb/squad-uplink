@@ -1,5 +1,6 @@
 <Page
     x:Class="SquadUplink.Views.SessionPage"
+    x:DefaultBindMode="OneWay"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:local="using:SquadUplink.Views"
@@ -83,10 +84,10 @@
                 <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8">
                     <Button Command="{x:Bind ViewModel.StopCommand}"
                             ToolTipService.ToolTip="Stop Session"
-                            Background="#33F44336">
+                            Background="{ThemeResource SystemFillColorCriticalBackgroundBrush}">
                         <StackPanel Orientation="Horizontal" Spacing="6">
-                            <FontIcon Glyph="&#xE71A;" FontSize="12" Foreground="#F44336" />
-                            <TextBlock Text="Stop" Foreground="#F44336" />
+                            <FontIcon Glyph="&#xE71A;" FontSize="12" Foreground="{StaticResource SquadErrorRedBrush}" />
+                            <TextBlock Text="Stop" Foreground="{StaticResource SquadErrorRedBrush}" />
                         </StackPanel>
                     </Button>
                     <Button Command="{x:Bind ViewModel.OpenInGitHubCommand}"

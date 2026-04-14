@@ -52,8 +52,7 @@ public sealed partial class LaunchSessionDialog : ContentDialog
     public bool IsValid => !string.IsNullOrWhiteSpace(WorkingDirectory)
                            && Directory.Exists(WorkingDirectory);
 
-    public Visibility HasValidationError => string.IsNullOrEmpty(ValidationMessage)
-        ? Visibility.Collapsed : Visibility.Visible;
+    public bool HasValidationError => !string.IsNullOrEmpty(ValidationMessage);
 
     public ObservableCollection<string> RecentDirectories { get; } = [];
 

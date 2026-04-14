@@ -51,7 +51,9 @@
                 <Slider x:Name="ScrubSlider"
                         Minimum="0" Maximum="100"
                         Value="{x:Bind PlayheadPosition, Mode=TwoWay}"
-                        Opacity="0" Height="20" />
+                        Opacity="0" Height="20"
+                        AutomationProperties.Name="Session timeline scrubber"
+                        AutomationProperties.HelpText="Drag to seek within the session replay timeline" />
             </Grid>
 
             <!-- Time markers -->

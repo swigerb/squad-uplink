@@ -80,16 +80,7 @@ public sealed partial class SquadStatusPanel : UserControl
         MemberItems.Clear();
         foreach (var member in squad.Members)
         {
-            var emoji = member.Role.ToLowerInvariant() switch
-            {
-                var r when r.Contains("lead") => "🏗️",
-                var r when r.Contains("dev") || r.Contains("engineer") => "🔧",
-                var r when r.Contains("test") || r.Contains("qa") => "🧪",
-                var r when r.Contains("design") || r.Contains("ui") || r.Contains("ux") => "🎨",
-                var r when r.Contains("doc") || r.Contains("write") => "📝",
-                var r when r.Contains("ops") || r.Contains("devops") || r.Contains("infra") => "⚙️",
-                _ => string.IsNullOrEmpty(member.Emoji) ? "👤" : member.Emoji
-            };
+            var emoji = Helpers.RoleEmojiHelper.GetRoleEmoji(member.Role, member.Emoji);
 
             MemberItems.Add(new SquadTreeItem
             {

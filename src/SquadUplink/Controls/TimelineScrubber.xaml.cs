@@ -57,9 +57,13 @@ public sealed partial class TimelineScrubber : UserControl
         }
     }
 
+    private int _cachedTotalSeconds = -1;
+
     private void UpdateTimeMarkers()
     {
         var total = TotalDurationSeconds;
+        if (total == _cachedTotalSeconds) return;
+        _cachedTotalSeconds = total;
         DurationDisplay = FormatTime(total);
         TimeMarker0 = FormatTime(0);
         TimeMarker1 = FormatTime(total / 4);

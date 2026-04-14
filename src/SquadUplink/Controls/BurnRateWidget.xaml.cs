@@ -40,7 +40,7 @@ public sealed partial class BurnRateWidget : UserControl
     // Trend data: last 10 data points as bar heights (0-32 pixels)
     public ObservableCollection<double> TrendHeights { get; } = new();
 
-    private readonly List<double> _trendValues = [];
+    private readonly Queue<double> _trendValues = new();
     private const int MaxTrendPoints = 10;
 
     // Color brushes (lazy to avoid static ctor issues in non-UI contexts)
@@ -72,9 +72,9 @@ public sealed partial class BurnRateWidget : UserControl
     /// <summary>Adds a data point to the mini trend line.</summary>
     public void AddTrendPoint(double burnRate)
     {
-        _trendValues.Add(burnRate);
+        _trendValues.Enqueue(burnRate);
         if (_trendValues.Count > MaxTrendPoints)
-            _trendValues.RemoveAt(0);
+            _trendValues.Dequeue();
 
         RebuildTrendBars();
     }

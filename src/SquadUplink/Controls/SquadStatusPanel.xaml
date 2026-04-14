@@ -58,20 +58,14 @@
                     Visibility="{x:Bind HasSelection, Mode=OneWay}"
                     Background="{StaticResource SquadAccentGreenBrush}"
                     Opacity="0.15" CornerRadius="6" Padding="12,8">
-                <Grid>
-                    <Border Background="{StaticResource SquadAccentGreenBrush}"
-                            Opacity="0.85" CornerRadius="6" Padding="12,8"
-                            Margin="-12,-8">
-                    </Border>
-                    <StackPanel Spacing="4">
-                        <TextBlock Text="CURRENT FOCUS" FontSize="10"
-                                   CharacterSpacing="80" FontWeight="SemiBold"
-                                   Foreground="White" Opacity="0.8" />
-                        <TextBlock Text="{x:Bind CurrentFocusText, Mode=OneWay}"
+                <StackPanel Spacing="4">
+                    <TextBlock Text="CURRENT FOCUS" FontSize="10"
+                               CharacterSpacing="80" FontWeight="SemiBold"
+                               Foreground="White" Opacity="0.8" />
+                    <TextBlock Text="{x:Bind CurrentFocusText, Mode=OneWay}"
                                    FontSize="13" Foreground="White"
                                    TextWrapping="Wrap" />
                     </StackPanel>
-                </Grid>
             </Border>
 
             <!-- Decisions Summary -->

@@ -43,7 +43,7 @@ public sealed partial class TokenGaugeControl : UserControl
     private double _percentage;
     private string _percentageDisplay = "0%";
     private string _costDisplay = "$0.00 est.";
-    private Brush _gaugeBrush = new SolidColorBrush(ColorHelper.FromArgb(255, 0, 200, 83)); // green
+    private Brush _gaugeBrush = GreenBrush;
 
     public double Percentage { get => _percentage; private set { _percentage = value; Bindings.Update(); } }
     public string PercentageDisplay { get => _percentageDisplay; private set { _percentageDisplay = value; Bindings.Update(); } }

@@ -4,6 +4,7 @@ using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Input;
 using Microsoft.UI.Xaml.Media;
+using Microsoft.UI.Xaml.Media.Animation;
 using Serilog;
 using Serilog.Events;
 using SquadUplink.Contracts;
@@ -100,7 +101,7 @@ public sealed partial class MainWindow : Window
         this.Closed += OnWindowClosed;
 
         // Navigate to Dashboard on startup
-        ContentFrame.Navigate(typeof(DashboardPage));
+        ContentFrame.Navigate(typeof(DashboardPage), null, new SlideNavigationTransitionInfo { Effect = SlideNavigationTransitionEffect.FromRight });
         NavView.SelectedItem = NavView.MenuItems[0];
 
         // Bind panel list to our observable collection
@@ -236,11 +237,15 @@ public sealed partial class MainWindow : Window
         await dialog.ShowAsync();
     }
 
+    private static SlideNavigationTransitionInfo? _slideTransitionInstance;
+    private static SlideNavigationTransitionInfo SlideTransition =>
+        _slideTransitionInstance ??= new() { Effect = SlideNavigationTransitionEffect.FromRight };
+
     private void NavView_SelectionChanged(NavigationView sender, NavigationViewSelectionChangedEventArgs args)
     {
         if (args.IsSettingsSelected)
         {
-            ContentFrame.Navigate(typeof(SettingsPage));
+            ContentFrame.Navigate(typeof(SettingsPage), null, SlideTransition);
             Log.Debug("Navigated to Settings");
             return;
         }
@@ -254,7 +259,7 @@ public sealed partial class MainWindow : Window
                 "Sessions" => typeof(SessionPage),
                 _ => typeof(DashboardPage)
             };
-            ContentFrame.Navigate(pageType);
+            ContentFrame.Navigate(pageType, null, SlideTransition);
             Log.Debug("Navigated to {Page}", tag);
         }
     }
