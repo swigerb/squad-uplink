@@ -17,7 +17,10 @@
     <WindowsAppSDKSelfContained>true</WindowsAppSDKSelfContained>
     <WindowsPackageType>None</WindowsPackageType>
     <!-- WMC1506: False positive for x:Bind properties using Bindings.Update() as notification mechanism -->
-    <NoWarn>$(NoWarn);MVVMTK0045;WMC1506</NoWarn>
+    <!-- MSB3277: WinRT.Runtime 2.1 vs 2.2 binding conflict between microsoft.windows.sdk.net.ref
+         and CsWinRT projections (WebView2, H.NotifyIcon, CommunityToolkit, WinAppSDK).
+         Known .NET 10 + Windows App SDK 1.7 ecosystem mismatch — resolves correctly at runtime. -->
+    <NoWarn>$(NoWarn);MVVMTK0045;WMC1506;MSB3277</NoWarn>
     <MrtCoreGenPriFileEnabled>false</MrtCoreGenPriFileEnabled>
     <!-- Custom entry point in Program.cs — disable auto-generated Main -->
     <DefineConstants>$(DefineConstants);DISABLE_XAML_GENERATED_MAIN</DefineConstants>

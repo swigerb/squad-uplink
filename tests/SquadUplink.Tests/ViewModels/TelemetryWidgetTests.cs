@@ -215,7 +215,7 @@ public class TelemetryWidgetTests
 
             // Should have received at most 2 events (debounced)
             Assert.InRange(events.Count, 1, 2);
-            Assert.All(events, e => Assert.True(e.FilePath.EndsWith("team.md")));
+            Assert.All(events, e => Assert.EndsWith("team.md", e.FilePath));
         }
         finally
         {
