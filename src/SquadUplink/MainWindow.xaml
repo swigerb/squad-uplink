@@ -108,7 +108,7 @@
             IsBackButtonVisible="Collapsed"
             PaneDisplayMode="LeftCompact"
             SelectionChanged="NavView_SelectionChanged"
-            IsSettingsVisible="True"
+            IsSettingsVisible="False"
             IsPaneToggleButtonVisible="True"
             OpenPaneLength="200">
 
@@ -126,6 +126,12 @@
             </NavigationView.MenuItems>
 
             <NavigationView.FooterMenuItems>
+                <NavigationViewItem x:Name="FooterSettingsItem" Content="Settings" Tag="SettingsFlyout"
+                                    SelectsOnInvoked="False" Tapped="SettingsGear_Tapped">
+                    <NavigationViewItem.Icon>
+                        <FontIcon Glyph="&#xE713;" />
+                    </NavigationViewItem.Icon>
+                </NavigationViewItem>
                 <NavigationViewItem x:Name="FooterStatusItem" SelectsOnInvoked="False" IsEnabled="False">
                     <NavigationViewItem.Icon>
                         <FontIcon x:Name="FooterStatusIcon" Glyph="&#xE895;"
@@ -292,5 +298,9 @@
         <!-- Command Palette Overlay (spans all rows) -->
         <controls:CommandPalette x:Name="CommandPaletteControl"
                                   Grid.Row="0" Grid.RowSpan="3" />
+
+        <!-- Settings Flyout Panel (spans all rows) -->
+        <controls:SettingsFlyoutPanel x:Name="SettingsFlyoutControl"
+                                       Grid.Row="0" Grid.RowSpan="3" />
     </Grid>
 </Window>

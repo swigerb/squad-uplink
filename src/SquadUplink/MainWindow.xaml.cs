@@ -243,13 +243,6 @@ public sealed partial class MainWindow : Window
 
     private void NavView_SelectionChanged(NavigationView sender, NavigationViewSelectionChangedEventArgs args)
     {
-        if (args.IsSettingsSelected)
-        {
-            ContentFrame.Navigate(typeof(SettingsPage), null, SlideTransition);
-            Log.Debug("Navigated to Settings");
-            return;
-        }
-
         if (args.SelectedItemContainer is NavigationViewItem item)
         {
             var tag = item.Tag?.ToString();
@@ -382,6 +375,16 @@ public sealed partial class MainWindow : Window
             args.Handled = true;
             CommandPaletteControl.Hide();
         }
+        else if (SettingsFlyoutControl.IsOpen)
+        {
+            args.Handled = true;
+            SettingsFlyoutControl.Hide();
+        }
+    }
+
+    private void SettingsGear_Tapped(object sender, Microsoft.UI.Xaml.Input.TappedRoutedEventArgs e)
+    {
+        SettingsFlyoutControl.Toggle();
     }
 
     private void InitializeCommandPalette()
