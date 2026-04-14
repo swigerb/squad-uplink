@@ -302,5 +302,10 @@
         <!-- Settings Flyout Panel (spans all rows) -->
         <controls:SettingsFlyoutPanel x:Name="SettingsFlyoutControl"
                                        Grid.Row="0" Grid.RowSpan="3" />
+
+        <!-- CRT scan-line overlay (spans entire window) -->
+        <controls:CrtEffectOverlay x:Name="CrtOverlay"
+                                    Grid.RowSpan="3"
+                                    IsEffectEnabled="{x:Bind IsCrtEnabled, Mode=OneWay}" />
     </Grid>
 </Window>

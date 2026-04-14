@@ -24,6 +24,9 @@ public partial class SettingsViewModel : ViewModelBase
     private bool _crtEffectsEnabled;
 
     [ObservableProperty]
+    private double _crtIntensity = 70;
+
+    [ObservableProperty]
     private double _fontSize = 13;
 
     [ObservableProperty]
@@ -133,6 +136,7 @@ public partial class SettingsViewModel : ViewModelBase
             AudioEnabled = settings.AudioEnabled;
             AutoScanOnStartup = settings.AutoScanOnStartup;
             CrtEffectsEnabled = settings.CrtEffectsEnabled;
+            CrtIntensity = settings.CrtIntensity;
             FontSize = settings.FontSize;
             Volume = settings.Volume;
             NotifySessionCompleted = settings.NotifySessionCompleted;
@@ -163,6 +167,7 @@ public partial class SettingsViewModel : ViewModelBase
     partial void OnAudioEnabledChanged(bool value) => _ = DebouncedSaveAsync();
     partial void OnAutoScanOnStartupChanged(bool value) => _ = DebouncedSaveAsync();
     partial void OnCrtEffectsEnabledChanged(bool value) => _ = DebouncedSaveAsync();
+    partial void OnCrtIntensityChanged(double value) => _ = DebouncedSaveAsync();
     partial void OnFontSizeChanged(double value) => _ = DebouncedSaveAsync();
     partial void OnVolumeChanged(double value) => _ = DebouncedSaveAsync();
     partial void OnAlwaysUseRemoteChanged(bool value) => _ = DebouncedSaveAsync();
@@ -347,6 +352,7 @@ public partial class SettingsViewModel : ViewModelBase
                 AudioEnabled = AudioEnabled,
                 AutoScanOnStartup = AutoScanOnStartup,
                 CrtEffectsEnabled = CrtEffectsEnabled,
+                CrtIntensity = CrtIntensity,
                 FontSize = FontSize,
                 Volume = Volume,
                 SoundPack = SelectedSoundPackIndex switch

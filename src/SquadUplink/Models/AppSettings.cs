@@ -8,6 +8,7 @@ public class AppSettings
     public bool AudioEnabled { get; set; } = true;
     public bool AutoScanOnStartup { get; set; } = true;
     public bool CrtEffectsEnabled { get; set; }
+    public double CrtIntensity { get; set; } = 70;
     public double FontSize { get; set; } = 13;
     public double Volume { get; set; } = 80;
     public string SoundPack { get; set; } = "Fluent";

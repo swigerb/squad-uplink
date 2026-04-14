@@ -6,6 +6,7 @@
 
     <UserControl.Resources>
         <converters:ColorToSolidColorBrushConverter x:Key="ColorToBrush" />
+        <converters:BoolToVisibilityConverter x:Key="BoolToVis" />
 
         <!-- Section header style -->
         <Style x:Key="SectionHeaderIcon" TargetType="FontIcon">
@@ -113,6 +114,19 @@
 
                             <ToggleSwitch Header="CRT scan-line effects"
                                           IsOn="{x:Bind ViewModel.CrtEffectsEnabled, Mode=TwoWay}" />
+
+                            <StackPanel Spacing="4"
+                                        Visibility="{x:Bind ViewModel.CrtEffectsEnabled, Mode=OneWay, Converter={StaticResource BoolToVis}}">
+                                <TextBlock FontSize="12"
+                                           Foreground="{ThemeResource TextFillColorSecondaryBrush}">
+                                    <Run Text="CRT intensity: " />
+                                    <Run Text="{x:Bind ViewModel.CrtIntensity, Mode=OneWay}" FontWeight="SemiBold" />
+                                    <Run Text="%" />
+                                </TextBlock>
+                                <Slider Minimum="10" Maximum="100" StepFrequency="5"
+                                        Value="{x:Bind ViewModel.CrtIntensity, Mode=TwoWay}"
+                                        HorizontalAlignment="Stretch" />
+                            </StackPanel>
 
                             <StackPanel Spacing="4">
                                 <TextBlock FontSize="12"

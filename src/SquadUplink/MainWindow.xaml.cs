@@ -26,6 +26,23 @@ public sealed partial class MainWindow : Window
     private int _logLevelIndex; // 0=Debug, 1=Info, 2=Warning, 3=Error
     private bool _isDiagPanelOpen;
     private DateTimeOffset _lastPanelOpenedAt = DateTimeOffset.UtcNow;
+    private bool _isCrtEnabled;
+
+    public bool IsCrtEnabled
+    {
+        get => _isCrtEnabled;
+        set
+        {
+            if (_isCrtEnabled != value)
+            {
+                _isCrtEnabled = value;
+                Bindings.Update();
+            }
+        }
+    }
+
+    /// <summary>Update CRT overlay enabled state from settings.</summary>
+    public void SetCrtEnabled(bool enabled) => IsCrtEnabled = enabled;
 
     /// <summary>Log entries shown in the inline diagnostics panel.</summary>
     internal ObservableCollection<DiagnosticLogEntry> PanelLogEntries { get; } = [];
@@ -113,6 +130,7 @@ public sealed partial class MainWindow : Window
         UpdateStatus();
         SubscribeToLogErrors();
         InitializeCommandPalette();
+        LoadCrtSetting();
         Log.Information("MainWindow initialized, navigated to Dashboard");
     }
 
@@ -123,6 +141,20 @@ public sealed partial class MainWindow : Window
         {
             // Poll is lightweight — InMemorySink doesn't expose events,
             // so we check on session updates and diagnostics opens instead.
+        }
+    }
+
+    private void LoadCrtSetting()
+    {
+        try
+        {
+            var dataService = App.Services.GetRequiredService<IDataService>();
+            var settings = dataService.GetSettingsAsync().GetAwaiter().GetResult();
+            IsCrtEnabled = settings.CrtEffectsEnabled;
+        }
+        catch (Exception ex)
+        {
+            Log.Debug(ex, "CRT setting load deferred — non-fatal");
         }
     }
 

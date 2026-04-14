@@ -1,0 +1,11 @@
+<UserControl
+    x:Class="SquadUplink.Controls.CrtEffectOverlay"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:canvas="using:Microsoft.Graphics.Canvas.UI.Xaml"
+    IsHitTestVisible="False">
+
+    <canvas:CanvasControl x:Name="EffectCanvas"
+                          Draw="EffectCanvas_Draw"
+                          Visibility="{x:Bind EffectVisibility, Mode=OneWay}" />
+</UserControl>
