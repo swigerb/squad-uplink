@@ -1,7 +1,0 @@
-Audit session wrap: log entry, decision merge, inbox cleared
-
-- Session log: 2026-04-13T230000Z-audit-session.md (Woz/Hertzfeld/Coordinator spawn)
-- Merged inbox/copilot-directive-20260413T230100Z.md into decisions.md
-- Cleared decisions/inbox
-
-Co-authored-by: Copilot <223556219+Copilot@users.noreply.github.com>
