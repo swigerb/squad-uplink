@@ -1,5 +1,4 @@
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Logging;
 using Moq;
 using SquadUplink.Contracts;
 using SquadUplink.Models;

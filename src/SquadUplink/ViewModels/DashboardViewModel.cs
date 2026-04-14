@@ -1,6 +1,7 @@
 using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using Microsoft.Extensions.Logging;
 using Microsoft.UI.Xaml;
 using Serilog;
 using SquadUplink.Contracts;
@@ -8,7 +9,7 @@ using SquadUplink.Models;
 
 namespace SquadUplink.ViewModels;
 
-public partial class DashboardViewModel : ObservableObject
+public partial class DashboardViewModel : ViewModelBase
 {
     private readonly ISessionManager _sessionManager;
     private readonly IDataService _dataService;
@@ -87,7 +88,12 @@ public partial class DashboardViewModel : ObservableObject
 
     public string[] GridSizeOptions { get; } = GridSize.Presets.Select(g => g.ToString()).ToArray();
 
-    public DashboardViewModel(ISessionManager sessionManager, IDataService dataService, ISquadDetector squadDetector)
+    public DashboardViewModel(
+        ISessionManager sessionManager,
+        IDataService dataService,
+        ISquadDetector squadDetector,
+        ILogger<DashboardViewModel> logger)
+        : base(logger)
     {
         _sessionManager = sessionManager;
         _dataService = dataService;
@@ -102,16 +108,13 @@ public partial class DashboardViewModel : ObservableObject
     [RelayCommand]
     private async Task LaunchSessionAsync()
     {
-        var workingDirectory = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
-        try
+        await RunBusyAsync(async () =>
         {
+            var workingDirectory = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
             await _sessionManager.LaunchSessionAsync(workingDirectory);
+            StatusMessage = "Session launched";
             Log.Information("Session launched from dashboard");
-        }
-        catch (Exception ex)
-        {
-            Log.Error(ex, "Failed to launch session");
-        }
+        }, "Launch session");
     }
 
     [RelayCommand]
@@ -133,30 +136,24 @@ public partial class DashboardViewModel : ObservableObject
     private async Task CloseSessionAsync(SessionState? session)
     {
         if (session is null) return;
-        try
+        await RunBusyAsync(async () =>
         {
             await _sessionManager.StopSessionAsync(session.Id);
+            StatusMessage = $"Session {session.Id} closed";
             Log.Information("Session {Id} closed from dashboard", session.Id);
-        }
-        catch (Exception ex)
-        {
-            Log.Error(ex, "Failed to close session {Id}", session.Id);
-        }
+        }, "Close session");
     }
 
     [RelayCommand]
     private async Task ResumeSessionAsync(SessionHistoryEntry? entry)
     {
         if (entry is null) return;
-        try
+        await RunBusyAsync(async () =>
         {
             await _sessionManager.LaunchSessionAsync(entry.WorkingDirectory);
+            StatusMessage = "Session resumed";
             Log.Information("Resumed session in {Dir}", entry.WorkingDirectory);
-        }
-        catch (Exception ex)
-        {
-            Log.Error(ex, "Failed to resume session in {Dir}", entry.WorkingDirectory);
-        }
+        }, "Resume session");
     }
 
     [RelayCommand]

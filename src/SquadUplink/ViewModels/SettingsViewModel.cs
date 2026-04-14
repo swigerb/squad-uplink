@@ -1,6 +1,7 @@
 using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using Microsoft.Extensions.Logging;
 using Microsoft.UI;
 using Microsoft.UI.Xaml.Media;
 using Serilog;
@@ -10,7 +11,7 @@ using SquadUplink.Models;
 
 namespace SquadUplink.ViewModels;
 
-public partial class SettingsViewModel : ObservableObject
+public partial class SettingsViewModel : ViewModelBase
 {
     private readonly IThemeService _themeService;
     private readonly IDataService _dataService;
@@ -96,7 +97,8 @@ public partial class SettingsViewModel : ObservableObject
 
     public ObservableCollection<string> LogEntries { get; } = [];
 
-    public SettingsViewModel(IThemeService themeService, IDataService dataService)
+    public SettingsViewModel(IThemeService themeService, IDataService dataService, ILogger<SettingsViewModel> logger)
+        : base(logger)
     {
         _themeService = themeService;
         _dataService = dataService;

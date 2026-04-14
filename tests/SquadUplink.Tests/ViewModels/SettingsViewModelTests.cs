@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Logging;
 using Moq;
 using SquadUplink.Contracts;
 using SquadUplink.Models;
@@ -21,7 +22,8 @@ public class SettingsViewModelTests
         dataMock.Setup(d => d.SaveSettingsAsync(It.IsAny<AppSettings>()))
             .Returns(Task.CompletedTask);
 
-        var vm = new SettingsViewModel(themeMock.Object, dataMock.Object);
+        var mockLogger = new Mock<ILogger<SettingsViewModel>>();
+        var vm = new SettingsViewModel(themeMock.Object, dataMock.Object, mockLogger.Object);
         return (vm, themeMock, dataMock);
     }
 

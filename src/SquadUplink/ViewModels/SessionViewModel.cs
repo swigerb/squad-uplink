@@ -1,12 +1,13 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using Microsoft.Extensions.Logging;
 using Serilog;
 using SquadUplink.Contracts;
 using SquadUplink.Models;
 
 namespace SquadUplink.ViewModels;
 
-public partial class SessionViewModel : ObservableObject
+public partial class SessionViewModel : ViewModelBase
 {
     private readonly ISessionManager _sessionManager;
 
@@ -51,7 +52,8 @@ public partial class SessionViewModel : ObservableObject
 
     private SessionState? _currentSession;
 
-    public SessionViewModel(ISessionManager sessionManager)
+    public SessionViewModel(ISessionManager sessionManager, ILogger<SessionViewModel> logger)
+        : base(logger)
     {
         _sessionManager = sessionManager;
     }
@@ -99,22 +101,29 @@ public partial class SessionViewModel : ObservableObject
     private async Task StopAsync()
     {
         if (_currentSession is null) return;
-        await _sessionManager.StopSessionAsync(_currentSession.Id);
-        CurrentStatus = _currentSession.Status;
-        StatusText = _currentSession.Status.ToString();
-        Log.Information("Session {Id} stopped via UI", _currentSession.Id);
+        await RunBusyAsync(async () =>
+        {
+            await _sessionManager.StopSessionAsync(_currentSession.Id);
+            CurrentStatus = _currentSession.Status;
+            StatusText = _currentSession.Status.ToString();
+            StatusMessage = "Session stopped";
+            Log.Information("Session {Id} stopped via UI", _currentSession.Id);
+        }, "Stop session");
     }
 
     [RelayCommand]
     private async Task RestartAsync()
     {
         if (_currentSession is null) return;
-
-        var dir = _currentSession.WorkingDirectory;
-        await _sessionManager.StopSessionAsync(_currentSession.Id);
-        var newSession = await _sessionManager.LaunchSessionAsync(dir);
-        LoadSession(newSession);
-        Log.Information("Session restarted in {Dir}", dir);
+        await RunBusyAsync(async () =>
+        {
+            var dir = _currentSession.WorkingDirectory;
+            await _sessionManager.StopSessionAsync(_currentSession.Id);
+            var newSession = await _sessionManager.LaunchSessionAsync(dir);
+            LoadSession(newSession);
+            StatusMessage = "Session restarted";
+            Log.Information("Session restarted in {Dir}", dir);
+        }, "Restart session");
     }
 
     [RelayCommand]

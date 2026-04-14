@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Logging;
 using Moq;
 using SquadUplink.Contracts;
 using SquadUplink.Models;
@@ -20,11 +21,13 @@ public class DashboardViewModelTests
         dataService.Setup(d => d.GetRecentSessionsAsync(It.IsAny<int>()))
             .ReturnsAsync(new List<SessionHistoryEntry>().AsReadOnly());
         var mockSquadDetector = new Mock<ISquadDetector>();
+        var mockLogger = new Mock<ILogger<DashboardViewModel>>();
 
         return new DashboardViewModel(
             mockSessionManager.Object,
             dataService.Object,
-            mockSquadDetector.Object);
+            mockSquadDetector.Object,
+            mockLogger.Object);
     }
 
     [Fact]
@@ -121,7 +124,8 @@ public class DashboardViewModelTests
         var vm = new DashboardViewModel(
             mockSessionManager.Object,
             mockDataService.Object,
-            new Mock<ISquadDetector>().Object);
+            new Mock<ISquadDetector>().Object,
+            new Mock<ILogger<DashboardViewModel>>().Object);
 
         await vm.LaunchSessionCommand.ExecuteAsync(null);
 
@@ -324,7 +328,8 @@ public class DashboardViewModelTests
         var vm = new DashboardViewModel(
             mockSessionManager.Object,
             mockDataService.Object,
-            new Mock<ISquadDetector>().Object);
+            new Mock<ISquadDetector>().Object,
+            new Mock<ILogger<DashboardViewModel>>().Object);
 
         var session = new SessionState
         {

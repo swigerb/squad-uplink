@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Logging;
 using Moq;
 using SquadUplink.Contracts;
 using SquadUplink.Models;
@@ -11,7 +12,8 @@ public class SessionViewModelTests
     private static SessionViewModel CreateViewModel(Mock<ISessionManager>? sessionManager = null)
     {
         sessionManager ??= new Mock<ISessionManager>();
-        return new SessionViewModel(sessionManager.Object);
+        var mockLogger = new Mock<ILogger<SessionViewModel>>();
+        return new SessionViewModel(sessionManager.Object, mockLogger.Object);
     }
 
     [Fact]
