@@ -1160,3 +1160,97 @@ The `github.com/OWNER/REPO/tasks/TASK_ID` endpoint (if it exists) is:
 
 Either way, **Option 1 (Launcher/Dashboard) remains the path forward.**
 
+---
+
+## System Tray (NotifyIcon) Support via H.NotifyIcon.WinUI
+
+**By:** Woz (Lead Dev)  
+**Date:** 2026-04-14  
+**Status:** Implemented
+
+### What
+
+Added Windows system tray (notification area) support using the `H.NotifyIcon.WinUI` NuGet package (v2.4.1). Squad Uplink can now minimize to tray instead of exiting, with animated radar-sweep icons that indicate session activity.
+
+### Why
+
+Users who run Squad Uplink as a long-lived session manager need the app to stay alive in the background without occupying taskbar space. The tray icon provides quick access to restore the window, launch new sessions, or exit — matching the behavior of similar tools like Move Mouse.
+
+### Key Decisions
+
+1. **H.NotifyIcon.WinUI over raw P/Invoke** — Mature WinUI 3 wrapper for `Shell_NotifyIcon`, handles message windows and DPI scaling. Avoids maintaining fragile Win32 interop code.
+2. **Programmatic icon generation (System.Drawing)** — Icons are 16×16 radar-sweep PNGs generated at runtime instead of shipping .ico assets. This avoids resolution issues and keeps the asset footprint zero.
+3. **`TrayIconWithContextMenu`** (not base `TrayIcon`) — The derived class from H.NotifyIcon that supports Win32 popup context menus.
+4. **Animation via `System.Timers.Timer`** — 300ms interval, 4-frame rotation. Timer ticks on a thread-pool thread; icon updates are marshalled to the UI thread via `DispatcherQueue.TryEnqueue`.
+5. **`MinimizeToTray` setting defaults to `true`** — Users who don't want tray behavior can disable it in Settings → System Tray.
+6. **Window close intercepted via `AppWindow.Hide()`** — When minimize-to-tray is enabled, `Window.Closed` sets `args.Handled = true` and hides the window. Real exit goes through `App.ExitApplication()` which disposes the tray icon and calls `Environment.Exit(0)`.
+
+### Changes
+
+- `src/SquadUplink/SquadUplink.csproj` — Added `H.NotifyIcon.WinUI` and `System.Drawing.Common` packages
+- `src/SquadUplink/Contracts/ITrayIconService.cs` — New interface
+- `src/SquadUplink/Services/TrayIconService.cs` — Full implementation with icon generation, animation, context menu, events
+- `src/SquadUplink/Models/AppSettings.cs` — Added `MinimizeToTray` property
+- `src/SquadUplink/App.xaml.cs` — Tray icon initialization, session count wiring, `ExitApplication()` method
+- `src/SquadUplink/MainWindow.xaml.cs` — Close handler that hides window instead of exiting
+- `src/SquadUplink/ViewModels/SettingsViewModel.cs` — `MinimizeToTray` binding
+- `src/SquadUplink/Views/SettingsPage.xaml` — System Tray settings section
+- `src/SquadUplink/Helpers/ServiceCollectionExtensions.cs` — DI registration
+- `tests/SquadUplink.Tests/Services/TrayIconServiceTests.cs` — 12 unit tests
+
+### Risk
+
+Low. The tray feature is additive. If `H.NotifyIcon.WinUI` fails to initialize (e.g., no desktop session), the app continues without tray support — logged as a warning.
+
+---
+
+## Token Telemetry Architecture Directive
+
+**By:** Brian Swiger (via Copilot)  
+**Date:** 2026-04-14T12:48Z  
+**Status:** Directive (pending implementation)
+
+Implement OpenTelemetry-based token telemetry:
+1. Local OTLP listener in WinUI app (OpenTelemetry.Exporter.OpenTelemetryProtocol) for `gen_ai.client.token.usage` metrics
+2. GitHub Copilot Usage Metrics REST API for enterprise/org/user level data
+3. `COPILOT_OTEL_ENABLED=true` environment variable to enable CLI telemetry emission
+4. TelemetryService tracking model name + token count per agent task into SQLite
+5. Dashboard vitals: Burn Rate (USD/hr), Context Window Pressure (% of 128k filled), Agent ROI (cost vs decisions committed)
+6. Azure APIM gateway integration for Squad model calls (input_tokens/output_tokens from response headers)
+
+**Rationale:** User directive—transforms Squad Uplink from dashboard to enterprise observability tool.
+
+---
+
+## UX Vision — Command & Control Features
+
+**By:** Brian Swiger (via Copilot)  
+**Date:** 2026-04-14T12:40Z  
+**Status:** Directive (pending implementation)
+
+Five advanced UX features for Squad Uplink:
+
+1. **Squad Topology Graph** — Force-directed or radial hub-and-spoke diagram with glowing pulse lines showing agent-to-agent communication from decisions.md
+2. **Time-Travel Scrubbing** — Timeline slider for "debugger for vibe coding" that reverts decisions.md/team.md views to historical state
+3. **Integrated Steering Console** — Split-screen: raw STDOUT left, high-level intent input right, with suggested steering commands from decisions.md context
+4. **Agent Vitals & Token Telemetry** — Sentiment/confidence gauge from decisions.md language, token burn rate line graph per agent
+5. **Multi-Session Mission Control** — Grid/tiled layout like security camera monitor, each tile is a mini-uplink, double-click drills down
+
+Tab layout evolution: Tactical (current activity), Topology (relationship mapping), Archives (historical analysis with time-scrubbing), Telemetry (resource monitoring).
+
+Competitive advantage: native WinUI 3 + Uno Platform vs browser-based Electron competitors (LangGraph Studio, Project IDX).
+
+**Rationale:** User directive—product vision for differentiation.
+
+---
+
+## Architecture Directives — Uno Platform, Markdig, FileSystemWatcher
+
+**By:** Brian Swiger (via Copilot)  
+**Date:** 2026-04-14T12:35Z  
+**Status:** Directive (pending implementation)
+
+Use Uno Platform for cross-platform (WinUI 3 desktop + iOS mobile). Use Markdig for parsing team.md/decisions.md. Use FileSystemWatcher with debounce for .squad/ monitoring. Use ItemsRepeater for high-frequency feeds. Consider Win2D/Microsoft.Graphics.Canvas for retro glow/scanline effects. Consider Azure SignalR or gRPC bridge for mobile remote monitoring. Wrap copilot CLI execution with System.Diagnostics.Process and redirect STDOUT for remote session capture.
+
+**Rationale:** User directive—architecture guidance for production implementation.
+
