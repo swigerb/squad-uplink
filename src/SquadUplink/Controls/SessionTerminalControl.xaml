@@ -85,15 +85,37 @@
                            FontFamily="Cascadia Mono,Consolas,monospace"
                            Margin="8,0" />
 
-                <!-- Close button (only in tab mode) -->
-                <Button Grid.Column="3" x:Name="CloseButton"
-                        Padding="2" Width="20" Height="20"
-                        Background="Transparent" BorderThickness="0"
-                        VerticalAlignment="Center"
-                        Click="CloseButton_Click"
-                        ToolTipService.ToolTip="Close session">
-                    <FontIcon Glyph="&#xE711;" FontSize="10" />
-                </Button>
+                <!-- Steering controls -->
+                <StackPanel Grid.Column="3" x:Name="SteeringControls" Orientation="Horizontal" Spacing="2">
+                    <!-- Interrupt (graceful stop) -->
+                    <Button x:Name="InterruptButton"
+                            Padding="4,2" MinWidth="0" MinHeight="0"
+                            Background="Transparent" BorderThickness="0"
+                            VerticalAlignment="Center"
+                            Click="InterruptButton_Click"
+                            ToolTipService.ToolTip="Interrupt session (Ctrl+C)">
+                        <FontIcon Glyph="&#xE769;" FontSize="12" />
+                    </Button>
+                    <!-- Force stop -->
+                    <Button x:Name="ForceStopButton"
+                            Padding="4,2" MinWidth="0" MinHeight="0"
+                            Background="Transparent" BorderThickness="0"
+                            VerticalAlignment="Center"
+                            Click="ForceStopButton_Click"
+                            ToolTipService.ToolTip="Force stop session">
+                        <FontIcon Glyph="&#xE71A;" FontSize="12"
+                                  Foreground="{StaticResource SquadErrorRedBrush}" />
+                    </Button>
+                    <!-- Close/remove from list -->
+                    <Button x:Name="CloseButton"
+                            Padding="2" Width="20" Height="20"
+                            Background="Transparent" BorderThickness="0"
+                            VerticalAlignment="Center"
+                            Click="CloseButton_Click"
+                            ToolTipService.ToolTip="Close session">
+                        <FontIcon Glyph="&#xE711;" FontSize="10" />
+                    </Button>
+                </StackPanel>
             </Grid>
         </Border>
     </Grid>

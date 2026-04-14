@@ -111,6 +111,9 @@ public class SessionManager : ISessionManager
             try
             {
                 session.Squad = await _squadDetector.DetectAsync(session.WorkingDirectory, ct);
+                session.RepositoryName = session.Squad?.TeamName ?? session.RepositoryName;
+                session.AgentCount = session.Squad?.Members.Count ?? 0;
+                session.SquadUniverse = session.Squad?.Universe;
                 session.Status = SessionStatus.Running;
             }
             catch (Exception ex)
@@ -260,6 +263,9 @@ public class SessionManager : ISessionManager
         try
         {
             session.Squad = await _squadDetector.DetectAsync(workingDirectory);
+            session.RepositoryName = session.Squad?.TeamName ?? session.RepositoryName;
+            session.AgentCount = session.Squad?.Members.Count ?? 0;
+            session.SquadUniverse = session.Squad?.Universe;
         }
         catch (Exception ex)
         {
@@ -312,25 +318,80 @@ public class SessionManager : ISessionManager
 
         if (session is null)
         {
-            _logger.Warning("Attempted to stop unknown session {Id}", sessionId);
+            _logger.Warning("Cannot stop session {Id}: not found", sessionId);
             return;
         }
 
+        var pid = session.ProcessId;
+        _logger.Information("Stopping session {Id} (PID {Pid}) — attempting graceful interrupt", sessionId, pid);
+
         try
         {
-            using var process = System.Diagnostics.Process.GetProcessById(session.ProcessId);
-            process.Kill(entireProcessTree: true);
+            using var proc = System.Diagnostics.Process.GetProcessById(pid);
+            if (proc.HasExited)
+            {
+                session.Status = SessionStatus.Completed;
+                await SaveCompletedSessionAsync(session);
+                return;
+            }
+
+            // Phase 1: Graceful interrupt via Ctrl+C (GenerateConsoleCtrlEvent)
+            session.Status = SessionStatus.Idle;
+            bool interrupted = false;
+
+            try
+            {
+                if (Helpers.NativeMethods.AttachConsole((uint)pid))
+                {
+                    Helpers.NativeMethods.SetConsoleCtrlHandler(null, true);
+                    try
+                    {
+                        interrupted = Helpers.NativeMethods.GenerateConsoleCtrlEvent(0, 0);
+                    }
+                    finally
+                    {
+                        Helpers.NativeMethods.FreeConsole();
+                        Helpers.NativeMethods.SetConsoleCtrlHandler(null, false);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.Debug(ex, "Graceful interrupt failed for PID {Pid}", pid);
+            }
+
+            if (interrupted)
+            {
+                using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(3));
+                try
+                {
+                    await proc.WaitForExitAsync(cts.Token);
+                    _logger.Information("Session {Id} exited gracefully", sessionId);
+                    session.Status = SessionStatus.Completed;
+                    await SaveCompletedSessionAsync(session);
+                    return;
+                }
+                catch (OperationCanceledException)
+                {
+                    _logger.Information("Session {Id} did not exit in 3s, force killing", sessionId);
+                }
+            }
+
+            // Phase 2: Force kill
+            session.Status = SessionStatus.Error;
+            proc.Kill(entireProcessTree: true);
+            await proc.WaitForExitAsync();
             session.Status = SessionStatus.Completed;
-            _logger.Information("Stopped session {Id} (PID {Pid})", sessionId, session.ProcessId);
+            _logger.Information("Session {Id} force-killed", sessionId);
         }
         catch (ArgumentException)
         {
+            _logger.Information("Session {Id} already exited", sessionId);
             session.Status = SessionStatus.Completed;
-            _logger.Debug("Process for session {Id} already exited", sessionId);
         }
         catch (Exception ex)
         {
-            _logger.Warning(ex, "Failed to stop process for session {Id}", sessionId);
+            _logger.Error(ex, "Failed to stop session {Id}", sessionId);
             session.Status = SessionStatus.Error;
         }
 

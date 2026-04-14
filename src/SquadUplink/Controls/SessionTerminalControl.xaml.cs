@@ -39,6 +39,8 @@ public sealed partial class SessionTerminalControl : UserControl
     }
 
     public event EventHandler<SessionState>? CloseRequested;
+    public event EventHandler<SessionState>? InterruptRequested;
+    public event EventHandler<SessionState>? ForceStopRequested;
 
     private bool _autoScroll = true;
 
@@ -71,7 +73,7 @@ public sealed partial class SessionTerminalControl : UserControl
     {
         if (d is SessionTerminalControl control)
         {
-            control.CloseButton.Visibility = (bool)e.NewValue ? Visibility.Visible : Visibility.Collapsed;
+            control.SteeringControls.Visibility = (bool)e.NewValue ? Visibility.Visible : Visibility.Collapsed;
         }
     }
 
@@ -118,6 +120,18 @@ public sealed partial class SessionTerminalControl : UserControl
 
     private static SolidColorBrush StatusToBrush(SessionStatus status)
         => Converters.StatusToBrushConverter.StatusToBrush(status);
+
+    private void InterruptButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (Session is { } session)
+            InterruptRequested?.Invoke(this, session);
+    }
+
+    private void ForceStopButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (Session is { } session)
+            ForceStopRequested?.Invoke(this, session);
+    }
 
     private void CloseButton_Click(object sender, RoutedEventArgs e)
     {
