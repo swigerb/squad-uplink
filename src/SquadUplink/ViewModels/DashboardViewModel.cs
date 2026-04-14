@@ -18,6 +18,7 @@ public partial class DashboardViewModel : ViewModelBase
     private readonly IDataService _dataService;
     private readonly ISquadDetector _squadDetector;
     private readonly ITelemetryService _telemetryService;
+    private readonly IRoiCalculatorService? _roiCalculator;
     private readonly SquadFileWatcher? _fileWatcher;
     private readonly InMemorySink _diagnosticsSink;
     private readonly DispatcherQueue? _dispatcherQueue;
@@ -125,6 +126,9 @@ public partial class DashboardViewModel : ViewModelBase
     [ObservableProperty]
     private IReadOnlyList<AgentTokenSummary>? _agentBreakdown;
 
+    [ObservableProperty]
+    private IReadOnlyList<AgentRoiMetrics>? _agentRoiMetrics;
+
     /// <summary>
     /// Raised when the ViewModel wants the View to show the launch dialog.
     /// </summary>
@@ -151,13 +155,15 @@ public partial class DashboardViewModel : ViewModelBase
         ITelemetryService telemetryService,
         InMemorySink diagnosticsSink,
         ILogger<DashboardViewModel> logger,
-        SquadFileWatcher? fileWatcher = null)
+        SquadFileWatcher? fileWatcher = null,
+        IRoiCalculatorService? roiCalculator = null)
         : base(logger)
     {
         _sessionManager = sessionManager;
         _dataService = dataService;
         _squadDetector = squadDetector;
         _telemetryService = telemetryService;
+        _roiCalculator = roiCalculator;
         _fileWatcher = fileWatcher;
         _diagnosticsSink = diagnosticsSink;
         try { _dispatcherQueue = DispatcherQueue.GetForCurrentThread(); }
@@ -386,7 +392,7 @@ public partial class DashboardViewModel : ViewModelBase
     {
         var count = Sessions.Count;
         SessionCount = count == 1 ? "1 session" : $"{count} sessions";
-        ActiveSessionCount = Sessions.Count(s => s.Status is SessionStatus.Running or SessionStatus.Launching);
+        ActiveSessionCount = Sessions.Count(s => s.Status is SessionStatus.Running or SessionStatus.Launching or SessionStatus.Discovered);
         HasNoSessions = count == 0;
 
         ScanStatusText = count == 0
@@ -477,19 +483,75 @@ public partial class DashboardViewModel : ViewModelBase
         try
         {
             var metrics = _telemetryService.GetCurrentMetrics();
-            if (metrics is null) return;
-            BurnRatePerHour = (double)metrics.BurnRatePerHour;
-            SessionTotalCost = (double)metrics.TotalCost;
-
-            // Context pressure: use the aggregate tokens against a default model window
-            ContextCurrentTokens = metrics.TotalTokens;
-            ContextMaxTokens = 128_000; // default; updated per-session if available
-
             AgentBreakdown = _telemetryService.GetAgentBreakdown();
+
+            if (metrics is not null && metrics.RequestCount > 0)
+            {
+                BurnRatePerHour = (double)metrics.BurnRatePerHour;
+                SessionTotalCost = (double)metrics.TotalCost;
+
+                // Context pressure: use aggregate tokens with model-specific window
+                ContextCurrentTokens = metrics.TotalTokens;
+
+                // Determine model-specific max from the latest record or selected session
+                var selectedSession = SelectedSessionIndex >= 0 && SelectedSessionIndex < Sessions.Count
+                    ? Sessions[SelectedSessionIndex] : null;
+                if (selectedSession is not null)
+                {
+                    var sessionMetrics = _telemetryService.GetSessionMetrics(selectedSession.Id);
+                    if (sessionMetrics.RequestCount > 0)
+                    {
+                        ContextCurrentTokens = sessionMetrics.TotalTokens;
+                    }
+                }
+
+                ContextMaxTokens = 128_000; // default, updated below if model known
+            }
+            else
+            {
+                // Fallback: estimate from decisions.md file size when no OTel data
+                UpdateContextPressureFromFileSize();
+            }
+
+            // Compute ROI metrics by merging token data with decision productivity signals
+            if (_roiCalculator is not null && AgentBreakdown is not null)
+            {
+                AgentRoiMetrics = _roiCalculator.CalculateRoi(
+                    DecisionFeed.ToList(), AgentBreakdown);
+            }
         }
         catch (Exception ex)
         {
             Log.Warning(ex, "Failed to refresh telemetry widgets");
+        }
+    }
+
+    /// <summary>
+    /// Estimates context pressure from decisions.md file size when no OTLP data is available.
+    /// Rough heuristic: ~4 chars per token.
+    /// </summary>
+    private void UpdateContextPressureFromFileSize()
+    {
+        try
+        {
+            foreach (var session in Sessions)
+            {
+                if (string.IsNullOrEmpty(session.WorkingDirectory)) continue;
+                var decisionsFile = Path.Combine(session.WorkingDirectory, ".squad", "decisions.md");
+                if (!File.Exists(decisionsFile)) continue;
+
+                var fileInfo = new FileInfo(decisionsFile);
+                var estimatedTokens = (int)(fileInfo.Length / 4); // ~4 bytes per token
+                if (estimatedTokens > ContextCurrentTokens)
+                {
+                    ContextCurrentTokens = estimatedTokens;
+                    ContextMaxTokens = 128_000;
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Log.Debug(ex, "Failed to estimate context pressure from file size");
         }
     }
 
@@ -512,12 +574,46 @@ public partial class DashboardViewModel : ViewModelBase
         }
         else if (evt.IsDecisionsFile)
         {
-            // Refresh decision feed
-            RebuildSquadTree(); // decisions are populated during tree rebuild
+            // Incremental decision feed update — only add new entries
+            UpdateDecisionFeedIncremental();
         }
 
         // Always refresh telemetry on file changes
         RefreshTelemetryWidgets();
+    }
+
+    /// <summary>
+    /// Incrementally updates the decision feed by comparing current squad decisions
+    /// against what's already shown. Only truly new entries are prepended.
+    /// Falls back to full rebuild if the feed appears stale or truncated.
+    /// </summary>
+    private void UpdateDecisionFeedIncremental()
+    {
+        var existingTexts = new HashSet<string>(
+            DecisionFeed.Select(d => d.Text), StringComparer.Ordinal);
+
+        var newEntries = new List<DecisionEntry>();
+        foreach (var session in Sessions)
+        {
+            if (session.Squad is { } squad)
+            {
+                foreach (var decision in squad.RecentDecisions)
+                {
+                    if (existingTexts.Add(decision.Text))
+                        newEntries.Add(decision);
+                }
+            }
+        }
+
+        if (newEntries.Count == 0) return;
+
+        // Prepend new entries (newest first)
+        for (int i = newEntries.Count - 1; i >= 0; i--)
+            DecisionFeed.Insert(0, newEntries[i]);
+
+        // Trim to bounded buffer of 50 entries
+        while (DecisionFeed.Count > 50)
+            DecisionFeed.RemoveAt(DecisionFeed.Count - 1);
     }
 
     private void RebuildSquadTree()

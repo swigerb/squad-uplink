@@ -16,8 +16,11 @@ public record AgentRoiRow
     public string CostDisplay { get; set; } = string.Empty;
     public string DecisionDisplay { get; set; } = string.Empty;
     public string CostPerDecisionDisplay { get; set; } = string.Empty;
+    public string RoiDisplay { get; set; } = string.Empty;
     public bool IsHighCost { get; set; }
+    public bool IsLooping { get; set; }
     public Brush? CostPerDecisionBrush { get; set; }
+    public Brush? RoiBrush { get; set; }
     public Brush? RowBackground { get; set; }
 
     private static SolidColorBrush? _redBrush;
@@ -41,6 +44,13 @@ public record AgentRoiRow
     private static SolidColorBrush? DefaultTextBrush => _defaultBrush ??= TryCreateBrush(255, 200, 200, 200);
     private static SolidColorBrush? HighlightBackground => _highlightBg ??= TryCreateBrush(20, 244, 67, 54);
     private static SolidColorBrush? TransparentBackground => _transparentBg ??= TryCreateTransparent();
+
+    private static SolidColorBrush? _greenBrush;
+    private static SolidColorBrush? _yellowBrush;
+    private static SolidColorBrush? _loopingBg;
+    private static SolidColorBrush? GreenRoiBrush => _greenBrush ??= TryCreateBrush(255, 0, 200, 83);
+    private static SolidColorBrush? YellowRoiBrush => _yellowBrush ??= TryCreateBrush(255, 255, 193, 7);
+    private static SolidColorBrush? LoopingBackground => _loopingBg ??= TryCreateBrush(30, 255, 193, 7);
 
     /// <summary>
     /// Returns the role emoji for an agent name using standard Squad conventions.
@@ -81,9 +91,47 @@ public record AgentRoiRow
             CostPerDecisionDisplay = summary.DecisionsCommitted > 0
                 ? $"${costPerDecision:F2}"
                 : "—",
+            RoiDisplay = "—",
             IsHighCost = isHighCost,
             CostPerDecisionBrush = isHighCost ? HighCostBrush : DefaultTextBrush,
+            RoiBrush = DefaultTextBrush,
             RowBackground = isHighCost ? HighlightBackground : TransparentBackground
+        };
+    }
+
+    /// <summary>
+    /// Creates a row from combined ROI metrics (productivity + token data).
+    /// </summary>
+    public static AgentRoiRow FromRoiMetrics(AgentRoiMetrics metrics)
+    {
+        var isHighCost = metrics.TotalCost > 0 && metrics.RoiRatio < 10;
+        var isLooping = metrics.IsLooping;
+
+        Brush? roiBrush = metrics.RoiRatio switch
+        {
+            > 50 => GreenRoiBrush,
+            > 10 => YellowRoiBrush,
+            _ => HighCostBrush
+        };
+
+        Brush? bg = isLooping ? LoopingBackground
+            : isHighCost ? HighlightBackground
+            : TransparentBackground;
+
+        return new AgentRoiRow
+        {
+            AgentName = metrics.AgentName,
+            Emoji = GetAgentEmoji(metrics.AgentName),
+            TokenDisplay = FormatTokens(metrics.TotalTokens),
+            CostDisplay = metrics.TotalCost > 0 ? $"${metrics.TotalCost:F2}" : "—",
+            DecisionDisplay = $"{metrics.FileWrites}w/{metrics.TasksResolved}t/{metrics.TestPasses}p",
+            CostPerDecisionDisplay = metrics.WeightedScore.ToString(),
+            RoiDisplay = metrics.TotalCost > 0 ? $"{metrics.RoiRatio:F1}" : "—",
+            IsHighCost = isHighCost,
+            IsLooping = isLooping,
+            CostPerDecisionBrush = DefaultTextBrush,
+            RoiBrush = roiBrush,
+            RowBackground = bg
         };
     }
 

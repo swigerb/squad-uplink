@@ -35,6 +35,7 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<ISessionManager, SessionManager>();
         services.AddSingleton<ITrayIconService, TrayIconService>();
         services.AddSingleton<ITelemetryService, TelemetryService>();
+        services.AddSingleton<IRoiCalculatorService, RoiCalculatorService>();
         services.AddSingleton<SquadFileWatcher>();
         services.AddSingleton<OtlpListener>();
 

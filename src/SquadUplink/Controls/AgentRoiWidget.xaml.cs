@@ -11,12 +11,22 @@ public sealed partial class AgentRoiWidget : UserControl
 {
     public static readonly DependencyProperty AgentBreakdownProperty =
         DependencyProperty.Register(nameof(AgentBreakdown), typeof(IReadOnlyList<AgentTokenSummary>),
-            typeof(AgentRoiWidget), new PropertyMetadata(null, OnBreakdownChanged));
+            typeof(AgentRoiWidget), new PropertyMetadata(null, OnDataChanged));
+
+    public static readonly DependencyProperty RoiMetricsProperty =
+        DependencyProperty.Register(nameof(RoiMetrics), typeof(IReadOnlyList<AgentRoiMetrics>),
+            typeof(AgentRoiWidget), new PropertyMetadata(null, OnDataChanged));
 
     public IReadOnlyList<AgentTokenSummary>? AgentBreakdown
     {
         get => (IReadOnlyList<AgentTokenSummary>?)GetValue(AgentBreakdownProperty);
         set => SetValue(AgentBreakdownProperty, value);
+    }
+
+    public IReadOnlyList<AgentRoiMetrics>? RoiMetrics
+    {
+        get => (IReadOnlyList<AgentRoiMetrics>?)GetValue(RoiMetricsProperty);
+        set => SetValue(RoiMetricsProperty, value);
     }
 
     public ObservableCollection<AgentRoiRow> AgentItems { get; } = new();
@@ -32,7 +42,7 @@ public sealed partial class AgentRoiWidget : UserControl
         InitializeComponent();
     }
 
-    private static void OnBreakdownChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+    private static void OnDataChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
     {
         if (d is AgentRoiWidget w) w.UpdateTable();
     }
@@ -40,6 +50,21 @@ public sealed partial class AgentRoiWidget : UserControl
     private void UpdateTable()
     {
         AgentItems.Clear();
+
+        // Prefer ROI metrics (includes productivity signals) over raw token data
+        var roiData = RoiMetrics;
+        if (roiData is not null && roiData.Count > 0)
+        {
+            EmptyStateVisible = Visibility.Collapsed;
+            TableVisible = Visibility.Visible;
+            foreach (var metrics in roiData)
+            {
+                AgentItems.Add(AgentRoiRow.FromRoiMetrics(metrics));
+            }
+            return;
+        }
+
+        // Fallback to basic token breakdown
         var data = AgentBreakdown;
         if (data is null || data.Count == 0)
         {

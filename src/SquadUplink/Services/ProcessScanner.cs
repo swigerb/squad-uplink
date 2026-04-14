@@ -204,11 +204,14 @@ public partial class ProcessScanner : IProcessScanner
         var workDir = ExtractWorkingDirectory(commandLine) ?? proc.WorkingDirectory ?? string.Empty;
         var taskUrl = ExtractTaskUrl(commandLine);
 
+        var repoName = !string.IsNullOrEmpty(workDir) ? Path.GetFileName(workDir) : null;
+
         return new SessionState
         {
             Id = $"scan-{proc.Pid}",
             ProcessId = proc.Pid,
             WorkingDirectory = workDir,
+            RepositoryName = repoName,
             Status = SessionStatus.Discovered,
             StartedAt = proc.StartTime ?? DateTime.UtcNow,
             IsRemoteEnabled = isRemote,

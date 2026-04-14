@@ -175,6 +175,7 @@
                                             <RowDefinition Height="Auto" />
                                             <RowDefinition Height="Auto" />
                                             <RowDefinition Height="Auto" />
+                                            <RowDefinition Height="Auto" />
                                             <RowDefinition Height="*" />
                                             <RowDefinition Height="Auto" />
                                         </Grid.RowDefinitions>
@@ -214,8 +215,27 @@
                                             </StackPanel>
                                         </StackPanel>
 
-                                        <!-- Row 2: Working directory (truncated) -->
-                                        <StackPanel Grid.Row="2" Orientation="Horizontal" Spacing="4">
+                                        <!-- Row 2: Squad info (when detected) -->
+                                        <StackPanel Grid.Row="2" Orientation="Horizontal" Spacing="6"
+                                                    Visibility="{x:Bind Squad, Mode=OneWay, Converter={StaticResource NullToVisibility}}">
+                                            <Border CornerRadius="4" Padding="6,2"
+                                                    Background="{StaticResource SquadAccentBlueBrush}">
+                                                <StackPanel Orientation="Horizontal" Spacing="4">
+                                                    <FontIcon Glyph="&#xE716;" FontSize="11" Foreground="White" />
+                                                    <TextBlock FontSize="11" FontWeight="SemiBold" Foreground="White">
+                                                        <Run Text="{x:Bind AgentCount, Mode=OneWay}" />
+                                                        <Run Text=" agents" />
+                                                    </TextBlock>
+                                                </StackPanel>
+                                            </Border>
+                                            <TextBlock Text="{x:Bind SquadUniverse, Mode=OneWay}"
+                                                       FontSize="10" FontStyle="Italic"
+                                                       Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                                       VerticalAlignment="Center" />
+                                        </StackPanel>
+
+                                        <!-- Row 3: Working directory (truncated) -->
+                                        <StackPanel Grid.Row="3" Orientation="Horizontal" Spacing="4">
                                             <FontIcon Glyph="&#xE8B7;" FontSize="11"
                                                       Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
                                             <TextBlock Text="{x:Bind WorkingDirectory, Mode=OneWay}"
@@ -224,8 +244,8 @@
                                                        TextTrimming="CharacterEllipsis" MaxWidth="280" />
                                         </StackPanel>
 
-                                        <!-- Row 4: GitHub link + indicators -->
-                                        <StackPanel Grid.Row="4" Orientation="Horizontal" Spacing="8">
+                                        <!-- Row 5: GitHub link + indicators -->
+                                        <StackPanel Grid.Row="5" Orientation="Horizontal" Spacing="8">
                                             <HyperlinkButton Content="Open in GitHub"
                                                              NavigateUri="{x:Bind GitHubTaskUri, Mode=OneWay}"
                                                              Visibility="{x:Bind HasGitHubUrl, Mode=OneWay, Converter={StaticResource BoolToVis}}"
@@ -320,7 +340,8 @@
                 <!-- Agent ROI Widget -->
                 <controls:AgentRoiWidget
                     x:Name="AgentRoi"
-                    AgentBreakdown="{x:Bind ViewModel.AgentBreakdown, Mode=OneWay}" />
+                    AgentBreakdown="{x:Bind ViewModel.AgentBreakdown, Mode=OneWay}"
+                    RoiMetrics="{x:Bind ViewModel.AgentRoiMetrics, Mode=OneWay}" />
 
                 <!-- Error Count -->
                 <Border Style="{StaticResource CockpitPanelStyle}">

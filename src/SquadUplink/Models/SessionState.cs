@@ -39,6 +39,12 @@ public partial class SessionState : ObservableObject
     private SquadInfo? _squad;
 
     [ObservableProperty]
+    private int _agentCount;
+
+    [ObservableProperty]
+    private string? _squadUniverse;
+
+    [ObservableProperty]
     private bool _isRemoteEnabled;
 
     [ObservableProperty]
