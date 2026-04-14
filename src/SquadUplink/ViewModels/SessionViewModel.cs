@@ -1,3 +1,5 @@
+using System.Collections.ObjectModel;
+using System.Text.RegularExpressions;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Microsoft.Extensions.Logging;
@@ -50,7 +52,13 @@ public partial class SessionViewModel : ViewModelBase
     [ObservableProperty]
     private string _terminalContent = string.Empty;
 
+    public ObservableCollection<string> OutputLines { get; } = [];
+
     private SessionState? _currentSession;
+
+    internal static readonly Regex GitHubUrlPattern = new(
+        @"https?://github\.com/[^\s]+(?:/tasks/[^\s]+|/issues/[^\s]+|/pull/[^\s]+)",
+        RegexOptions.Compiled);
 
     public SessionViewModel(ISessionManager sessionManager, ILogger<SessionViewModel> logger)
         : base(logger)
@@ -71,21 +79,15 @@ public partial class SessionViewModel : ViewModelBase
         OutputLineCount = session.OutputLines.Count;
         SquadName = session.Squad?.TeamName ?? "—";
 
+        // Sync output lines to our observable collection
+        OutputLines.Clear();
+        foreach (var line in session.OutputLines)
+            OutputLines.Add(line);
+
         // Extract GitHub URL from output if not already set
         if (!HasGitHubUrl)
         {
-            foreach (var line in session.OutputLines)
-            {
-                var match = System.Text.RegularExpressions.Regex.Match(
-                    line, @"https?://github\.com/[^\s]+(?:/tasks/[^\s]+|/issues/[^\s]+|/pull/[^\s]+)");
-                if (match.Success)
-                {
-                    session.GitHubTaskUrl = match.Value;
-                    GitHubUri = new Uri(match.Value);
-                    HasGitHubUrl = true;
-                    break;
-                }
-            }
+            ExtractGitHubUrlFromOutput(session);
         }
 
         var elapsed = DateTime.UtcNow - session.StartedAt;
@@ -95,6 +97,28 @@ public partial class SessionViewModel : ViewModelBase
 
         LastActivityText = session.OutputLines.Count > 0 ? "Active" : "No output yet";
         ErrorLogSummary = session.Status == SessionStatus.Error ? "1 error" : "0 errors";
+    }
+
+    internal void ExtractGitHubUrlFromOutput(SessionState session)
+    {
+        foreach (var line in session.OutputLines)
+        {
+            var url = ExtractGitHubUrl(line);
+            if (url is not null)
+            {
+                session.GitHubTaskUrl = url;
+                GitHubUri = new Uri(url);
+                HasGitHubUrl = true;
+                Log.Information("GitHub task URL extracted: {Url}", url);
+                break;
+            }
+        }
+    }
+
+    internal static string? ExtractGitHubUrl(string text)
+    {
+        var match = GitHubUrlPattern.Match(text);
+        return match.Success ? match.Value : null;
     }
 
     [RelayCommand]
@@ -139,7 +163,6 @@ public partial class SessionViewModel : ViewModelBase
             catch (Exception ex)
             {
                 Log.Warning(ex, "Failed to launch GitHub URL");
-                // Fallback to Process.Start
                 var psi = new System.Diagnostics.ProcessStartInfo(url)
                 {
                     UseShellExecute = true

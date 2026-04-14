@@ -44,11 +44,16 @@
 
             <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="4"
                         VerticalAlignment="Center" Margin="0,0,12,0">
+                <!-- Cards / Tabs / Grid toggle -->
+                <ToggleButton x:Name="CardsViewToggle" Content="&#xF0E2;"
+                              FontFamily="{ThemeResource SymbolThemeFontFamily}"
+                              IsChecked="{x:Bind ViewModel.IsCardsView, Mode=TwoWay}"
+                              ToolTipService.ToolTip="Cards View" Width="36" Height="36" Padding="0" />
                 <ToggleButton x:Name="TabViewToggle" Content="&#xE8A0;"
                               FontFamily="{ThemeResource SymbolThemeFontFamily}"
                               IsChecked="{x:Bind ViewModel.IsTabView, Mode=TwoWay}"
                               ToolTipService.ToolTip="Tab View" Width="36" Height="36" Padding="0" />
-                <ToggleButton x:Name="GridViewToggle" Content="&#xF0E2;"
+                <ToggleButton x:Name="GridViewToggle" Content="&#xE80A;"
                               FontFamily="{ThemeResource SymbolThemeFontFamily}"
                               IsChecked="{x:Bind ViewModel.IsGridView, Mode=TwoWay}"
                               ToolTipService.ToolTip="Grid View" Width="36" Height="36" Padding="0" />
@@ -91,17 +96,148 @@
                 MaxHeight="280" />
         </Grid>
 
-        <!-- ═══ CENTER — Session Layout (Tab / Grid) ═══ -->
-        <controls:SessionLayoutControl
-            x:Name="SessionLayout"
-            Grid.Column="1" Grid.Row="1"
-            LayoutMode="{x:Bind ViewModel.CurrentLayoutMode, Mode=OneWay}"
-            Sessions="{x:Bind ViewModel.Sessions, Mode=OneWay}"
-            GridSize="{x:Bind ViewModel.CurrentGridSize, Mode=OneWay}"
-            SelectedSessionIndex="{x:Bind ViewModel.SelectedSessionIndex, Mode=TwoWay}"
-            SessionCloseRequested="SessionLayout_SessionCloseRequested"
-            LaunchNewRequested="SessionLayout_LaunchNewRequested"
-            SessionFocusRequested="SessionLayout_SessionFocusRequested" />
+        <!-- ═══ CENTER — Session Layout (Cards / Tab / Grid) ═══ -->
+        <Grid Grid.Column="1" Grid.Row="1">
+            <!-- Cards View (default) -->
+            <ScrollViewer x:Name="CardsScrollViewer"
+                          Visibility="{x:Bind ViewModel.IsCardsView, Mode=OneWay, Converter={StaticResource BoolToVis}}"
+                          VerticalScrollBarVisibility="Auto"
+                          Padding="0,0,8,0">
+                <StackPanel Spacing="0">
+                    <!-- Empty State -->
+                    <StackPanel Visibility="{x:Bind ViewModel.HasNoSessions, Mode=OneWay, Converter={StaticResource BoolToVis}}"
+                                VerticalAlignment="Center" HorizontalAlignment="Center"
+                                Spacing="16" Padding="40">
+                        <FontIcon Glyph="&#xE774;" FontSize="48"
+                                  Foreground="{ThemeResource TextFillColorDisabledBrush}"
+                                  HorizontalAlignment="Center" />
+                        <TextBlock Text="No sessions found"
+                                   HorizontalAlignment="Center"
+                                   FontSize="18" FontWeight="SemiBold" />
+                        <TextBlock Text="Click Launch to start a new Copilot CLI session"
+                                   HorizontalAlignment="Center"
+                                   Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                   FontSize="13" />
+                        <Button Content="Launch Session"
+                                HorizontalAlignment="Center"
+                                Command="{x:Bind ViewModel.LaunchSessionCommand}"
+                                Style="{StaticResource AccentButtonStyle}" />
+                    </StackPanel>
+
+                    <!-- Session Cards Grid -->
+                    <ItemsRepeater x:Name="SessionCardsRepeater"
+                                   ItemsSource="{x:Bind ViewModel.Sessions, Mode=OneWay}">
+                        <ItemsRepeater.Layout>
+                            <UniformGridLayout MinItemWidth="320" MinItemHeight="160"
+                                               MinColumnSpacing="12" MinRowSpacing="12"
+                                               ItemsStretch="Fill" />
+                        </ItemsRepeater.Layout>
+                        <ItemsRepeater.ItemTemplate>
+                            <DataTemplate x:DataType="models:SessionState">
+                                <Border Style="{StaticResource SessionCardStyle}"
+                                        PointerPressed="SessionCard_PointerPressed"
+                                        Tag="{x:Bind}">
+                                    <Grid RowSpacing="8">
+                                        <Grid.RowDefinitions>
+                                            <RowDefinition Height="Auto" />
+                                            <RowDefinition Height="Auto" />
+                                            <RowDefinition Height="Auto" />
+                                            <RowDefinition Height="*" />
+                                            <RowDefinition Height="Auto" />
+                                        </Grid.RowDefinitions>
+
+                                        <!-- Row 0: Repo name + Status badge -->
+                                        <Grid Grid.Row="0">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="Auto" />
+                                            </Grid.ColumnDefinitions>
+                                            <TextBlock Text="{x:Bind RepositoryName, Mode=OneWay, TargetNullValue='Unknown'}"
+                                                       FontWeight="Bold" FontSize="15"
+                                                       TextTrimming="CharacterEllipsis" />
+                                            <Border Grid.Column="1" CornerRadius="4" Padding="8,3"
+                                                    Background="{x:Bind Status, Mode=OneWay, Converter={StaticResource StatusToBrush}}">
+                                                <TextBlock Text="{x:Bind Status, Mode=OneWay, Converter={StaticResource StatusToText}}"
+                                                           FontSize="10" FontWeight="SemiBold" Foreground="White" />
+                                            </Border>
+                                        </Grid>
+
+                                        <!-- Row 1: PID + Age -->
+                                        <StackPanel Grid.Row="1" Orientation="Horizontal" Spacing="12">
+                                            <StackPanel Orientation="Horizontal" Spacing="4">
+                                                <FontIcon Glyph="&#xE943;" FontSize="11"
+                                                          Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                                <TextBlock FontSize="11" FontFamily="Cascadia Mono,Consolas,monospace"
+                                                           Foreground="{ThemeResource TextFillColorSecondaryBrush}">
+                                                    <Run Text="PID " /><Run Text="{x:Bind ProcessId, Mode=OneWay}" />
+                                                </TextBlock>
+                                            </StackPanel>
+                                            <StackPanel Orientation="Horizontal" Spacing="4">
+                                                <FontIcon Glyph="&#xE823;" FontSize="11"
+                                                          Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                                <TextBlock Text="{x:Bind StartedAt, Mode=OneWay, Converter={StaticResource TimeAgo}}"
+                                                           FontSize="11"
+                                                           Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                            </StackPanel>
+                                        </StackPanel>
+
+                                        <!-- Row 2: Working directory (truncated) -->
+                                        <StackPanel Grid.Row="2" Orientation="Horizontal" Spacing="4">
+                                            <FontIcon Glyph="&#xE8B7;" FontSize="11"
+                                                      Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                            <TextBlock Text="{x:Bind WorkingDirectory, Mode=OneWay}"
+                                                       FontSize="11" FontFamily="Cascadia Mono,Consolas,monospace"
+                                                       Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                                       TextTrimming="CharacterEllipsis" MaxWidth="280" />
+                                        </StackPanel>
+
+                                        <!-- Row 4: GitHub link + indicators -->
+                                        <StackPanel Grid.Row="4" Orientation="Horizontal" Spacing="8">
+                                            <HyperlinkButton Content="Open in GitHub"
+                                                             NavigateUri="{x:Bind GitHubTaskUrl, Mode=OneWay}"
+                                                             Visibility="{x:Bind GitHubTaskUrl, Mode=OneWay, Converter={StaticResource NullToVisibility}}"
+                                                             FontSize="11" Padding="0" />
+                                            <FontIcon Glyph="&#xE71B;" FontSize="12"
+                                                      Foreground="{StaticResource SquadAccentGreenBrush}"
+                                                      Visibility="{x:Bind GitHubTaskUrl, Mode=OneWay, Converter={StaticResource NullToVisibility}}"
+                                                      ToolTipService.ToolTip="Has GitHub task URL" />
+                                        </StackPanel>
+                                    </Grid>
+                                </Border>
+                            </DataTemplate>
+                        </ItemsRepeater.ItemTemplate>
+                    </ItemsRepeater>
+
+                    <!-- Launch New Session Card -->
+                    <Border Style="{StaticResource LaunchCardStyle}"
+                            Margin="0,12,0,0" MinHeight="120"
+                            PointerPressed="LaunchCard_PointerPressed">
+                        <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center"
+                                    Spacing="8">
+                            <FontIcon Glyph="&#xE710;" FontSize="28"
+                                      Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                      HorizontalAlignment="Center" />
+                            <TextBlock Text="Launch New Session"
+                                       HorizontalAlignment="Center"
+                                       FontSize="14" FontWeight="SemiBold"
+                                       Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                        </StackPanel>
+                    </Border>
+                </StackPanel>
+            </ScrollViewer>
+
+            <!-- Tab / Grid layout (existing) -->
+            <controls:SessionLayoutControl
+                x:Name="SessionLayout"
+                Visibility="{x:Bind ViewModel.IsCardsView, Mode=OneWay, Converter={StaticResource BoolToVis}, ConverterParameter=Invert}"
+                LayoutMode="{x:Bind ViewModel.CurrentLayoutMode, Mode=OneWay}"
+                Sessions="{x:Bind ViewModel.Sessions, Mode=OneWay}"
+                GridSize="{x:Bind ViewModel.CurrentGridSize, Mode=OneWay}"
+                SelectedSessionIndex="{x:Bind ViewModel.SelectedSessionIndex, Mode=TwoWay}"
+                SessionCloseRequested="SessionLayout_SessionCloseRequested"
+                LaunchNewRequested="SessionLayout_LaunchNewRequested"
+                SessionFocusRequested="SessionLayout_SessionFocusRequested" />
+        </Grid>
 
         <!-- ═══ RIGHT PANEL — Stats &amp; Graphs ═══ -->
         <ScrollViewer Grid.Column="2" Grid.Row="1" VerticalScrollBarVisibility="Auto">

@@ -2,6 +2,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.UI.Text;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Input;
 using Serilog;
 using SquadUplink.Controls;
 using SquadUplink.Models;
@@ -16,6 +17,7 @@ public sealed partial class DashboardPage : Page
     public DashboardPage()
     {
         ViewModel = App.Services.GetRequiredService<DashboardViewModel>();
+        ViewModel.LaunchDialogRequested += ShowLaunchDialogAsync;
         InitializeComponent();
         Log.Debug("DashboardPage initialized");
     }
@@ -53,5 +55,45 @@ public sealed partial class DashboardPage : Page
     private void SquadTreeView_SquadSelected(object? sender, SquadInfo squad)
     {
         ViewModel.SelectedSquad = squad;
+    }
+
+    // Session card click handler
+    private void SessionCard_PointerPressed(object sender, PointerRoutedEventArgs e)
+    {
+        if (sender is Border { Tag: SessionState session })
+        {
+            ViewModel.OpenSessionCommand.Execute(session);
+        }
+    }
+
+    // Launch new session card click
+    private void LaunchCard_PointerPressed(object sender, PointerRoutedEventArgs e)
+    {
+        ViewModel.LaunchSessionCommand.Execute(null);
+    }
+
+    // Show launch dialog
+    private async Task ShowLaunchDialogAsync()
+    {
+        var dialog = new LaunchSessionDialog { XamlRoot = this.XamlRoot };
+
+        // Load recent directories from history
+        var recentDirs = ViewModel.RecentSessions
+            .Select(s => s.WorkingDirectory)
+            .Where(d => !string.IsNullOrEmpty(d))
+            .Distinct()
+            .Take(10);
+        dialog.LoadRecentDirectories(recentDirs);
+
+        // Set default directory
+        var defaultDir = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+        dialog.SetDefaultDirectory(defaultDir);
+
+        var result = await dialog.ShowAsync();
+        if (result == ContentDialogResult.Primary)
+        {
+            var options = dialog.GetLaunchOptions();
+            await ViewModel.LaunchWithOptionsAsync(options);
+        }
     }
 }

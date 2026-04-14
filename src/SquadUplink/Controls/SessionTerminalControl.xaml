@@ -20,8 +20,22 @@
                 BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
                 Background="{ThemeResource CardBackgroundFillColorDefaultBrush}">
             <Grid>
-                <WebView2 x:Name="TerminalWebView"
-                          Source="ms-appx-web:///wwwroot/terminal.html" />
+                <!-- Scrolling output using ItemsControl -->
+                <ScrollViewer x:Name="TerminalScrollViewer"
+                              VerticalScrollBarVisibility="Auto"
+                              Padding="8,6">
+                    <ItemsControl x:Name="OutputItemsControl">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="x:String">
+                                <TextBlock Text="{x:Bind}"
+                                           FontFamily="Cascadia Mono,Consolas,monospace"
+                                           FontSize="11" TextWrapping="Wrap"
+                                           IsTextSelectionEnabled="True"
+                                           Padding="0,1" />
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </ScrollViewer>
 
                 <!-- Placeholder when no session is bound -->
                 <StackPanel x:Name="PlaceholderPanel"

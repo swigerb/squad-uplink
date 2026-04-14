@@ -89,14 +89,6 @@
                             <TextBlock Text="Stop" Foreground="#F44336" />
                         </StackPanel>
                     </Button>
-                    <Button Command="{x:Bind ViewModel.RestartCommand}"
-                            ToolTipService.ToolTip="Restart Session"
-                            Background="#332196F3">
-                        <StackPanel Orientation="Horizontal" Spacing="6">
-                            <FontIcon Glyph="&#xE72C;" FontSize="12" Foreground="#2196F3" />
-                            <TextBlock Text="Restart" Foreground="#2196F3" />
-                        </StackPanel>
-                    </Button>
                     <Button Command="{x:Bind ViewModel.OpenInGitHubCommand}"
                             ToolTipService.ToolTip="Open in GitHub"
                             Visibility="{x:Bind ViewModel.HasGitHubUrl, Mode=OneWay, Converter={StaticResource BoolToVis}}">
@@ -114,11 +106,27 @@
             </Grid>
         </Border>
 
-        <!-- ═══ WebView2 Terminal ═══ -->
+        <!-- ═══ Scrolling Terminal Output (RichTextBlock) ═══ -->
         <Border Grid.Row="1" CornerRadius="8" BorderThickness="1"
-                BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}">
-            <WebView2 x:Name="TerminalWebView"
-                      Source="ms-appx-web:///wwwroot/terminal.html" />
+                BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                Background="{ThemeResource CardBackgroundFillColorDefaultBrush}">
+            <ScrollViewer x:Name="OutputScrollViewer"
+                          VerticalScrollBarVisibility="Auto"
+                          ViewChanged="OutputScrollViewer_ViewChanged"
+                          Padding="12,8">
+                <ItemsControl x:Name="OutputItemsControl"
+                              ItemsSource="{x:Bind ViewModel.OutputLines, Mode=OneWay}">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate x:DataType="x:String">
+                            <TextBlock Text="{x:Bind}"
+                                       FontFamily="Cascadia Mono,Consolas,monospace"
+                                       FontSize="12" TextWrapping="Wrap"
+                                       IsTextSelectionEnabled="True"
+                                       Padding="0,1" />
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </ScrollViewer>
         </Border>
 
         <!-- ═══ Collapsible Telemetry Panel ═══ -->

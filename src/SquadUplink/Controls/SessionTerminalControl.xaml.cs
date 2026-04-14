@@ -1,3 +1,4 @@
+using System.Collections.Specialized;
 using Microsoft.UI;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
@@ -36,6 +37,8 @@ public sealed partial class SessionTerminalControl : UserControl
 
     public event EventHandler<SessionState>? CloseRequested;
 
+    private bool _autoScroll = true;
+
     public SessionTerminalControl()
     {
         InitializeComponent();
@@ -45,7 +48,19 @@ public sealed partial class SessionTerminalControl : UserControl
     {
         if (d is SessionTerminalControl control)
         {
+            // Unsubscribe from old session
+            if (e.OldValue is SessionState oldSession)
+            {
+                oldSession.OutputLines.CollectionChanged -= control.OutputLines_CollectionChanged;
+            }
+
             control.UpdateBinding();
+
+            // Subscribe to new session's output
+            if (e.NewValue is SessionState newSession)
+            {
+                newSession.OutputLines.CollectionChanged += control.OutputLines_CollectionChanged;
+            }
         }
     }
 
@@ -57,24 +72,45 @@ public sealed partial class SessionTerminalControl : UserControl
         }
     }
 
+    private void OutputLines_CollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)
+    {
+        DispatcherQueue?.TryEnqueue(() =>
+        {
+            UpdateOutputDisplay();
+            if (_autoScroll)
+            {
+                TerminalScrollViewer.ChangeView(null, TerminalScrollViewer.ScrollableHeight, null);
+            }
+        });
+    }
+
     private void UpdateBinding()
     {
         var session = Session;
         if (session is null)
         {
             PlaceholderPanel.Visibility = Visibility.Visible;
-            TerminalWebView.Visibility = Visibility.Collapsed;
+            TerminalScrollViewer.Visibility = Visibility.Collapsed;
             RepoNameText.Text = "—";
             PidText.Text = string.Empty;
             StatusDot.Fill = new SolidColorBrush(ColorHelper.FromArgb(255, 158, 158, 158));
+            OutputItemsControl.ItemsSource = null;
             return;
         }
 
         PlaceholderPanel.Visibility = Visibility.Collapsed;
-        TerminalWebView.Visibility = Visibility.Visible;
+        TerminalScrollViewer.Visibility = Visibility.Visible;
         RepoNameText.Text = session.RepositoryName ?? "Unknown";
         PidText.Text = $"PID {session.ProcessId}";
         StatusDot.Fill = StatusToBrush(session.Status);
+        UpdateOutputDisplay();
+    }
+
+    private void UpdateOutputDisplay()
+    {
+        var session = Session;
+        if (session is null) return;
+        OutputItemsControl.ItemsSource = session.OutputLines;
     }
 
     private static SolidColorBrush StatusToBrush(SessionStatus status) => status switch

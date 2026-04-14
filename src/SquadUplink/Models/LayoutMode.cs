@@ -2,6 +2,7 @@ namespace SquadUplink.Models;
 
 public enum LayoutMode
 {
+    Cards,
     Tabs,
     Grid
 }

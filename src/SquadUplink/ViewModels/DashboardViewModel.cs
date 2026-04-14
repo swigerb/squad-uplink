@@ -46,13 +46,16 @@ public partial class DashboardViewModel : ViewModelBase
     private string _searchFilter = string.Empty;
 
     [ObservableProperty]
-    private bool _isGridView = true;
+    private bool _isCardsView = true;
+
+    [ObservableProperty]
+    private bool _isGridView;
 
     [ObservableProperty]
     private bool _isTabView;
 
     [ObservableProperty]
-    private LayoutMode _currentLayoutMode = LayoutMode.Tabs;
+    private LayoutMode _currentLayoutMode = LayoutMode.Cards;
 
     [ObservableProperty]
     private GridSize _currentGridSize = GridSize.Default;
@@ -77,6 +80,17 @@ public partial class DashboardViewModel : ViewModelBase
 
     [ObservableProperty]
     private bool _isFocusedMode;
+
+    [ObservableProperty]
+    private bool _hasNoSessions = true;
+
+    [ObservableProperty]
+    private string _scanStatusText = "Scanning...";
+
+    /// <summary>
+    /// Raised when the ViewModel wants the View to show the launch dialog.
+    /// </summary>
+    public event Func<Task>? LaunchDialogRequested;
 
     public ObservableCollection<SessionState> Sessions => _sessionManager.Sessions;
 
@@ -108,12 +122,31 @@ public partial class DashboardViewModel : ViewModelBase
     [RelayCommand]
     private async Task LaunchSessionAsync()
     {
+        if (LaunchDialogRequested is not null)
+        {
+            await LaunchDialogRequested.Invoke();
+        }
+        else
+        {
+            // Fallback: launch with default directory
+            await RunBusyAsync(async () =>
+            {
+                var workingDirectory = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+                await _sessionManager.LaunchSessionAsync(workingDirectory);
+                StatusMessage = "Session launched";
+                Log.Information("Session launched from dashboard");
+            }, "Launch session");
+        }
+    }
+
+    public async Task LaunchWithOptionsAsync(LaunchOptions options)
+    {
         await RunBusyAsync(async () =>
         {
-            var workingDirectory = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
-            await _sessionManager.LaunchSessionAsync(workingDirectory);
+            await _sessionManager.LaunchSessionAsync(
+                options.WorkingDirectory, options.InitialPrompt);
             StatusMessage = "Session launched";
-            Log.Information("Session launched from dashboard");
+            Log.Information("Session launched from dialog in {Dir}", options.WorkingDirectory);
         }, "Launch session");
     }
 
@@ -129,7 +162,6 @@ public partial class DashboardViewModel : ViewModelBase
     {
         if (session is null) return;
         Log.Debug("Opening session {Id}", session.Id);
-        // Navigation handled by the page code-behind
     }
 
     [RelayCommand]
@@ -186,10 +218,23 @@ public partial class DashboardViewModel : ViewModelBase
         Log.Debug("Focused mode toggled: {Mode}", IsFocusedMode);
     }
 
+    partial void OnIsCardsViewChanged(bool value)
+    {
+        if (value)
+        {
+            IsTabView = false;
+            IsGridView = false;
+            CurrentLayoutMode = LayoutMode.Cards;
+            IsGridSizeSelectorVisible = false;
+            _ = SaveLayoutPreferencesAsync();
+        }
+    }
+
     partial void OnIsGridViewChanged(bool value)
     {
         if (value)
         {
+            IsCardsView = false;
             IsTabView = false;
             CurrentLayoutMode = LayoutMode.Grid;
             IsGridSizeSelectorVisible = true;
@@ -201,6 +246,7 @@ public partial class DashboardViewModel : ViewModelBase
     {
         if (value)
         {
+            IsCardsView = false;
             IsGridView = false;
             CurrentLayoutMode = LayoutMode.Tabs;
             IsGridSizeSelectorVisible = false;
@@ -225,6 +271,7 @@ public partial class DashboardViewModel : ViewModelBase
             if (Enum.TryParse<LayoutMode>(settings.LayoutMode, out var mode))
             {
                 CurrentLayoutMode = mode;
+                IsCardsView = mode == LayoutMode.Cards;
                 IsTabView = mode == LayoutMode.Tabs;
                 IsGridView = mode == LayoutMode.Grid;
             }
@@ -277,6 +324,11 @@ public partial class DashboardViewModel : ViewModelBase
         var count = Sessions.Count;
         SessionCount = count == 1 ? "1 session" : $"{count} sessions";
         ActiveSessionCount = Sessions.Count(s => s.Status is SessionStatus.Running or SessionStatus.Launching);
+        HasNoSessions = count == 0;
+
+        ScanStatusText = count == 0
+            ? "Scanning..."
+            : $"{count} session{(count != 1 ? "s" : "")} active";
 
         // Compute total uptime
         var totalMinutes = Sessions

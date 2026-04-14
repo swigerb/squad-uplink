@@ -96,9 +96,16 @@ public class DashboardViewModelTests
         vm.IsGridView = true;
         Assert.True(vm.IsGridView);
         Assert.False(vm.IsTabView);
+        Assert.False(vm.IsCardsView);
 
         vm.IsTabView = true;
         Assert.True(vm.IsTabView);
+        Assert.False(vm.IsGridView);
+        Assert.False(vm.IsCardsView);
+
+        vm.IsCardsView = true;
+        Assert.True(vm.IsCardsView);
+        Assert.False(vm.IsTabView);
         Assert.False(vm.IsGridView);
     }
 
@@ -157,10 +164,10 @@ public class DashboardViewModelTests
     }
 
     [Fact]
-    public void LayoutMode_DefaultsToTabs()
+    public void LayoutMode_DefaultsToCards()
     {
         var vm = CreateViewModel();
-        Assert.Equal(LayoutMode.Tabs, vm.CurrentLayoutMode);
+        Assert.Equal(LayoutMode.Cards, vm.CurrentLayoutMode);
     }
 
     [Fact]
@@ -176,8 +183,7 @@ public class DashboardViewModelTests
     public void LayoutToggle_SwitchesToGrid_SetsLayoutMode()
     {
         var vm = CreateViewModel();
-        // Force a state change — default _isGridView is true, so toggle off then on
-        vm.IsTabView = true;
+        // Start in Cards mode (default), switch to Grid
         vm.IsGridView = true;
         Assert.Equal(LayoutMode.Grid, vm.CurrentLayoutMode);
         Assert.True(vm.IsGridSizeSelectorVisible);
@@ -187,8 +193,7 @@ public class DashboardViewModelTests
     public void LayoutToggle_SwitchesToTabs_HidesGridSelector()
     {
         var vm = CreateViewModel();
-        // First ensure we're in Grid mode, then switch to Tabs
-        vm.IsTabView = true;
+        // Switch to Grid, then Tabs
         vm.IsGridView = true;
         vm.IsTabView = true;
         Assert.Equal(LayoutMode.Tabs, vm.CurrentLayoutMode);
@@ -208,7 +213,8 @@ public class DashboardViewModelTests
     public void GridSizeIndex_ChangesGridSize()
     {
         var vm = CreateViewModel();
-        // Default _selectedGridSizeIndex is 0, so set a different value first to trigger change
+        // Switch to Grid mode first so index changes are meaningful
+        vm.IsGridView = true;
         vm.SelectedGridSizeIndex = 1; // 2x1
         Assert.Equal(new GridSize(2, 1), vm.CurrentGridSize);
 
@@ -376,5 +382,90 @@ public class DashboardViewModelTests
 
         mockDataService.Verify(d => d.SaveSettingsAsync(It.Is<AppSettings>(s =>
             s.LayoutMode == "Grid")), Times.AtLeastOnce);
+    }
+
+    // ═══ Phase B Tests ═══
+
+    [Fact]
+    public void HasNoSessions_TrueWhenEmpty()
+    {
+        var sessions = new ObservableCollection<SessionState>();
+        var vm = CreateViewModel(sessions);
+        Assert.True(vm.HasNoSessions);
+    }
+
+    [Fact]
+    public void HasNoSessions_FalseWhenSessionsExist()
+    {
+        var sessions = new ObservableCollection<SessionState>();
+        var vm = CreateViewModel(sessions);
+
+        sessions.Add(new SessionState
+        {
+            Id = "s1",
+            WorkingDirectory = @"C:\test",
+            Status = SessionStatus.Running,
+            StartedAt = DateTime.UtcNow
+        });
+
+        Assert.False(vm.HasNoSessions);
+    }
+
+    [Fact]
+    public void ScanStatusText_ShowsSessionCount()
+    {
+        var sessions = new ObservableCollection<SessionState>();
+        var vm = CreateViewModel(sessions);
+
+        Assert.Equal("Scanning...", vm.ScanStatusText);
+
+        sessions.Add(new SessionState
+        {
+            Id = "s1",
+            WorkingDirectory = @"C:\test",
+            Status = SessionStatus.Running,
+            StartedAt = DateTime.UtcNow
+        });
+
+        Assert.Equal("1 session active", vm.ScanStatusText);
+
+        sessions.Add(new SessionState
+        {
+            Id = "s2",
+            WorkingDirectory = @"C:\test2",
+            Status = SessionStatus.Running,
+            StartedAt = DateTime.UtcNow
+        });
+
+        Assert.Equal("2 sessions active", vm.ScanStatusText);
+    }
+
+    [Fact]
+    public void IsCardsView_DefaultIsTrue()
+    {
+        var vm = CreateViewModel();
+        Assert.True(vm.IsCardsView);
+    }
+
+    [Fact]
+    public void CardsMode_SetsCorrectLayoutMode()
+    {
+        var vm = CreateViewModel();
+        // Default is Cards
+        Assert.Equal(LayoutMode.Cards, vm.CurrentLayoutMode);
+
+        // Switch to Grid then back to Cards
+        vm.IsGridView = true;
+        Assert.Equal(LayoutMode.Grid, vm.CurrentLayoutMode);
+
+        vm.IsCardsView = true;
+        Assert.Equal(LayoutMode.Cards, vm.CurrentLayoutMode);
+        Assert.False(vm.IsGridSizeSelectorVisible);
+    }
+
+    [Fact]
+    public void LayoutModeEnum_HasCardsValue()
+    {
+        Assert.True(Enum.IsDefined(typeof(LayoutMode), LayoutMode.Cards));
     }
 }
