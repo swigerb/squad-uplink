@@ -214,7 +214,7 @@ public class IntegrationTests : IDisposable
             | 🧪 | **Hertzfeld** | Tester | Active |
             """;
 
-        var info = SquadDetector.ParseTeamFile(content);
+        var info = SquadDetector.ParseTeamFileRegex(content);
 
         Assert.Equal("Alpha Squad", info.TeamName);
         Assert.Equal("testing", info.Universe);

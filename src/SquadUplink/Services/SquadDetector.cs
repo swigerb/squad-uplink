@@ -3,6 +3,7 @@ using Microsoft.Extensions.Logging;
 using Serilog;
 using SquadUplink.Contracts;
 using SquadUplink.Core.Logging;
+using SquadUplink.Core.Services;
 using SquadUplink.Models;
 
 namespace SquadUplink.Services;
@@ -11,6 +12,7 @@ public partial class SquadDetector : ISquadDetector, IDisposable
 {
     private readonly Serilog.ILogger _logger;
     private readonly ILogger<SquadDetector>? _msLogger;
+    private readonly IMarkdownParser _markdownParser;
     private FileSystemWatcher? _watcher;
     private string? _watchedDirectory;
 
@@ -36,11 +38,17 @@ public partial class SquadDetector : ISquadDetector, IDisposable
     public SquadDetector(Serilog.ILogger logger)
     {
         _logger = logger;
+        _markdownParser = new MarkdownParser();
     }
 
     public SquadDetector(Serilog.ILogger logger, ILogger<SquadDetector>? msLogger) : this(logger)
     {
         _msLogger = msLogger;
+    }
+
+    public SquadDetector(Serilog.ILogger logger, IMarkdownParser markdownParser) : this(logger)
+    {
+        _markdownParser = markdownParser;
     }
 
     public async Task<SquadInfo?> DetectAsync(string workingDirectory, CancellationToken ct = default)
@@ -148,7 +156,41 @@ public partial class SquadDetector : ISquadDetector, IDisposable
         }
     }
 
-    internal static SquadInfo ParseTeamFile(string content)
+    internal SquadInfo ParseTeamFile(string content)
+    {
+        // Try Markdig-based parsing first
+        try
+        {
+            var parsed = _markdownParser.ParseTeamFile(content);
+            if (parsed.Members.Count > 0 || !string.IsNullOrEmpty(parsed.TeamName))
+            {
+                var info = new SquadInfo
+                {
+                    TeamName = parsed.TeamName,
+                    Universe = parsed.Universe
+                };
+                foreach (var m in parsed.Members)
+                {
+                    info.Members.Add(new SquadMember
+                    {
+                        Name = m.Name,
+                        Role = m.Role,
+                        Emoji = m.Emoji,
+                        Status = m.Status
+                    });
+                }
+                return info;
+            }
+        }
+        catch
+        {
+            // Fall through to regex-based parsing
+        }
+
+        return ParseTeamFileRegex(content);
+    }
+
+    internal static SquadInfo ParseTeamFileRegex(string content)
     {
         var info = new SquadInfo();
         var lines = content.Split('\n');
@@ -233,7 +275,21 @@ public partial class SquadDetector : ISquadDetector, IDisposable
         return info;
     }
 
-    internal static string? ParseCurrentFocus(string content)
+    internal string? ParseCurrentFocus(string content)
+    {
+        // Try Markdig-based parsing first
+        try
+        {
+            var result = _markdownParser.ParseNowFile(content);
+            if (result is not null)
+                return result;
+        }
+        catch { }
+
+        return ParseCurrentFocusRegex(content);
+    }
+
+    internal static string? ParseCurrentFocusRegex(string content)
     {
         if (string.IsNullOrWhiteSpace(content))
             return null;

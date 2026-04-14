@@ -155,14 +155,14 @@ public class SquadDetectorTests : IDisposable
     [Fact]
     public void ParseTeamFile_ExtractsTeamName()
     {
-        var info = SquadDetector.ParseTeamFile("# My Cool Team\nSome description");
+        var info = SquadDetector.ParseTeamFileRegex("# My Cool Team\nSome description");
         Assert.Equal("My Cool Team", info.TeamName);
     }
 
     [Fact]
     public void ParseTeamFile_ExtractsUniverse()
     {
-        var info = SquadDetector.ParseTeamFile("# Team\nuniverse: big-project\n");
+        var info = SquadDetector.ParseTeamFileRegex("# Team\nuniverse: big-project\n");
         Assert.Equal("big-project", info.Universe);
     }
 
@@ -178,7 +178,7 @@ public class SquadDetectorTests : IDisposable
             | 🌊 | **Bob** | Designer | idle |
             """;
 
-        var info = SquadDetector.ParseTeamFile(content);
+        var info = SquadDetector.ParseTeamFileRegex(content);
         Assert.Equal(2, info.Members.Count);
         Assert.Equal("Alice", info.Members[0].Name);
         Assert.Equal("Bob", info.Members[1].Name);
@@ -189,7 +189,7 @@ public class SquadDetectorTests : IDisposable
     [Fact]
     public void ParseTeamFile_HandlesEmptyContent()
     {
-        var info = SquadDetector.ParseTeamFile("");
+        var info = SquadDetector.ParseTeamFileRegex("");
         Assert.Equal(string.Empty, info.TeamName);
         Assert.Empty(info.Members);
     }
@@ -197,7 +197,7 @@ public class SquadDetectorTests : IDisposable
     [Fact]
     public void ParseTeamFile_HandlesNoMembers()
     {
-        var info = SquadDetector.ParseTeamFile("# Solo Squad\nNo members yet.");
+        var info = SquadDetector.ParseTeamFileRegex("# Solo Squad\nNo members yet.");
         Assert.Equal("Solo Squad", info.TeamName);
         Assert.Empty(info.Members);
     }
@@ -207,29 +207,29 @@ public class SquadDetectorTests : IDisposable
     [Fact]
     public void ParseCurrentFocus_ExtractsH2Header()
     {
-        var focus = SquadDetector.ParseCurrentFocus("## Building the dashboard\nDetails here.");
+        var focus = SquadDetector.ParseCurrentFocusRegex("## Building the dashboard\nDetails here.");
         Assert.Equal("Building the dashboard", focus);
     }
 
     [Fact]
     public void ParseCurrentFocus_ExtractsH1Header()
     {
-        var focus = SquadDetector.ParseCurrentFocus("# Current Focus\nMore info.");
+        var focus = SquadDetector.ParseCurrentFocusRegex("# Current Focus\nMore info.");
         Assert.Equal("Current Focus", focus);
     }
 
     [Fact]
     public void ParseCurrentFocus_FallsBackToFirstLine()
     {
-        var focus = SquadDetector.ParseCurrentFocus("Doing important work");
+        var focus = SquadDetector.ParseCurrentFocusRegex("Doing important work");
         Assert.Equal("Doing important work", focus);
     }
 
     [Fact]
     public void ParseCurrentFocus_ReturnsNullForEmpty()
     {
-        Assert.Null(SquadDetector.ParseCurrentFocus(""));
-        Assert.Null(SquadDetector.ParseCurrentFocus("   \n  \n  "));
+        Assert.Null(SquadDetector.ParseCurrentFocusRegex(""));
+        Assert.Null(SquadDetector.ParseCurrentFocusRegex("   \n  \n  "));
     }
 
     [Fact]
@@ -241,7 +241,7 @@ public class SquadDetectorTests : IDisposable
             ---
             Working on tests
             """;
-        var focus = SquadDetector.ParseCurrentFocus(content);
+        var focus = SquadDetector.ParseCurrentFocusRegex(content);
         Assert.Equal("Working on tests", focus);
     }
 
