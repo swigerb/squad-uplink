@@ -1,4 +1,5 @@
 using System.Collections.ObjectModel;
+using Microsoft.UI.Dispatching;
 using Serilog;
 using SquadUplink.Contracts;
 using SquadUplink.Models;
@@ -13,7 +14,9 @@ public class SessionManager : ISessionManager
     private readonly IDataService _dataService;
     private readonly INotificationService _notificationService;
     private readonly ILogger _logger;
+    private readonly DispatcherQueue? _dispatcherQueue;
     private readonly object _sessionsLock = new();
+    private readonly HashSet<int> _trackedPids = [];
     private readonly int _scanIntervalMs;
 
     public ObservableCollection<SessionState> Sessions { get; } = [];
@@ -35,7 +38,8 @@ public class SessionManager : ISessionManager
         IDataService dataService,
         INotificationService notificationService,
         ILogger logger,
-        int scanIntervalSeconds = 5)
+        int scanIntervalSeconds = 5,
+        DispatcherQueue? dispatcherQueue = null)
     {
         _scanner = scanner;
         _launcher = launcher;
@@ -44,6 +48,25 @@ public class SessionManager : ISessionManager
         _notificationService = notificationService;
         _logger = logger;
         _scanIntervalMs = scanIntervalSeconds * 1000;
+        _dispatcherQueue = dispatcherQueue ?? ResolveDispatcherQueue();
+    }
+
+    private static DispatcherQueue? ResolveDispatcherQueue()
+    {
+        try { return DispatcherQueue.GetForCurrentThread(); }
+        catch (System.Runtime.InteropServices.COMException) { return null; }
+    }
+
+    /// <summary>
+    /// Runs an action on the UI thread if a dispatcher is available,
+    /// or directly if there is no dispatcher (unit-test context).
+    /// </summary>
+    private void RunOnUIThread(Action action)
+    {
+        if (_dispatcherQueue is null || _dispatcherQueue.HasThreadAccess)
+            action();
+        else
+            _dispatcherQueue.TryEnqueue(() => action());
     }
 
     public async Task StartScanningAsync(CancellationToken ct = default)
@@ -79,34 +102,40 @@ public class SessionManager : ISessionManager
 
         foreach (var session in discovered)
         {
-            bool alreadyTracked;
             lock (_sessionsLock)
             {
-                alreadyTracked = Sessions.Any(s => s.ProcessId == session.ProcessId);
+                if (_trackedPids.Contains(session.ProcessId))
+                    continue;
             }
-
-            if (alreadyTracked)
-                continue;
 
             try
             {
                 session.Squad = await _squadDetector.DetectAsync(session.WorkingDirectory, ct);
+                session.Status = SessionStatus.Running;
             }
             catch (Exception ex)
             {
                 _logger.Warning(ex, "Squad detection failed for session {Id}", session.Id);
+                session.Status = SessionStatus.Running;
             }
 
             lock (_sessionsLock)
             {
-                // Double-check after async gap
-                if (!Sessions.Any(s => s.ProcessId == session.ProcessId))
+                // Double-check after async gap (another scan cycle may have added it)
+                if (!_trackedPids.Add(session.ProcessId))
+                    continue;
+            }
+
+            RunOnUIThread(() =>
+            {
+                lock (_sessionsLock)
                 {
                     Sessions.Add(session);
-                    _logger.Information("Discovered session {Id} (PID {Pid}) in {Dir}",
-                        session.Id, session.ProcessId, session.WorkingDirectory);
                 }
-            }
+            });
+
+            _logger.Information("Discovered session {Id} (PID {Pid}) in {Dir}",
+                session.Id, session.ProcessId, session.WorkingDirectory);
 
             // Notify about discovered session
             try
@@ -128,9 +157,9 @@ public class SessionManager : ISessionManager
         lock (_sessionsLock)
         {
             toRemove = new List<SessionState>();
-            foreach (var session in Sessions)
+            foreach (var session in Sessions.ToList())
             {
-                if (session.Status is not (SessionStatus.Running or SessionStatus.Idle or SessionStatus.Launching))
+                if (session.Status is not (SessionStatus.Running or SessionStatus.Idle or SessionStatus.Launching or SessionStatus.Discovered))
                     continue;
 
                 try
@@ -153,11 +182,22 @@ public class SessionManager : ISessionManager
                 }
             }
 
+            // Update _trackedPids synchronously on background thread
             foreach (var session in toRemove)
+                _trackedPids.Remove(session.ProcessId);
+        }
+
+        // Dispatch collection removal to UI thread
+        foreach (var session in toRemove)
+        {
+            RunOnUIThread(() =>
             {
-                Sessions.Remove(session);
-                _logger.Information("Pruned completed session {Id}", session.Id);
-            }
+                lock (_sessionsLock)
+                {
+                    Sessions.Remove(session);
+                }
+            });
+            _logger.Information("Pruned completed session {Id}", session.Id);
         }
 
         // Auto-save history and notify for pruned (completed) sessions
@@ -228,8 +268,16 @@ public class SessionManager : ISessionManager
 
         lock (_sessionsLock)
         {
-            Sessions.Add(session);
+            _trackedPids.Add(session.ProcessId);
         }
+
+        RunOnUIThread(() =>
+        {
+            lock (_sessionsLock)
+            {
+                Sessions.Add(session);
+            }
+        });
 
         try
         {
