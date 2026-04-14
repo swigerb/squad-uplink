@@ -1,5 +1,7 @@
 namespace SquadUplink.Models;
 
+// Class required for WinUI XAML data binding (mutable setters needed).
+// Would otherwise be a record for value equality, per ERR-025.
 public class SessionHistoryEntry
 {
     public int Id { get; set; }

@@ -21,7 +21,7 @@ public class AppBootstrapTests
     public void ConfigureServices_BuildsValidServiceProvider()
     {
         var services = new ServiceCollection();
-        services.AddSquadUplinkServices();
+        services.AddSquadUplinkServices(new Core.Logging.InMemorySink());
 
         var provider = services.BuildServiceProvider(new ServiceProviderOptions
         {
@@ -179,7 +179,7 @@ public class AppBootstrapTests
     private static ServiceProvider BuildProvider()
     {
         var services = new ServiceCollection();
-        services.AddSquadUplinkServices();
+        services.AddSquadUplinkServices(new Core.Logging.InMemorySink());
         return services.BuildServiceProvider();
     }
 }

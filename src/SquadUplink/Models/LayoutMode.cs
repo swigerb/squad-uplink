@@ -25,7 +25,9 @@ public record GridSize(int Rows, int Columns)
 
     public static GridSize Parse(string value)
     {
-        var parts = value.Split('x');
+        ArgumentException.ThrowIfNullOrWhiteSpace(value);
+
+        var parts = value.Split('x', StringSplitOptions.RemoveEmptyEntries);
         return parts.Length == 2
             && int.TryParse(parts[0], out var r)
             && int.TryParse(parts[1], out var c)

@@ -60,7 +60,7 @@ public static class Program
                 .UseSerilog()
                 .ConfigureServices((context, services) =>
                 {
-                    services.AddSquadUplinkServices();
+                    services.AddSquadUplinkServices(DiagnosticsSink);
                 })
                 .Build();
 

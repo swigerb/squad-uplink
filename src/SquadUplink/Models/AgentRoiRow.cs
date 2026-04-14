@@ -47,6 +47,8 @@ public record AgentRoiRow
     /// </summary>
     internal static string GetAgentEmoji(string agentName)
     {
+        if (string.IsNullOrEmpty(agentName)) return "🤖";
+
         var lower = agentName.ToLowerInvariant();
         return lower switch
         {

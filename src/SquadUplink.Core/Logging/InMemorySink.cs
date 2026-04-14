@@ -25,8 +25,8 @@ public sealed class InMemorySink : ILogEventSink
     {
         _events.Enqueue(logEvent);
 
-        // Trim oldest entries when over capacity
-        while (_events.Count > _maxCapacity)
+        // Trim one oldest entry per emit (we add one, so one dequeue keeps capacity)
+        if (_events.Count > _maxCapacity)
             _events.TryDequeue(out _);
 
         LogReceived?.Invoke(logEvent);

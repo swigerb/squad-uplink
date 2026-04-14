@@ -10,14 +10,17 @@ namespace SquadUplink.Helpers;
 
 public static class ServiceCollectionExtensions
 {
-    public static IServiceCollection AddSquadUplinkServices(this IServiceCollection services)
+    public static IServiceCollection AddSquadUplinkServices(
+        this IServiceCollection services, Core.Logging.InMemorySink diagnosticsSink)
     {
+        ArgumentNullException.ThrowIfNull(diagnosticsSink);
+
         // Logging — NullLoggerFactory for now; App.xaml.cs can override with a real provider
         services.AddSingleton<ILoggerFactory, NullLoggerFactory>();
         services.AddSingleton(typeof(ILogger<>), typeof(NullLogger<>));
 
         // Diagnostics logging core
-        services.AddSingleton(Program.DiagnosticsSink);
+        services.AddSingleton(diagnosticsSink);
         services.AddSingleton<ILogPayloadFormatter, LogPayloadFormatter>();
 
         // Services

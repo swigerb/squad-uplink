@@ -8,7 +8,8 @@ namespace SquadUplink.Services;
 public class TelemetryService : ITelemetryService
 {
     private readonly IDataService _dataService;
-    private readonly ConcurrentBag<TokenUsageRecord> _records = [];
+    private readonly ConcurrentQueue<TokenUsageRecord> _records = new();
+    private const int MaxRetainedRecords = 10_000;
 
     public TelemetryService(IDataService dataService)
     {
@@ -19,7 +20,11 @@ public class TelemetryService : ITelemetryService
     {
         ArgumentNullException.ThrowIfNull(record);
 
-        _records.Add(record);
+        _records.Enqueue(record);
+        // Trim oldest when over retention limit
+        while (_records.Count > MaxRetainedRecords)
+            _records.TryDequeue(out _);
+
         try
         {
             await _dataService.SaveTokenUsageAsync(record);
@@ -63,14 +68,22 @@ public class TelemetryService : ITelemetryService
         var snapshot = _records.ToArray();
         if (snapshot.Length == 0) return 0;
 
-        var oldest = snapshot.Min(r => r.Timestamp);
-        var newest = snapshot.Max(r => r.Timestamp);
-        var span = newest - oldest;
+        // Single-pass aggregate for oldest, newest, and total cost
+        var oldest = snapshot[0].Timestamp;
+        var newest = snapshot[0].Timestamp;
+        var totalCost = 0m;
 
+        foreach (var r in snapshot)
+        {
+            if (r.Timestamp < oldest) oldest = r.Timestamp;
+            if (r.Timestamp > newest) newest = r.Timestamp;
+            totalCost += r.EstimatedCost;
+        }
+
+        var span = newest - oldest;
         if (span.TotalHours < 0.01)
             return 0;
 
-        var totalCost = snapshot.Sum(r => r.EstimatedCost);
         return totalCost / (decimal)span.TotalHours;
     }
 
@@ -89,7 +102,7 @@ public class TelemetryService : ITelemetryService
             var persisted = await _dataService.GetTokenUsageAsync();
             foreach (var record in persisted)
             {
-                _records.Add(record);
+                _records.Enqueue(record);
             }
             Log.Information("Loaded {Count} token usage records from database", persisted.Count);
         }
@@ -104,14 +117,23 @@ public class TelemetryService : ITelemetryService
         if (records.Length == 0)
             return new TokenMetrics();
 
-        var totalInput = records.Sum(r => r.InputTokens);
-        var totalOutput = records.Sum(r => r.OutputTokens);
-        var totalCost = records.Sum(r => r.EstimatedCost);
+        // Single-pass aggregate for all metrics
+        var totalInput = 0;
+        var totalOutput = 0;
+        var totalCost = 0m;
+        var oldest = records[0].Timestamp;
+        var newest = records[0].Timestamp;
 
-        var oldest = records.Min(r => r.Timestamp);
-        var newest = records.Max(r => r.Timestamp);
+        foreach (var r in records)
+        {
+            totalInput += r.InputTokens;
+            totalOutput += r.OutputTokens;
+            totalCost += r.EstimatedCost;
+            if (r.Timestamp < oldest) oldest = r.Timestamp;
+            if (r.Timestamp > newest) newest = r.Timestamp;
+        }
+
         var span = newest - oldest;
-
         var burnRate = span.TotalHours >= 0.01
             ? totalCost / (decimal)span.TotalHours
             : 0m;

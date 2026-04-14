@@ -327,8 +327,10 @@ public partial class MarkdownParser : IMarkdownParser
 
     private static string StripMarkdownFormatting(string text)
     {
-        // Remove bold/italic markers
-        return text.Replace("**", "").Replace("__", "").Replace("*", "").Replace("_", "").Trim();
+        // Remove bold/italic markers using StringBuilder to avoid intermediate string allocations
+        var sb = new StringBuilder(text);
+        sb.Replace("**", "").Replace("__", "").Replace("*", "").Replace("_", "");
+        return sb.ToString().Trim();
     }
 
     private static void ParseDecisionHeading(string headingText, out string? timestamp, out string? title)

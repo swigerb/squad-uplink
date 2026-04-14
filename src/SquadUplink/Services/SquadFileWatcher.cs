@@ -74,8 +74,15 @@ public class SquadFileWatcher : IDisposable
         lock (_lock)
         {
             _lastArgs = e;
-            _debounceTimer?.Dispose();
-            _debounceTimer = new Timer(OnDebounceElapsed, null, DebounceMs, Timeout.Infinite);
+            // Reuse existing timer via Change() to avoid allocation churn on rapid file changes
+            if (_debounceTimer is not null)
+            {
+                _debounceTimer.Change(DebounceMs, Timeout.Infinite);
+            }
+            else
+            {
+                _debounceTimer = new Timer(OnDebounceElapsed, null, DebounceMs, Timeout.Infinite);
+            }
         }
     }
 

@@ -115,7 +115,7 @@ public class DataService : IDataService
             """;
         command.Parameters.AddWithValue("$count", count);
 
-        var results = new List<SessionHistoryEntry>();
+        var results = new List<SessionHistoryEntry>(count);
         await using var reader = await command.ExecuteReaderAsync();
         while (await reader.ReadAsync())
         {
@@ -126,8 +126,8 @@ public class DataService : IDataService
                 RepositoryName = reader.IsDBNull(2) ? null : reader.GetString(2),
                 WorkingDirectory = reader.GetString(3),
                 GitHubTaskUrl = reader.IsDBNull(4) ? null : reader.GetString(4),
-                StartedAt = DateTime.Parse(reader.GetString(5)),
-                EndedAt = reader.IsDBNull(6) ? null : DateTime.Parse(reader.GetString(6)),
+                StartedAt = DateTime.ParseExact(reader.GetString(5), "O", System.Globalization.CultureInfo.InvariantCulture),
+                EndedAt = reader.IsDBNull(6) ? null : DateTime.ParseExact(reader.GetString(6), "O", System.Globalization.CultureInfo.InvariantCulture),
                 DurationSeconds = reader.IsDBNull(7) ? null : reader.GetInt32(7),
                 FinalStatus = (SessionStatus)reader.GetInt32(8),
                 AgentCount = reader.GetInt32(9),
@@ -291,7 +291,7 @@ public class DataService : IDataService
                 InputTokens = reader.GetInt32(3),
                 OutputTokens = reader.GetInt32(4),
                 EstimatedCost = (decimal)reader.GetDouble(5),
-                Timestamp = DateTime.Parse(reader.GetString(6))
+                Timestamp = DateTime.ParseExact(reader.GetString(6), "O", System.Globalization.CultureInfo.InvariantCulture)
             });
         }
         return results.AsReadOnly();

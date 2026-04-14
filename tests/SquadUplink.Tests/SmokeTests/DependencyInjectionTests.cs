@@ -1,5 +1,6 @@
 using Microsoft.Extensions.DependencyInjection;
 using SquadUplink.Contracts;
+using SquadUplink.Core.Logging;
 using SquadUplink.Helpers;
 using SquadUplink.Services;
 using SquadUplink.ViewModels;
@@ -13,11 +14,13 @@ namespace SquadUplink.Tests.SmokeTests;
 /// </summary>
 public class DependencyInjectionTests
 {
+    private static readonly InMemorySink s_testSink = new();
+
     [Fact]
     public void ServiceProvider_CanBuildWithoutErrors()
     {
         var services = new ServiceCollection();
-        services.AddSquadUplinkServices();
+        services.AddSquadUplinkServices(s_testSink);
 
         var provider = services.BuildServiceProvider();
         Assert.NotNull(provider);
@@ -36,7 +39,7 @@ public class DependencyInjectionTests
     public void ServiceProvider_CanResolveService(Type serviceType)
     {
         var services = new ServiceCollection();
-        services.AddSquadUplinkServices();
+        services.AddSquadUplinkServices(s_testSink);
         var provider = services.BuildServiceProvider();
 
         var service = provider.GetService(serviceType);
@@ -51,7 +54,7 @@ public class DependencyInjectionTests
     public void ServiceProvider_CanResolveViewModel(Type vmType)
     {
         var services = new ServiceCollection();
-        services.AddSquadUplinkServices();
+        services.AddSquadUplinkServices(s_testSink);
         var provider = services.BuildServiceProvider();
 
         var vm = provider.GetService(vmType);
@@ -62,7 +65,7 @@ public class DependencyInjectionTests
     public void ServiceProvider_SingletonServicesReturnSameInstance()
     {
         var services = new ServiceCollection();
-        services.AddSquadUplinkServices();
+        services.AddSquadUplinkServices(s_testSink);
         var provider = services.BuildServiceProvider();
 
         var scanner1 = provider.GetService<IProcessScanner>();
@@ -74,7 +77,7 @@ public class DependencyInjectionTests
     public void ServiceProvider_TransientViewModelsReturnNewInstances()
     {
         var services = new ServiceCollection();
-        services.AddSquadUplinkServices();
+        services.AddSquadUplinkServices(s_testSink);
         var provider = services.BuildServiceProvider();
 
         var vm1 = provider.GetService<DashboardViewModel>();
@@ -86,7 +89,7 @@ public class DependencyInjectionTests
     public void AllRegisteredServices_ImplementTheirInterfaces()
     {
         var services = new ServiceCollection();
-        services.AddSquadUplinkServices();
+        services.AddSquadUplinkServices(s_testSink);
         var provider = services.BuildServiceProvider();
 
         Assert.IsAssignableFrom<IProcessScanner>(provider.GetRequiredService<IProcessScanner>());
