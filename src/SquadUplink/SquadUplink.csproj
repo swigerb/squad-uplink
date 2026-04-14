@@ -18,7 +18,7 @@
     <WindowsPackageType>None</WindowsPackageType>
     <!-- WMC1506: False positive for x:Bind properties using Bindings.Update() as notification mechanism -->
     <!-- MSB3277: WinRT.Runtime 2.1 vs 2.2 binding conflict between microsoft.windows.sdk.net.ref
-         and CsWinRT projections (WebView2, H.NotifyIcon, CommunityToolkit, WinAppSDK).
+         and CsWinRT projections (H.NotifyIcon, CommunityToolkit, WinAppSDK).
          Known .NET 10 + Windows App SDK 1.7 ecosystem mismatch — resolves correctly at runtime. -->
     <NoWarn>$(NoWarn);MVVMTK0045;WMC1506;MSB3277</NoWarn>
     <MrtCoreGenPriFileEnabled>false</MrtCoreGenPriFileEnabled>
@@ -28,7 +28,6 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Content Include="wwwroot\**" CopyToOutputDirectory="PreserveNewest" />
     <Content Include="Assets\**" CopyToOutputDirectory="PreserveNewest" />
     <Content Include="appsettings.json" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
@@ -46,10 +45,6 @@
     <PackageReference Include="Serilog.Sinks.Debug" Version="3.0.0" />
     <PackageReference Include="Serilog.Sinks.InMemory" Version="0.11.0" />
     <PackageReference Include="Microsoft.Data.Sqlite" Version="10.0.0-preview.5.25277.114" />
-    <!-- Pin WebView2 to latest version — Windows App SDK 1.7 pulls in an older
-         version (1.0.2903.40) whose CsWinRT projection is incompatible with .NET 10
-         (GetVirtualMethodTableInfoForKey TypeLoadException). Pinning to latest. -->
-    <PackageReference Include="Microsoft.Web.WebView2" Version="1.0.3856.49" />
     <PackageReference Include="System.Drawing.Common" Version="10.0.5" />
     <PackageReference Include="System.Management" Version="9.0.5" />
     <PackageReference Include="Velopack" Version="0.0.1251" />

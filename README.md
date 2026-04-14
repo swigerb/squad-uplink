@@ -18,7 +18,7 @@ Squad Uplink is a native Windows 11 desktop application that serves as your miss
 - **Session Launcher** — Start new sessions with repo picker, model selection, and custom arguments
 - **Multi-Session Layouts** — Cards, Tabs, and Grid view with one-click layout toggle
 - **GitHub Task URL Deep-Linking** — Click through to the Copilot CLI remote task viewer
-- **Live Terminal Output** — xterm.js-powered terminal via WebView2 with stdout/stderr capture
+- **Live Terminal Output** — Native RichTextBlock terminal with stdout/stderr capture
 - **SQLite Session History** — Full session persistence with resume across app restarts
 
 ### 📊 Enterprise Telemetry
@@ -127,7 +127,7 @@ Squad Uplink will receive token usage in real-time and update the Burn Rate, Con
 | **ProcessScanner** | WMI queries to find `copilot.exe` processes with `--remote` flag |
 | **SessionManager** | CRUD + scan cycle + auto-prune for active sessions |
 | **ProcessLauncher** | Spawns new Copilot CLI processes with configurable arguments |
-| **OutputCapture** | Pipes process stdout/stderr to the xterm.js terminal control |
+| **OutputCapture** | Pipes process stdout/stderr to the native terminal control |
 | **SquadDetector** | Parses `.squad/team.md` hierarchies and sub-squads |
 | **SquadFileWatcher** | FileSystemWatcher with debounce for `.squad/` directory changes |
 | **TelemetryService** | Aggregates token usage records, calculates burn rate and ROI |
@@ -147,7 +147,7 @@ Squad Uplink will receive token usage in real-time and update the Burn Rate, Con
 | `AgentRoiWidget` | Cost per decision committed |
 | `TokenGaugeControl` | Visual token budget indicator |
 | `TimelineScrubber` | Session history replay scrubber |
-| `SessionTerminalControl` | xterm.js terminal via WebView2 |
+| `SessionTerminalControl` | Native XAML terminal output display |
 | `SessionLayoutControl` | Tab/Card/Grid layout switcher |
 | `GridLayoutPanel` | Responsive grid for multi-session view |
 | `SquadTreeControl` | TreeView for Squad agent hierarchy |
@@ -170,7 +170,7 @@ Squad Uplink will receive token usage in real-time and update the Burn Rate, Con
 | **Logging** | Serilog | 4.3.0 | File + Debug + InMemory + Custom sinks |
 | **Database** | Microsoft.Data.Sqlite | 10.0 preview | Session history, settings, telemetry |
 | **Markdown** | Markdig | 0.38.0 | Squad file parsing, diagnostic report export |
-| **Web Control** | WebView2 | 1.0.3856.49 | xterm.js terminal, telemetry charts |
+| **Terminal** | Native WinUI XAML | — | RichTextBlock-based terminal output |
 | **Updates** | Velopack | 0.0.1251 | Self-contained EXE with delta patching |
 | **Process API** | System.Management | 9.0.5 | WMI-based process discovery |
 | **DI** | Microsoft.Extensions.DependencyInjection | 10.0 preview | Constructor injection throughout |
@@ -274,7 +274,6 @@ squad-uplink/
 │   │   ├── Converters/                 # Value converters (Bool, Level, Status, TimeAgo)
 │   │   ├── Helpers/                    # DI registration extensions
 │   │   ├── Assets/                     # Icons, audio, application resources
-│   │   ├── wwwroot/                    # Static web content for WebView2
 │   │   ├── Program.cs                  # Entry point: Velopack + Serilog + DI + WinUI
 │   │   └── App.xaml.cs                 # WinUI app: splash, service init, error handling
 │   └── SquadUplink.Core/              # Shared library
@@ -291,9 +290,7 @@ squad-uplink/
 │       ├── Integration/                # Real Squad file tests
 │       └── EndToEnd/                   # Bootstrap, integration, regression tests
 ├── scripts/
-│   ├── build-release.ps1               # Velopack release packaging
-│   ├── generate-icons.mjs              # Icon asset generation
-│   └── squad-rc-launch.mjs            # Squad RC launch helper
+│   └── build-release.ps1               # Velopack release packaging
 ├── SquadUplink.sln                     # Solution file
 ├── Directory.Build.props               # Shared build properties
 └── README.md                           # You are here

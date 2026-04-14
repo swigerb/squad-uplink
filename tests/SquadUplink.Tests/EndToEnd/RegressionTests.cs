@@ -194,7 +194,7 @@ public class RegressionTests
     // version pulled in by Windows App SDK. We pin to >= 1.0.3856.49.
 
     [Fact]
-    public void WebView2PackageVersion_IsAtLeastRequired()
+    public void WebView2PackageReference_IsAbsent()
     {
         var repoRoot = FindRepoRoot();
         if (repoRoot is null) return;
@@ -208,17 +208,8 @@ public class RegressionTests
         var webView2Ref = doc.Descendants(ns + "PackageReference")
             .FirstOrDefault(e => e.Attribute("Include")?.Value == "Microsoft.Web.WebView2");
 
-        Assert.NotNull(webView2Ref);
-
-        var versionStr = webView2Ref!.Attribute("Version")?.Value;
-        Assert.NotNull(versionStr);
-
-        // Parse the version and compare
-        Assert.True(Version.TryParse(versionStr, out var version),
-            $"Could not parse WebView2 version: {versionStr}");
-        Assert.True(version >= new Version(1, 0, 3856, 49),
-            $"WebView2 version {version} is below minimum 1.0.3856.49 — " +
-            $"this was the version that fixed the CsWinRT TypeLoadException crash");
+        // WebView2 was removed — terminal uses native RichTextBlock, not WebView2
+        Assert.Null(webView2Ref);
     }
 
     // ── Velopack Package Reference Exists ───────────────────────
