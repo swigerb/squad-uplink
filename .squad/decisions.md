@@ -1372,3 +1372,62 @@ Use Uno Platform for cross-platform (WinUI 3 desktop + iOS mobile). Use Markdig 
 
 **Rationale:** User directive—architecture guidance for production implementation.
 
+
+---
+
+## Settings Page Redesign: Expanders → MESS-style NavigationView
+
+**By:** Kare (Frontend Dev)
+**Date:** 2026-04-08
+**Status:** Implemented
+
+### What
+
+Replaced the SettingsPage's 7 stacked `Expander` controls with a `NavigationView` sidebar + card-based content layout, matching the Microsoft Edge Settings (MESS) pattern. Added an opaque page background to fix translucency/readability issues.
+
+### Why
+
+Two user-reported problems: (1) Settings text was hard to read because the page inherited the MainWindow's translucent Mica background — no explicit `Background` was set on the Page. (2) All settings categories were stacked vertically in Expanders, requiring users to expand/collapse to navigate — no clear grouping or navigation.
+
+### Changes
+
+- `src/SquadUplink/Views/SettingsPage.xaml` — Full redesign. NavigationView with `PaneDisplayMode="Left"`, 220px sidebar with 7 icon+label categories. Content area shows one category at a time with card-style borders. All x:Bind expressions preserved exactly.
+- `src/SquadUplink/Views/SettingsPage.xaml.cs` — Added `ShowSection()` method for panel visibility toggling, `SettingsNav_Loaded` for initial selection, `SettingsNav_SelectionChanged` handler.
+- No changes to `SettingsViewModel.cs` or `AppSettings.cs`.
+
+### Risk
+
+Low. All existing bindings preserved. Build: 0 errors, 0 warnings. 661 tests pass (20 pre-existing scanner failures unrelated).
+
+---
+
+## Marshal ObservableCollection mutations to UI thread in SessionManager
+
+**Author:** Woz (Lead Dev)
+**Date:** 2026-04-14
+**Status:** Implemented
+
+### Context
+
+Two "Session scan cycle failed" errors occur at app startup. The root cause is cross-thread `ObservableCollection` modification. `App.xaml.cs` starts scanning via `Task.Run(() => sessionManager.StartScanningAsync(...))`, so `Sessions.Add()` and `Sessions.Remove()` execute on a background thread. WinUI XAML bindings (ItemsRepeater on `DashboardPage.xaml`) subscribe to `CollectionChanged` and throw `COMException (RPC_E_WRONG_THREAD)` when the event fires off the UI thread.
+
+### Decision
+
+All `ObservableCollection<SessionState>` mutations in `SessionManager` are dispatched to the UI thread via `DispatcherQueue.TryEnqueue`. A `HashSet<int> _trackedPids` provides synchronous, race-safe PID tracking on the background thread since `Sessions.Add` is now asynchronously dispatched.
+
+### Key Design Choices
+
+1. **RunOnUIThread helper** — Direct call when no dispatcher (test context) or `HasThreadAccess` is true; `TryEnqueue` otherwise.
+2. **_trackedPids** — Prevents duplicate-add races between scan cycles when `Sessions.Add` dispatch hasn't executed yet.
+3. **Constructor chain** — Production constructor resolves dispatcher via `DispatcherQueue.GetForCurrentThread()` (matching `DashboardViewModel` pattern); test constructor accepts optional `DispatcherQueue? dispatcherQueue = null`.
+4. **Snapshot iteration** — `PruneExitedSessionsAsync` uses `Sessions.ToList()` to avoid iterating and removing in the same collection simultaneously.
+
+### Alternatives Considered
+
+- **BindingOperations.EnableCollectionSynchronization** — Not available in WinUI 3 (WPF-only API).
+- **Dispatcher in ViewModel only** — Would still leave `SessionManager.Sessions` modified on background thread; any direct subscriber would still crash.
+- **Replace ObservableCollection with custom thread-safe collection** — Higher complexity, breaks existing XAML binding patterns.
+
+### Risk
+
+Low. Pattern matches existing codebase conventions (`DashboardViewModel`, `TrayIconService`). No new dependencies. All 12 SessionManager tests pass.
