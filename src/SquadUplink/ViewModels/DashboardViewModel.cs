@@ -177,8 +177,10 @@ public partial class DashboardViewModel : ViewModelBase
         SubscribeToFileWatcher();
     }
 
-    private void OnSessionsChanged(object? sender, System.Collections.Specialized.NotifyCollectionChangedEventArgs e) => UpdateStats();
-    private void OnLogReceived(Serilog.Events.LogEvent _) => UpdateErrorCount();
+    private void OnSessionsChanged(object? sender, System.Collections.Specialized.NotifyCollectionChangedEventArgs e) =>
+        _dispatcherQueue?.TryEnqueue(UpdateStats);
+    private void OnLogReceived(Serilog.Events.LogEvent _) =>
+        _dispatcherQueue?.TryEnqueue(UpdateErrorCount);
 
     [RelayCommand]
     private async Task LaunchSessionAsync()
