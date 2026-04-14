@@ -3,6 +3,7 @@ using System.Management;
 using System.Text.RegularExpressions;
 using Serilog;
 using SquadUplink.Contracts;
+using SquadUplink.Helpers;
 using SquadUplink.Models;
 
 namespace SquadUplink.Services;
@@ -300,7 +301,7 @@ public partial class ProcessScanner : IProcessScanner
                         catch (System.ComponentModel.Win32Exception) { /* access denied */ }
                         catch (ArgumentException) { /* process not found */ }
 
-                        snapshots.Add(new ProcessInfoSnapshot(pid, name, cmdLine, null, startTime, parentPid));
+                        snapshots.Add(new ProcessInfoSnapshot(pid, name, cmdLine, NativeMethods.GetProcessWorkingDirectory(pid), startTime, parentPid));
                     }
                     catch (Exception ex)
                     {
@@ -326,7 +327,7 @@ public partial class ProcessScanner : IProcessScanner
                                 proc.Id,
                                 proc.ProcessName,
                                 cmdLine,
-                                null,
+                                NativeMethods.GetProcessWorkingDirectory(proc.Id),
                                 proc.StartTime,
                                 parentPid));
                         }

@@ -3,6 +3,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Navigation;
 using Serilog;
+using SquadUplink.Models;
 using SquadUplink.ViewModels;
 
 namespace SquadUplink.Views;
@@ -20,6 +21,16 @@ public sealed partial class SessionPage : Page
 
         // Auto-scroll when new output arrives
         ViewModel.OutputLines.CollectionChanged += OutputLines_CollectionChanged;
+    }
+
+    protected override void OnNavigatedTo(NavigationEventArgs e)
+    {
+        base.OnNavigatedTo(e);
+        if (e.Parameter is SessionState session)
+        {
+            ViewModel.LoadSession(session);
+            Log.Debug("SessionPage loaded session {Id}", session.Id);
+        }
     }
 
     protected override void OnNavigatedFrom(NavigationEventArgs e)

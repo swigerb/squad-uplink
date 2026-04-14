@@ -19,6 +19,7 @@ public sealed partial class DashboardPage : Page
     {
         ViewModel = App.Services.GetRequiredService<DashboardViewModel>();
         ViewModel.LaunchDialogRequested += ShowLaunchDialogAsync;
+        ViewModel.SessionOpenRequested += OnSessionOpenRequested;
         InitializeComponent();
         Log.Debug("DashboardPage initialized");
     }
@@ -26,7 +27,14 @@ public sealed partial class DashboardPage : Page
     protected override void OnNavigatedFrom(NavigationEventArgs e)
     {
         ViewModel.LaunchDialogRequested -= ShowLaunchDialogAsync;
+        ViewModel.SessionOpenRequested -= OnSessionOpenRequested;
         base.OnNavigatedFrom(e);
+    }
+
+    private void OnSessionOpenRequested(SessionState session)
+    {
+        // Navigate to SessionPage, passing the session as the parameter
+        Frame.Navigate(typeof(SessionPage), session);
     }
 
     // Helper functions for x:Bind in DataTemplates

@@ -134,6 +134,11 @@ public partial class DashboardViewModel : ViewModelBase
     /// </summary>
     public event Func<Task>? LaunchDialogRequested;
 
+    /// <summary>
+    /// Raised when a session card is opened, carrying the session to navigate to.
+    /// </summary>
+    public event Action<SessionState>? SessionOpenRequested;
+
     public ObservableCollection<SessionState> Sessions => _sessionManager.Sessions;
 
     public ObservableCollection<SquadTreeItem> SquadTreeItems { get; } = [];
@@ -231,6 +236,7 @@ public partial class DashboardViewModel : ViewModelBase
     {
         if (session is null) return;
         Log.Debug("Opening session {Id}", session.Id);
+        SessionOpenRequested?.Invoke(session);
     }
 
     [RelayCommand]
