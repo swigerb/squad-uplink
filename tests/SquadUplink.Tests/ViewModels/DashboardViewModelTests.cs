@@ -1,6 +1,7 @@
 using Microsoft.Extensions.Logging;
 using Moq;
 using SquadUplink.Contracts;
+using SquadUplink.Core.Logging;
 using SquadUplink.Models;
 using SquadUplink.ViewModels;
 using System.Collections.ObjectModel;
@@ -12,7 +13,8 @@ public class DashboardViewModelTests
 {
     private static DashboardViewModel CreateViewModel(
         ObservableCollection<SessionState>? sessions = null,
-        Mock<IDataService>? dataService = null)
+        Mock<IDataService>? dataService = null,
+        InMemorySink? sink = null)
     {
         sessions ??= new ObservableCollection<SessionState>();
         var mockSessionManager = new Mock<ISessionManager>();
@@ -27,6 +29,7 @@ public class DashboardViewModelTests
             mockSessionManager.Object,
             dataService.Object,
             mockSquadDetector.Object,
+            sink ?? new InMemorySink(),
             mockLogger.Object);
     }
 
@@ -132,6 +135,7 @@ public class DashboardViewModelTests
             mockSessionManager.Object,
             mockDataService.Object,
             new Mock<ISquadDetector>().Object,
+            new InMemorySink(),
             new Mock<ILogger<DashboardViewModel>>().Object);
 
         await vm.LaunchSessionCommand.ExecuteAsync(null);
@@ -147,18 +151,18 @@ public class DashboardViewModelTests
     }
 
     [Fact]
-    public void ErrorCount_TracksErrorSessions()
+    public void ErrorCount_TracksInMemorySinkErrors()
     {
-        var sessions = new ObservableCollection<SessionState>();
-        var vm = CreateViewModel(sessions);
+        var sink = new InMemorySink();
+        var vm = CreateViewModel(sink: sink);
 
-        sessions.Add(new SessionState
-        {
-            Id = "err-1",
-            WorkingDirectory = @"C:\test",
-            Status = SessionStatus.Error,
-            StartedAt = DateTime.UtcNow
-        });
+        // Emit an error-level event into the sink
+        sink.Emit(new Serilog.Events.LogEvent(
+            DateTimeOffset.UtcNow,
+            Serilog.Events.LogEventLevel.Error,
+            null,
+            new Serilog.Events.MessageTemplate("Test error", []),
+            []));
 
         Assert.Equal(1, vm.ErrorCount);
     }
@@ -423,6 +427,7 @@ public class DashboardViewModelTests
             mockSessionManager.Object,
             mockDataService.Object,
             new Mock<ISquadDetector>().Object,
+            new InMemorySink(),
             new Mock<ILogger<DashboardViewModel>>().Object);
 
         var session = new SessionState

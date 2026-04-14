@@ -56,6 +56,33 @@ public class LevelToForegroundConverter : IValueConverter
 }
 
 /// <summary>
+/// Maps <see cref="LogEventLevel"/> to a line-text foreground color for the inline log panel.
+/// Error/Fatal=red, Warning=amber, Debug/Verbose=gray, Info=default text color.
+/// </summary>
+public class LogLevelToLineForegroundConverter : IValueConverter
+{
+    public object Convert(object value, Type targetType, object parameter, string language)
+    {
+        if (value is LogEventLevel level)
+        {
+            return level switch
+            {
+                LogEventLevel.Fatal       => new SolidColorBrush(ColorHelper.FromArgb(255, 244, 67, 54)),
+                LogEventLevel.Error       => new SolidColorBrush(ColorHelper.FromArgb(255, 244, 67, 54)),
+                LogEventLevel.Warning     => new SolidColorBrush(ColorHelper.FromArgb(255, 255, 193, 7)),
+                LogEventLevel.Debug       => new SolidColorBrush(ColorHelper.FromArgb(255, 158, 158, 158)),
+                LogEventLevel.Verbose     => new SolidColorBrush(ColorHelper.FromArgb(255, 117, 117, 117)),
+                _                         => new SolidColorBrush(Colors.White),
+            };
+        }
+        return new SolidColorBrush(Colors.White);
+    }
+
+    public object ConvertBack(object value, Type targetType, object parameter, string language)
+        => throw new NotImplementedException();
+}
+
+/// <summary>
 /// Maps <see cref="PayloadType"/> to a user-friendly display string.
 /// </summary>
 public class PayloadTypeToStringConverter : IValueConverter

@@ -4,7 +4,9 @@ using CommunityToolkit.Mvvm.Input;
 using Microsoft.Extensions.Logging;
 using Microsoft.UI.Xaml;
 using Serilog;
+using Serilog.Events;
 using SquadUplink.Contracts;
+using SquadUplink.Core.Logging;
 using SquadUplink.Models;
 
 namespace SquadUplink.ViewModels;
@@ -14,6 +16,11 @@ public partial class DashboardViewModel : ViewModelBase
     private readonly ISessionManager _sessionManager;
     private readonly IDataService _dataService;
     private readonly ISquadDetector _squadDetector;
+    private readonly InMemorySink _diagnosticsSink;
+    private CancellationTokenSource? _uptimeCts;
+
+    /// <summary>Approximate time the application started (static, set once at class load).</summary>
+    internal static readonly DateTime AppStartedAt = DateTime.UtcNow;
 
     [ObservableProperty]
     private string _sessionCount = "0 sessions";
@@ -31,13 +38,13 @@ public partial class DashboardViewModel : ViewModelBase
     private double _cpuUsage;
 
     [ObservableProperty]
-    private string _cpuUsageDisplay = "0%";
+    private string _cpuUsageDisplay = "\u2014";
 
     [ObservableProperty]
     private double _memoryUsage;
 
     [ObservableProperty]
-    private string _memoryUsageDisplay = "0%";
+    private string _memoryUsageDisplay = "\u2014";
 
     [ObservableProperty]
     private int _errorCount;
@@ -110,17 +117,21 @@ public partial class DashboardViewModel : ViewModelBase
         ISessionManager sessionManager,
         IDataService dataService,
         ISquadDetector squadDetector,
+        InMemorySink diagnosticsSink,
         ILogger<DashboardViewModel> logger)
         : base(logger)
     {
         _sessionManager = sessionManager;
         _dataService = dataService;
         _squadDetector = squadDetector;
+        _diagnosticsSink = diagnosticsSink;
         Log.Debug("DashboardViewModel created");
         UpdateStats();
         Sessions.CollectionChanged += (_, _) => UpdateStats();
+        _diagnosticsSink.LogReceived += _ => UpdateErrorCount();
         _ = LoadRecentSessionsAsync();
         _ = LoadLayoutPreferencesAsync();
+        StartUptimeTimer();
     }
 
     [RelayCommand]
@@ -334,22 +345,48 @@ public partial class DashboardViewModel : ViewModelBase
             ? "Scanning..."
             : $"{count} session{(count != 1 ? "s" : "")} active";
 
-        // Compute total uptime
-        var totalMinutes = Sessions
-            .Where(s => s.StartedAt != default)
-            .Sum(s => (DateTime.UtcNow - s.StartedAt).TotalMinutes);
-        var hours = (int)totalMinutes / 60;
-        var mins = (int)totalMinutes % 60;
-        TotalUptime = $"{hours}h {mins}m";
-
         // Aggregate output lines
         MessagesProcessed = Sessions.Sum(s => s.OutputLines.Count);
 
-        // Error count
-        ErrorCount = Sessions.Count(s => s.Status == SessionStatus.Error);
+        UpdateUptime();
+        UpdateErrorCount();
 
         // Rebuild squad tree
         RebuildSquadTree();
+    }
+
+    private void UpdateUptime()
+    {
+        var elapsed = DateTime.UtcNow - AppStartedAt;
+        var hours = (int)elapsed.TotalHours;
+        var mins = elapsed.Minutes;
+        TotalUptime = $"{hours}h {mins}m";
+    }
+
+    private void UpdateErrorCount()
+    {
+        ErrorCount = _diagnosticsSink.GetEvents().Count(e => e.Level >= LogEventLevel.Error);
+    }
+
+    private void StartUptimeTimer()
+    {
+        _uptimeCts = new CancellationTokenSource();
+        var token = _uptimeCts.Token;
+        _ = Task.Run(async () =>
+        {
+            while (!token.IsCancellationRequested)
+            {
+                await Task.Delay(TimeSpan.FromSeconds(30), token).ConfigureAwait(false);
+                UpdateUptime();
+            }
+        }, token);
+    }
+
+    public override void Dispose()
+    {
+        _uptimeCts?.Cancel();
+        _uptimeCts?.Dispose();
+        base.Dispose();
     }
 
     private void RebuildSquadTree()

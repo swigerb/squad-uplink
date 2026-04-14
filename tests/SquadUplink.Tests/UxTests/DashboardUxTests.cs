@@ -1,6 +1,7 @@
 using Microsoft.Extensions.Logging;
 using Moq;
 using SquadUplink.Contracts;
+using SquadUplink.Core.Logging;
 using SquadUplink.Models;
 using SquadUplink.ViewModels;
 using System.Collections.ObjectModel;
@@ -31,6 +32,7 @@ public class DashboardUxTests
             mockSessionManager.Object,
             dataService.Object,
             mockSquadDetector.Object,
+            new InMemorySink(),
             mockLogger.Object);
     }
 

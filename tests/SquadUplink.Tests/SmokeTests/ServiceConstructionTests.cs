@@ -1,6 +1,7 @@
 using Microsoft.Extensions.Logging;
 using Moq;
 using SquadUplink.Contracts;
+using SquadUplink.Core.Logging;
 using SquadUplink.Models;
 using SquadUplink.Services;
 using SquadUplink.ViewModels;
@@ -119,6 +120,7 @@ public class ServiceConstructionTests
             sessionManager.Object,
             dataService.Object,
             squadDetector.Object,
+            new InMemorySink(),
             new Mock<ILogger<DashboardViewModel>>().Object);
         Assert.NotNull(vm);
     }

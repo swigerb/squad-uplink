@@ -1,6 +1,7 @@
 using Microsoft.Extensions.Logging;
 using Moq;
 using SquadUplink.Contracts;
+using SquadUplink.Core.Logging;
 using SquadUplink.Models;
 using SquadUplink.ViewModels;
 using System.Collections.ObjectModel;
@@ -27,6 +28,7 @@ public class NavigationTests
             mockSessionManager.Object,
             mockDataService.Object,
             new Mock<ISquadDetector>().Object,
+            new InMemorySink(),
             new Mock<ILogger<DashboardViewModel>>().Object);
     }
 
@@ -75,6 +77,7 @@ public class NavigationTests
             mockSessionManager.Object,
             mockDataService.Object,
             new Mock<ISquadDetector>().Object,
+            new InMemorySink(),
             new Mock<ILogger<DashboardViewModel>>().Object);
 
         sessions.Add(new SessionState

@@ -1,3 +1,4 @@
+using System.Collections.ObjectModel;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
@@ -5,8 +6,8 @@ using Microsoft.UI.Xaml.Input;
 using Microsoft.UI.Xaml.Media;
 using Serilog;
 using Serilog.Events;
-using Serilog.Sinks.InMemory;
 using SquadUplink.Contracts;
+using SquadUplink.Core.Logging;
 using SquadUplink.Models;
 using SquadUplink.ViewModels;
 using SquadUplink.Views;
@@ -17,9 +18,16 @@ namespace SquadUplink;
 public sealed partial class MainWindow : Window
 {
     private readonly ISessionManager _sessionManager;
+    private readonly Core.Logging.InMemorySink _diagnosticsSink;
+    private readonly ILogPayloadFormatter _formatter;
     private int _sessionCount;
     private string _statusMessage = "Scanning for sessions...";
     private int _logLevelIndex; // 0=Debug, 1=Info, 2=Warning, 3=Error
+    private bool _isDiagPanelOpen;
+    private DateTimeOffset _lastPanelOpenedAt = DateTimeOffset.UtcNow;
+
+    /// <summary>Log entries shown in the inline diagnostics panel.</summary>
+    internal ObservableCollection<DiagnosticLogEntry> PanelLogEntries { get; } = [];
 
     public int SessionCount
     {
@@ -84,11 +92,19 @@ public sealed partial class MainWindow : Window
         SetTitleBar(AppTitleBar);
 
         _sessionManager = App.Services.GetRequiredService<ISessionManager>();
+        _diagnosticsSink = App.Services.GetRequiredService<Core.Logging.InMemorySink>();
+        _formatter = App.Services.GetRequiredService<ILogPayloadFormatter>();
         _sessionManager.Sessions.CollectionChanged += (_, _) => UpdateStatus();
 
         // Navigate to Dashboard on startup
         ContentFrame.Navigate(typeof(DashboardPage));
         NavView.SelectedItem = NavView.MenuItems[0];
+
+        // Bind panel list to our observable collection
+        LogPanelList.ItemsSource = PanelLogEntries;
+
+        // Subscribe to new log events for the inline panel
+        _diagnosticsSink.LogReceived += OnPanelLogReceived;
 
         UpdateStatus();
         SubscribeToLogErrors();
@@ -98,12 +114,116 @@ public sealed partial class MainWindow : Window
 
     private void SubscribeToLogErrors()
     {
-        // Flash status bar when an error is logged via InMemorySink
-        if (InMemorySink.Instance is { } sink)
+        // Flash status bar when an error is logged via Serilog InMemorySink
+        if (Serilog.Sinks.InMemory.InMemorySink.Instance is { })
         {
             // Poll is lightweight — InMemorySink doesn't expose events,
             // so we check on session updates and diagnostics opens instead.
         }
+    }
+
+    // ── Inline Diagnostics Panel ──────────────────────────────
+
+    private const int MaxPanelEntries = 200;
+
+    private void OnPanelLogReceived(LogEvent logEvent)
+    {
+        DispatcherQueue.TryEnqueue(() =>
+        {
+            var rendered = logEvent.RenderMessage();
+            var fullMsg = rendered + (logEvent.Exception is not null ? $"\n{logEvent.Exception}" : "");
+            var entry = new DiagnosticLogEntry
+            {
+                Time = logEvent.Timestamp.ToString("HH:mm:ss.fff"),
+                Level = logEvent.Level,
+                LevelTag = DiagnosticsViewModel.ToLevelTag(logEvent.Level),
+                Source = DiagnosticsViewModel.TrimSource(DiagnosticsViewModel.GetSourceContext(logEvent)),
+                ShortMessage = DiagnosticsViewModel.Truncate(rendered, 200),
+                FullMessage = fullMsg,
+                FormattedPayload = _formatter.FormatPayload(fullMsg),
+                PayloadType = _formatter.DetectPayloadType(fullMsg),
+            };
+
+            PanelLogEntries.Add(entry);
+
+            // Trim oldest when over capacity
+            while (PanelLogEntries.Count > MaxPanelEntries)
+                PanelLogEntries.RemoveAt(0);
+
+            // Auto-scroll to bottom when panel is open
+            if (_isDiagPanelOpen && LogPanelList.Items.Count > 0)
+                LogPanelList.ScrollIntoView(LogPanelList.Items[^1]);
+
+            // Update error badge when panel is closed
+            UpdateDiagnosticsBadge(logEvent);
+        });
+    }
+
+    private void UpdateDiagnosticsBadge(LogEvent logEvent)
+    {
+        if (!_isDiagPanelOpen && logEvent.Level >= LogEventLevel.Error)
+        {
+            var errorCount = _diagnosticsSink.GetEvents()
+                .Count(ev => ev.Level >= LogEventLevel.Error && ev.Timestamp > _lastPanelOpenedAt);
+            if (errorCount > 0)
+            {
+                DiagErrorBadge.Text = $"({errorCount})";
+                DiagErrorBadge.Visibility = Visibility.Visible;
+            }
+        }
+    }
+
+    private void DiagToggle_Checked(object sender, RoutedEventArgs e)
+    {
+        _isDiagPanelOpen = true;
+        _lastPanelOpenedAt = DateTimeOffset.UtcNow;
+        DiagToggleGlyph.Text = "▼";
+        DiagErrorBadge.Visibility = Visibility.Collapsed;
+        DiagnosticsPanel.Visibility = Visibility.Visible;
+
+        // Refresh panel entries from sink
+        RefreshPanelEntries();
+
+        // Auto-scroll to bottom
+        if (LogPanelList.Items.Count > 0)
+            LogPanelList.ScrollIntoView(LogPanelList.Items[^1]);
+    }
+
+    private void DiagToggle_Unchecked(object sender, RoutedEventArgs e)
+    {
+        _isDiagPanelOpen = false;
+        DiagToggleGlyph.Text = "▶";
+        DiagnosticsPanel.Visibility = Visibility.Collapsed;
+    }
+
+    private void RefreshPanelEntries()
+    {
+        PanelLogEntries.Clear();
+        var events = _diagnosticsSink.GetEvents();
+
+        // Show last N entries (oldest to newest for chronological display)
+        var recent = events.Skip(Math.Max(0, events.Count - MaxPanelEntries));
+        foreach (var e in recent)
+        {
+            var rendered = e.RenderMessage();
+            var fullMsg = rendered + (e.Exception is not null ? $"\n{e.Exception}" : "");
+            PanelLogEntries.Add(new DiagnosticLogEntry
+            {
+                Time = e.Timestamp.ToString("HH:mm:ss.fff"),
+                Level = e.Level,
+                LevelTag = DiagnosticsViewModel.ToLevelTag(e.Level),
+                Source = DiagnosticsViewModel.TrimSource(DiagnosticsViewModel.GetSourceContext(e)),
+                ShortMessage = DiagnosticsViewModel.Truncate(rendered, 200),
+                FullMessage = fullMsg,
+                FormattedPayload = _formatter.FormatPayload(fullMsg),
+                PayloadType = _formatter.DetectPayloadType(fullMsg),
+            });
+        }
+    }
+
+    private void ClearPanelLogs_Click(object sender, RoutedEventArgs e)
+    {
+        PanelLogEntries.Clear();
     }
 
     private async void OpenDiagnostics_Click(object sender, RoutedEventArgs e)
@@ -148,7 +268,7 @@ public sealed partial class MainWindow : Window
             FooterStatusText.Text = StatusMessage;
 
             // Check for recent errors in the InMemorySink
-            var recentErrors = InMemorySink.Instance?.LogEvents
+            var recentErrors = Serilog.Sinks.InMemory.InMemorySink.Instance?.LogEvents
                 .Where(e => e.Level >= LogEventLevel.Error)
                 .OrderByDescending(e => e.Timestamp)
                 .FirstOrDefault();

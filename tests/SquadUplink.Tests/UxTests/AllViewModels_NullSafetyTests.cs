@@ -34,6 +34,7 @@ public class AllViewModels_NullSafetyTests
             mockSessionManager.Object,
             mockDataService.Object,
             new Mock<ISquadDetector>().Object,
+            new InMemorySink(),
             new Mock<ILogger<DashboardViewModel>>().Object);
 
         Assert.NotNull(vm);
@@ -58,9 +59,10 @@ public class AllViewModels_NullSafetyTests
             mockSessionManager.Object,
             mockDataService.Object,
             new Mock<ISquadDetector>().Object,
+            new InMemorySink(),
             new Mock<ILogger<DashboardViewModel>>().Object);
 
-        // Minimal session — no repo name, no URL, no squad
+        // Minimal session— no repo name, no URL, no squad
         sessions.Add(new SessionState
         {
             Id = "minimal",
@@ -86,9 +88,10 @@ public class AllViewModels_NullSafetyTests
             mockSessionManager.Object,
             mockDataService.Object,
             new Mock<ISquadDetector>().Object,
+            new InMemorySink(),
             new Mock<ILogger<DashboardViewModel>>().Object);
 
-        // All status types at once
+        // All status typesat once
         foreach (var status in Enum.GetValues<SessionStatus>())
         {
             sessions.Add(new SessionState

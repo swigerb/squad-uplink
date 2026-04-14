@@ -5,10 +5,16 @@
     xmlns:local="using:SquadUplink"
     xmlns:views="using:SquadUplink.Views"
     xmlns:controls="using:SquadUplink.Controls"
+    xmlns:converters="using:SquadUplink.Converters"
     xmlns:auto="using:Microsoft.UI.Xaml.Automation"
     Title="Squad Uplink">
 
     <Grid>
+        <Grid.Resources>
+            <converters:LevelToBrushConverter x:Key="PanelLevelBrush" />
+            <converters:LevelToForegroundConverter x:Key="PanelLevelFg" />
+            <converters:LogLevelToLineForegroundConverter x:Key="PanelLineFg" />
+        </Grid.Resources>
         <Grid.KeyboardAccelerators>
             <!-- Ctrl+Tab: Next session -->
             <KeyboardAccelerator Key="Tab" Modifiers="Control"
@@ -136,6 +142,103 @@
             <Frame x:Name="ContentFrame" />
         </NavigationView>
 
+        <!-- Diagnostics Log Panel (expands upward from footer) -->
+        <Border x:Name="DiagnosticsPanel" Grid.Row="1"
+                VerticalAlignment="Bottom"
+                Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                BorderThickness="0,1,0,0"
+                Height="300"
+                Visibility="Collapsed">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="*" />
+                </Grid.RowDefinitions>
+
+                <!-- Panel toolbar -->
+                <Grid Grid.Row="0" Padding="8,4"
+                      Background="{ThemeResource CardBackgroundFillColorSecondaryBrush}"
+                      BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                      BorderThickness="0,0,0,1">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+
+                    <TextBlock Grid.Column="0" Text="Diagnostics"
+                               FontSize="12" FontWeight="SemiBold"
+                               VerticalAlignment="Center" Margin="4,0,12,0" />
+
+                    <!-- Log level dropdown (moved from footer) -->
+                    <ComboBox x:Name="PanelLogLevelCombo" Grid.Column="1"
+                              VerticalAlignment="Center" FontSize="11" MinWidth="100"
+                              SelectedIndex="{x:Bind LogLevelIndex, Mode=TwoWay}">
+                        <ComboBoxItem Content="🔍 Debug" />
+                        <ComboBoxItem Content="ℹ️ Info" />
+                        <ComboBoxItem Content="🟡 Warning" />
+                        <ComboBoxItem Content="🔴 Error" />
+                    </ComboBox>
+
+                    <StackPanel Grid.Column="3" Orientation="Horizontal" Spacing="4">
+                        <Button Content="Full View" FontSize="11" Padding="8,3"
+                                Click="OpenDiagnostics_Click"
+                                ToolTipService.ToolTip="Open full diagnostics dialog" />
+                        <Button FontSize="11" Padding="6,3"
+                                Click="ClearPanelLogs_Click"
+                                ToolTipService.ToolTip="Clear log entries">
+                            <FontIcon Glyph="&#xE74D;" FontSize="12" />
+                        </Button>
+                    </StackPanel>
+                </Grid>
+
+                <!-- Scrolling log entries -->
+                <ListView x:Name="LogPanelList" Grid.Row="1"
+                          Padding="4,2" SelectionMode="None"
+                          ScrollViewer.VerticalScrollBarVisibility="Auto"
+                          ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+                    <ListView.ItemContainerStyle>
+                        <Style TargetType="ListViewItem">
+                            <Setter Property="Padding" Value="0" />
+                            <Setter Property="Margin" Value="0" />
+                            <Setter Property="MinHeight" Value="0" />
+                            <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+                        </Style>
+                    </ListView.ItemContainerStyle>
+                    <ListView.ItemTemplate>
+                        <DataTemplate>
+                            <Grid Padding="4,2" ColumnSpacing="8">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="68" />
+                                    <ColumnDefinition Width="32" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Text="{Binding Time}" FontSize="11"
+                                           FontFamily="Cascadia Code,Cascadia Mono,Consolas"
+                                           Opacity="0.5" VerticalAlignment="Center" />
+                                <Border Grid.Column="1" CornerRadius="3" Padding="4,1"
+                                        HorizontalAlignment="Center" VerticalAlignment="Center"
+                                        Background="{Binding Level, Converter={StaticResource PanelLevelBrush}}">
+                                    <TextBlock Text="{Binding LevelTag}" FontSize="9"
+                                               FontWeight="SemiBold"
+                                               Foreground="{Binding Level, Converter={StaticResource PanelLevelFg}}" />
+                                </Border>
+                                <TextBlock Grid.Column="2" Text="{Binding ShortMessage}"
+                                           FontSize="11"
+                                           FontFamily="Cascadia Code,Cascadia Mono,Consolas"
+                                           TextTrimming="CharacterEllipsis" MaxLines="1"
+                                           Foreground="{Binding Level, Converter={StaticResource PanelLineFg}}"
+                                           VerticalAlignment="Center"
+                                           ToolTipService.ToolTip="{Binding FullMessage}" />
+                            </Grid>
+                        </DataTemplate>
+                    </ListView.ItemTemplate>
+                </ListView>
+            </Grid>
+        </Border>
+
         <!-- Footer Status Bar -->
         <Border Grid.Row="2"
                 Background="{ThemeResource CardBackgroundFillColorSecondaryBrush}"
@@ -146,7 +249,6 @@
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="Auto" />
                     <ColumnDefinition Width="*" />
-                    <ColumnDefinition Width="Auto" />
                     <ColumnDefinition Width="Auto" />
                     <ColumnDefinition Width="Auto" />
                 </Grid.ColumnDefinitions>
@@ -169,21 +271,21 @@
                                FontSize="11" Foreground="White" FontWeight="SemiBold" />
                 </Border>
 
-                <!-- Log level dropdown -->
-                <ComboBox Grid.Column="3" VerticalAlignment="Center"
-                          FontSize="11" MinWidth="100"
-                          SelectedIndex="{x:Bind LogLevelIndex, Mode=TwoWay}">
-                    <ComboBoxItem Content="🔍 Debug" />
-                    <ComboBoxItem Content="ℹ️ Info" />
-                    <ComboBoxItem Content="🟡 Warning" />
-                    <ComboBoxItem Content="🔴 Error" />
-                </ComboBox>
-
-                <!-- Diagnostics button -->
-                <Button Grid.Column="4" Content="📋 Logs"
-                        VerticalAlignment="Center" Margin="8,0,0,0"
-                        Click="OpenDiagnostics_Click"
-                        Style="{ThemeResource DefaultButtonStyle}" FontSize="11" />
+                <!-- Diagnostics toggle (triangle expander) -->
+                <ToggleButton x:Name="DiagToggle" Grid.Column="3"
+                              VerticalAlignment="Center" Margin="8,0,0,0"
+                              Padding="6,3" MinWidth="0" MinHeight="0"
+                              Background="Transparent" BorderThickness="0"
+                              Checked="DiagToggle_Checked" Unchecked="DiagToggle_Unchecked"
+                              ToolTipService.ToolTip="Toggle diagnostics panel">
+                    <StackPanel Orientation="Horizontal" Spacing="4">
+                        <TextBlock x:Name="DiagToggleGlyph" Text="▶" FontSize="10"
+                                   VerticalAlignment="Center" />
+                        <TextBlock x:Name="DiagErrorBadge" Text="" FontSize="10"
+                                   Foreground="{ThemeResource SystemFillColorCriticalBrush}"
+                                   Visibility="Collapsed" VerticalAlignment="Center" />
+                    </StackPanel>
+                </ToggleButton>
             </Grid>
         </Border>
 
