@@ -54,7 +54,9 @@ public sealed class OtlpListener : IDisposable
         _cts?.Cancel();
         _listener?.Close();
         _listener = null;
-        try { _listenTask?.Wait(TimeSpan.FromSeconds(2)); } catch { }
+        try { _listenTask?.Wait(TimeSpan.FromSeconds(2)); }
+        catch (AggregateException ex) { Log.Debug(ex, "OTLP listen task completed with errors"); }
+        catch (OperationCanceledException) { /* expected on shutdown */ }
         Log.Information("OTLP listener stopped");
     }
 
@@ -71,7 +73,9 @@ public sealed class OtlpListener : IDisposable
             try
             {
                 var context = await _listener.GetContextAsync().WaitAsync(ct);
-                _ = HandleRequestAsync(context);
+                _ = HandleRequestAsync(context).ContinueWith(
+                    t => Log.Warning(t.Exception, "Unhandled OTLP request error"),
+                    TaskContinuationOptions.OnlyOnFaulted);
             }
             catch (OperationCanceledException)
             {
@@ -118,7 +122,8 @@ public sealed class OtlpListener : IDisposable
         catch (Exception ex)
         {
             Log.Debug(ex, "Error handling OTLP request");
-            try { context.Response.StatusCode = 500; context.Response.Close(); } catch { }
+            try { context.Response.StatusCode = 500; context.Response.Close(); }
+            catch (Exception innerEx) { Log.Debug(innerEx, "Failed to send 500 response"); }
         }
     }
 

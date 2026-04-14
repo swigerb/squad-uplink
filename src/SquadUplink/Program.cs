@@ -35,6 +35,7 @@ public static class Program
         // Velopack must run before anything else — handles install/uninstall/update hooks
         Velopack.VelopackApp.Build().Run();
 
+        IHost? host = null;
         try
         {
             // Ensure crash log directory exists before anything else
@@ -55,7 +56,7 @@ public static class Program
             Log.Information("Squad Uplink starting — {Version}", typeof(Program).Assembly.GetName().Version);
 
             // Build the generic host for DI lifecycle
-            var host = Host.CreateDefaultBuilder(args)
+            host = Host.CreateDefaultBuilder(args)
                 .UseSerilog()
                 .ConfigureServices((context, services) =>
                 {
@@ -81,6 +82,14 @@ public static class Program
             Log.Fatal(ex, "FATAL: Startup failed — {Type}: {Message}",
                 ex.GetType().FullName, ex.Message);
             WriteCrashLog($"FATAL: {ex}");
+        }
+        finally
+        {
+            // Dispose IHost to flush Serilog sinks and release DI singletons
+            if (host is IAsyncDisposable asyncDisposable)
+                asyncDisposable.DisposeAsync().AsTask().GetAwaiter().GetResult();
+            else
+                host?.Dispose();
             Log.CloseAndFlush();
         }
     }

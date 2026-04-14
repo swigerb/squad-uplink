@@ -30,7 +30,7 @@ public class DataService : IDataService
         await using var connection = new SqliteConnection(ConnectionString);
         await connection.OpenAsync();
 
-        var command = connection.CreateCommand();
+        await using var command = connection.CreateCommand();
         command.CommandText = """
             CREATE TABLE IF NOT EXISTS session_history (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -69,6 +69,8 @@ public class DataService : IDataService
 
     public async Task SaveSessionHistoryAsync(SessionHistoryEntry entry)
     {
+        ArgumentNullException.ThrowIfNull(entry);
+
         await using var connection = new SqliteConnection(ConnectionString);
         await connection.OpenAsync();
 
@@ -79,7 +81,7 @@ public class DataService : IDataService
             duration = (int)(entry.EndedAt.Value - entry.StartedAt).TotalSeconds;
         }
 
-        var command = connection.CreateCommand();
+        await using var command = connection.CreateCommand();
         command.CommandText = """
             INSERT INTO session_history (session_id, repo_name, working_directory, github_task_url, started_at, ended_at, duration_seconds, status, agent_count, process_id)
             VALUES ($sessionId, $repoName, $workDir, $taskUrl, $startedAt, $endedAt, $duration, $status, $agentCount, $pid)
@@ -103,7 +105,7 @@ public class DataService : IDataService
         await using var connection = new SqliteConnection(ConnectionString);
         await connection.OpenAsync();
 
-        var command = connection.CreateCommand();
+        await using var command = connection.CreateCommand();
         command.CommandText = """
             SELECT id, session_id, repo_name, working_directory, github_task_url,
                    started_at, ended_at, duration_seconds, status, agent_count, process_id
@@ -143,7 +145,7 @@ public class DataService : IDataService
         await using var connection = new SqliteConnection(ConnectionString);
         await connection.OpenAsync();
 
-        var command = connection.CreateCommand();
+        await using var command = connection.CreateCommand();
         command.CommandText = "SELECT key, value FROM app_settings";
 
         await using var reader = await command.ExecuteReaderAsync();
@@ -178,6 +180,8 @@ public class DataService : IDataService
 
     public async Task SaveSettingsAsync(AppSettings settings)
     {
+        ArgumentNullException.ThrowIfNull(settings);
+
         await using var connection = new SqliteConnection(ConnectionString);
         await connection.OpenAsync();
 
@@ -204,7 +208,7 @@ public class DataService : IDataService
 
     private static async Task UpsertSetting(SqliteConnection connection, string key, string value)
     {
-        var command = connection.CreateCommand();
+        await using var command = connection.CreateCommand();
         command.CommandText = """
             INSERT INTO app_settings (key, value) VALUES ($key, $value)
             ON CONFLICT(key) DO UPDATE SET value = $value
@@ -216,10 +220,12 @@ public class DataService : IDataService
 
     public async Task SaveTokenUsageAsync(TokenUsageRecord record)
     {
+        ArgumentNullException.ThrowIfNull(record);
+
         await using var connection = new SqliteConnection(ConnectionString);
         await connection.OpenAsync();
 
-        var command = connection.CreateCommand();
+        await using var command = connection.CreateCommand();
         command.CommandText = """
             INSERT INTO token_usage (session_id, agent_name, model_name, input_tokens, output_tokens, estimated_cost, timestamp)
             VALUES ($sessionId, $agentName, $modelName, $inputTokens, $outputTokens, $estimatedCost, $timestamp)
@@ -240,7 +246,7 @@ public class DataService : IDataService
         await using var connection = new SqliteConnection(ConnectionString);
         await connection.OpenAsync();
 
-        var command = connection.CreateCommand();
+        await using var command = connection.CreateCommand();
         command.CommandText = """
             SELECT session_id, agent_name, model_name, input_tokens, output_tokens, estimated_cost, timestamp
             FROM token_usage
@@ -254,10 +260,12 @@ public class DataService : IDataService
 
     public async Task<IReadOnlyList<TokenUsageRecord>> GetTokenUsageBySessionAsync(string sessionId)
     {
+        ArgumentException.ThrowIfNullOrWhiteSpace(sessionId);
+
         await using var connection = new SqliteConnection(ConnectionString);
         await connection.OpenAsync();
 
-        var command = connection.CreateCommand();
+        await using var command = connection.CreateCommand();
         command.CommandText = """
             SELECT session_id, agent_name, model_name, input_tokens, output_tokens, estimated_cost, timestamp
             FROM token_usage

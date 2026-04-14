@@ -226,33 +226,39 @@ public partial class ProcessScanner : IProcessScanner
 
             foreach (ManagementObject obj in searcher.Get())
             {
-                try
+                using (obj)
                 {
-                    var pid = Convert.ToInt32(obj["ProcessId"]);
-                    var name = obj["Name"]?.ToString() ?? string.Empty;
-                    var cmdLine = obj["CommandLine"]?.ToString();
-
-                    if (name.EndsWith(".exe", StringComparison.OrdinalIgnoreCase))
-                        name = name[..^4];
-
-                    DateTime? startTime = null;
                     try
                     {
-                        using var proc = Process.GetProcessById(pid);
-                        startTime = proc.StartTime;
-                    }
-                    catch { /* Process may have exited or access denied */ }
+                        var pid = Convert.ToInt32(obj["ProcessId"]);
+                        var name = obj["Name"]?.ToString() ?? string.Empty;
+                        var cmdLine = obj["CommandLine"]?.ToString();
 
-                    snapshots.Add(new ProcessInfoSnapshot(pid, name, cmdLine, null, startTime));
-                }
-                catch
-                {
-                    // Individual process query failed — skip
+                        if (name.EndsWith(".exe", StringComparison.OrdinalIgnoreCase))
+                            name = name[..^4];
+
+                        DateTime? startTime = null;
+                        try
+                        {
+                            using var proc = Process.GetProcessById(pid);
+                            startTime = proc.StartTime;
+                        }
+                        catch (InvalidOperationException) { /* process exited */ }
+                        catch (System.ComponentModel.Win32Exception) { /* access denied */ }
+                        catch (ArgumentException) { /* process not found */ }
+
+                        snapshots.Add(new ProcessInfoSnapshot(pid, name, cmdLine, null, startTime));
+                    }
+                    catch (Exception ex)
+                    {
+                        Log.Debug(ex, "Failed to read WMI process entry");
+                    }
                 }
             }
         }
-        catch
+        catch (Exception ex)
         {
+            Log.Debug(ex, "WMI not available, falling back to Process API");
             // WMI not available — fall back to Process API
             foreach (var procName in CopilotProcessNames)
             {
@@ -269,11 +275,12 @@ public partial class ProcessScanner : IProcessScanner
                                 null,
                                 proc.StartTime));
                         }
-                        catch { /* Access denied for some process properties */ }
+                        catch (InvalidOperationException) { /* process exited */ }
+                        catch (System.ComponentModel.Win32Exception) { /* access denied */ }
                         finally { proc.Dispose(); }
                     }
                 }
-                catch { /* Process enumeration failed */ }
+                catch (Exception enumEx) { Log.Debug(enumEx, "Process enumeration failed for {Name}", procName); }
             }
         }
 

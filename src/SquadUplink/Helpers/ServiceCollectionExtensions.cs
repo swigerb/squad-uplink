@@ -33,7 +33,6 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<ITrayIconService, TrayIconService>();
         services.AddSingleton<ITelemetryService, TelemetryService>();
         services.AddSingleton<SquadFileWatcher>();
-        services.AddSingleton<ITelemetryService, TelemetryService>();
         services.AddSingleton<OtlpListener>();
 
         // ViewModels

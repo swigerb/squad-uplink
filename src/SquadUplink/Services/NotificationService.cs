@@ -33,6 +33,8 @@ public class NotificationService : INotificationService
 
     public async Task ShowSessionCompletedAsync(string repoName, TimeSpan duration)
     {
+        ArgumentException.ThrowIfNullOrWhiteSpace(repoName);
+
         if (!_initialized) return;
 
         var settings = await _dataService.GetSettingsAsync();
@@ -51,6 +53,8 @@ public class NotificationService : INotificationService
 
     public async Task ShowPermissionRequestAsync(string repoName, string sessionId)
     {
+        ArgumentException.ThrowIfNullOrWhiteSpace(repoName);
+
         if (!_initialized) return;
 
         var settings = await _dataService.GetSettingsAsync();
@@ -63,6 +67,8 @@ public class NotificationService : INotificationService
 
     public async Task ShowErrorAsync(string repoName, string errorMessage)
     {
+        ArgumentException.ThrowIfNullOrWhiteSpace(repoName);
+
         if (!_initialized) return;
 
         var settings = await _dataService.GetSettingsAsync();
@@ -75,6 +81,8 @@ public class NotificationService : INotificationService
 
     public async Task ShowSessionDiscoveredAsync(string repoName, string sessionId)
     {
+        ArgumentException.ThrowIfNullOrWhiteSpace(repoName);
+
         if (!_initialized) return;
 
         var settings = await _dataService.GetSettingsAsync();

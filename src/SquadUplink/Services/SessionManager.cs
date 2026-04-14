@@ -211,6 +211,8 @@ public class SessionManager : ISessionManager
 
     public async Task<SessionState> LaunchSessionAsync(string workingDirectory, string? initialPrompt = null)
     {
+        ArgumentException.ThrowIfNullOrWhiteSpace(workingDirectory);
+
         _logger.Information("Launching session in {Dir}", workingDirectory);
 
         var session = await _launcher.LaunchAsync(workingDirectory, initialPrompt);
@@ -252,6 +254,8 @@ public class SessionManager : ISessionManager
 
     public async Task StopSessionAsync(string sessionId)
     {
+        ArgumentException.ThrowIfNullOrWhiteSpace(sessionId);
+
         SessionState? session;
         lock (_sessionsLock)
         {

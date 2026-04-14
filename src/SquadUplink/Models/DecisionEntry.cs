@@ -1,6 +1,6 @@
 namespace SquadUplink.Models;
 
-public class DecisionEntry
+public record DecisionEntry
 {
     public DateTime Timestamp { get; set; }
     public string Author { get; set; } = string.Empty;

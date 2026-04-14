@@ -1,6 +1,6 @@
 namespace SquadUplink.Models;
 
-public class SquadTreeItem
+public record SquadTreeItem
 {
     public string DisplayText { get; set; } = string.Empty;
     public string Icon { get; set; } = string.Empty;

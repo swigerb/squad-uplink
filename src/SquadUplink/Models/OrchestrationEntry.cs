@@ -1,6 +1,6 @@
 namespace SquadUplink.Models;
 
-public class OrchestrationEntry
+public record OrchestrationEntry
 {
     public string AgentName { get; set; } = string.Empty;
     public string AgentEmoji { get; set; } = "🤖";

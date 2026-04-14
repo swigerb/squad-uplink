@@ -138,6 +138,8 @@ public partial class SquadDetector : ISquadDetector, IDisposable
         }
     }
 
+    // async void is required by FileSystemWatcher delegate signature — full-body try-catch ensures
+    // no exception can escape and crash the process.
     private async void OnSquadFileChanged(object sender, FileSystemEventArgs e)
     {
         if (_watchedDirectory is null) return;
@@ -145,7 +147,7 @@ public partial class SquadDetector : ISquadDetector, IDisposable
         try
         {
             // Small delay to allow file writes to complete
-            await Task.Delay(200);
+            await Task.Delay(200).ConfigureAwait(false);
             var info = await DetectAsync(_watchedDirectory);
             if (info is not null)
                 SquadStateChanged?.Invoke(this, info);
@@ -182,9 +184,9 @@ public partial class SquadDetector : ISquadDetector, IDisposable
                 return info;
             }
         }
-        catch
+        catch (Exception ex)
         {
-            // Fall through to regex-based parsing
+            _logger.Debug(ex, "Markdig parsing failed, falling back to regex");
         }
 
         return ParseTeamFileRegex(content);
@@ -284,7 +286,10 @@ public partial class SquadDetector : ISquadDetector, IDisposable
             if (result is not null)
                 return result;
         }
-        catch { }
+        catch (Exception ex)
+        {
+            _logger.Debug(ex, "Markdig now-file parsing failed, falling back to regex");
+        }
 
         return ParseCurrentFocusRegex(content);
     }

@@ -2,7 +2,7 @@ using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Microsoft.Extensions.Logging;
-using Microsoft.UI.Xaml;
+using Microsoft.UI.Dispatching;
 using Serilog;
 using Serilog.Events;
 using SquadUplink.Contracts;
@@ -20,6 +20,7 @@ public partial class DashboardViewModel : ViewModelBase
     private readonly ITelemetryService _telemetryService;
     private readonly SquadFileWatcher? _fileWatcher;
     private readonly InMemorySink _diagnosticsSink;
+    private readonly DispatcherQueue? _dispatcherQueue;
     private CancellationTokenSource? _uptimeCts;
     private CancellationTokenSource? _telemetryCts;
 
@@ -75,10 +76,10 @@ public partial class DashboardViewModel : ViewModelBase
     private int _selectedSessionIndex = -1;
 
     [ObservableProperty]
-    private Visibility _hasSquads = Visibility.Collapsed;
+    private bool _hasSquads;
 
     [ObservableProperty]
-    private Visibility _noSquadsVisible = Visibility.Visible;
+    private bool _noSquadsVisible = true;
 
     [ObservableProperty]
     private SquadInfo? _selectedSquad;
@@ -159,16 +160,25 @@ public partial class DashboardViewModel : ViewModelBase
         _telemetryService = telemetryService;
         _fileWatcher = fileWatcher;
         _diagnosticsSink = diagnosticsSink;
+        try { _dispatcherQueue = DispatcherQueue.GetForCurrentThread(); }
+        catch (System.Runtime.InteropServices.COMException) { _dispatcherQueue = null; }
         Log.Debug("DashboardViewModel created");
         UpdateStats();
-        Sessions.CollectionChanged += (_, _) => UpdateStats();
-        _diagnosticsSink.LogReceived += _ => UpdateErrorCount();
-        _ = LoadRecentSessionsAsync();
-        _ = LoadLayoutPreferencesAsync();
+        Sessions.CollectionChanged += OnSessionsChanged;
+        _diagnosticsSink.LogReceived += OnLogReceived;
+        _ = LoadRecentSessionsAsync().ContinueWith(
+            t => Log.Warning(t.Exception, "Failed to load recent sessions on startup"),
+            TaskContinuationOptions.OnlyOnFaulted);
+        _ = LoadLayoutPreferencesAsync().ContinueWith(
+            t => Log.Warning(t.Exception, "Failed to load layout preferences on startup"),
+            TaskContinuationOptions.OnlyOnFaulted);
         StartUptimeTimer();
         StartTelemetryRefresh();
         SubscribeToFileWatcher();
     }
+
+    private void OnSessionsChanged(object? sender, System.Collections.Specialized.NotifyCollectionChangedEventArgs e) => UpdateStats();
+    private void OnLogReceived(Serilog.Events.LogEvent _) => UpdateErrorCount();
 
     [RelayCommand]
     private async Task LaunchSessionAsync()
@@ -414,7 +424,7 @@ public partial class DashboardViewModel : ViewModelBase
             while (!token.IsCancellationRequested)
             {
                 await Task.Delay(TimeSpan.FromSeconds(30), token).ConfigureAwait(false);
-                UpdateUptime();
+                _dispatcherQueue?.TryEnqueue(UpdateUptime);
             }
         }, token);
     }
@@ -425,6 +435,8 @@ public partial class DashboardViewModel : ViewModelBase
         _uptimeCts?.Dispose();
         _telemetryCts?.Cancel();
         _telemetryCts?.Dispose();
+        Sessions.CollectionChanged -= OnSessionsChanged;
+        _diagnosticsSink.LogReceived -= OnLogReceived;
         if (_fileWatcher is not null)
             _fileWatcher.FileChanged -= OnSquadFileChanged;
         base.Dispose();
@@ -449,7 +461,7 @@ public partial class DashboardViewModel : ViewModelBase
             while (!token.IsCancellationRequested)
             {
                 await Task.Delay(TimeSpan.FromSeconds(10), token).ConfigureAwait(false);
-                RefreshTelemetryWidgets();
+                _dispatcherQueue?.TryEnqueue(RefreshTelemetryWidgets);
             }
         }, token);
     }
@@ -512,20 +524,22 @@ public partial class DashboardViewModel : ViewModelBase
         Squads.Clear();
         DecisionFeed.Clear();
         var squadsFound = false;
+        var seenTeams = new HashSet<string>(StringComparer.Ordinal);
+        var seenDecisions = new HashSet<string>(StringComparer.Ordinal);
 
         foreach (var session in Sessions)
         {
             if (session.Squad is { } squad)
             {
                 squadsFound = true;
-                if (!Squads.Any(s => s.TeamName == squad.TeamName))
+                if (seenTeams.Add(squad.TeamName))
                 {
                     Squads.Add(squad);
 
                     // Populate decision feed from squad decisions
                     foreach (var decision in squad.RecentDecisions)
                     {
-                        if (!DecisionFeed.Any(d => d.Text == decision.Text))
+                        if (seenDecisions.Add(decision.Text))
                             DecisionFeed.Add(decision);
                     }
                 }
@@ -533,8 +547,8 @@ public partial class DashboardViewModel : ViewModelBase
             }
         }
 
-        HasSquads = squadsFound ? Visibility.Visible : Visibility.Collapsed;
-        NoSquadsVisible = squadsFound ? Visibility.Collapsed : Visibility.Visible;
+        HasSquads = squadsFound;
+        NoSquadsVisible = !squadsFound;
 
         // Auto-select first squad if none selected
         if (SelectedSquad is null && Squads.Count > 0)

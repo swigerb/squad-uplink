@@ -104,7 +104,8 @@ public class ProcessLauncher : IProcessLauncher
         if (process.HasExited && process.ExitCode != 0)
         {
             var stderr = "";
-            try { stderr = await process.StandardError.ReadToEndAsync(ct); } catch { }
+            try { stderr = await process.StandardError.ReadToEndAsync(ct); }
+            catch (Exception ex) { stderr = $"(stderr read failed: {ex.Message})"; }
             throw new InvalidOperationException(
                 $"Copilot process exited immediately with code {process.ExitCode}: {stderr}");
         }

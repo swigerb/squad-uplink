@@ -141,6 +141,9 @@ public sealed class TrayIconService : ITrayIconService
             _activeIcons[i] = CreateRadarIcon(Color.FromArgb(0, 200, 83), i);
     }
 
+    [DllImport("user32.dll", SetLastError = true)]
+    private static extern bool DestroyIcon(IntPtr handle);
+
     internal static Icon CreateRadarIcon(Color accentColor, int sweepQuadrant)
     {
         using var bmp = new Bitmap(IconSize, IconSize, PixelFormat.Format32bppArgb);
@@ -170,7 +173,11 @@ public sealed class TrayIconService : ITrayIconService
             }
         }
 
-        return Icon.FromHandle(bmp.GetHicon());
+        // Clone the icon so we own the handle, then destroy the original GDI handle
+        var hicon = bmp.GetHicon();
+        var icon = (Icon)Icon.FromHandle(hicon).Clone();
+        DestroyIcon(hicon);
+        return icon;
     }
 
     private void DisposeIcons()
@@ -236,7 +243,10 @@ public sealed class TrayIconService : ITrayIconService
         {
             _trayIcon.UpdateToolTip(msg);
         }
-        catch { /* best effort */ }
+        catch (Exception ex)
+        {
+            Log.Debug(ex, "Failed to update tray icon tooltip");
+        }
     }
 
     // ── Context Menu ────────────────────────────────────────────

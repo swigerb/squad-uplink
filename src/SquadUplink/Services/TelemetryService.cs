@@ -17,6 +17,8 @@ public class TelemetryService : ITelemetryService
 
     public async Task RecordTokenUsageAsync(TokenUsageRecord record)
     {
+        ArgumentNullException.ThrowIfNull(record);
+
         _records.Add(record);
         try
         {
