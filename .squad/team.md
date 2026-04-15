@@ -23,7 +23,7 @@
 
 - **Project:** squad-uplink
 - **Owner:** Brian Swiger
-- **Stack:** TypeScript, React, Vite, xterm.js, Azure Static Web Apps, devtunnel, WebSockets
-- **Description:** A retro-themed terminal frontend (Apple IIe & Commodore 64 aesthetic) for controlling Squad agents remotely via squad-rc and Microsoft Dev Tunnels. Hosted on Azure Static Web Apps.
+- **Stack:** Node.js 22+, TypeScript, @github/copilot-sdk, ws (WebSocket), React 19, Vite 6, Tailwind CSS 4, esbuild
+- **Description:** A browser-based portal for GitHub Copilot CLI with deep Squad intelligence — session context auto-injection, live .squad/ file watching, auto-generated prompt catalogs, and 8 retro terminal themes. Built on copilot-portal by Shannon Fritz.
 - **Created:** 2026-04-05
 - **Universe:** Apple Legends (custom)

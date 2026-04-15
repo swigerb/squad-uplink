@@ -10,9 +10,9 @@
 
 Squad Uplink is a browser-based portal for GitHub Copilot CLI. Instead of being tied to a single terminal window, you can interact with your Copilot CLI sessions from any browser — phone, tablet, or a second monitor — all in real time over WebSocket.
 
-The project is built on [copilot-portal](https://github.com/shannonfritz/copilot-portal) by Shannon Fritz. Shannon's architecture does the hard work: a Node.js server bridges the `@github/copilot-sdk` IPC layer to a React SPA over WebSocket, handling multi-client fan-out, approval queuing, model switching, and CLI↔Portal sync. Squad Uplink extends that foundation with Squad-specific capabilities — reading `.squad/` files, surfacing team context, and providing hooks for orchestration visibility.
+The project is built on [copilot-portal](https://github.com/shannonfritz/copilot-portal) by Shannon Fritz. Shannon's architecture does the hard work: a Node.js server bridges the `@github/copilot-sdk` IPC layer to a React SPA over WebSocket, handling multi-client fan-out, approval queuing, model switching, and CLI↔Portal sync. Squad Uplink extends that foundation with deep Squad intelligence — auto-injecting team context into Copilot sessions, live `.squad/` file watching over WebSocket, and an auto-generated prompt catalog from agent charters.
 
-The portal ships with a retro theme system. The Pip-Boy theme is live; more are on the way. Because command-line tools deserve a little personality.
+The portal ships with 8 retro terminal themes — Pip-Boy, Apple IIe, Commodore 64, Matrix, LCARS, MU-TH-UR, W.O.P.R., and Windows 95. Because command-line tools deserve a little personality.
 
 ---
 
@@ -98,22 +98,51 @@ npm run watch:ui
 
 ## Squad Features
 
-Squad Uplink reads your repo's `.squad/` directory and surfaces team context in the portal:
+Squad Uplink integrates deeply with your repo's `.squad/` directory across three levels:
 
-- **Team roster** — parsed from `.squad/team.md`, shows agent names, roles, and status
-- **Decision log** — sourced from `.squad/decisions.md`; decisions visible without leaving the portal
-- **Agent charters** — individual charter files under `.squad/agents/{name}/charter.md`
-- **Orchestration visibility** — the portal is aware of which agents are active and what they're working on
+### Level 1 — Session Context Auto-Injection
 
-The `.squad/` integration is read-only and additive — nothing in the portal writes back to Squad files.
+Every Copilot session automatically receives your team context (roster + recent decisions) as its first message. Your AI conversations are team-aware from the start — no copy-pasting context. Opt out per session with `?squadContext=0`.
+
+### Level 2 — Live File Watching
+
+The server watches `.squad/` for changes in real time via `fs.watch()`. When a team member updates `decisions.md` or a charter, the portal broadcasts a `squad_file_changed` WebSocket event and the Squad panel auto-refreshes — no manual reload.
+
+### Level 3 — Auto-Generated Prompt Catalog
+
+Agent charters are parsed into one-click prompts (e.g., *"What is Woz responsible for?"*). These appear as a virtual "Squad" guide in the guides API alongside any custom guides, and are also available at `/api/squad/prompts`.
+
+### API Endpoints
+
+| Endpoint | Description |
+|----------|-------------|
+| `GET /api/squad/files` | List discoverable `.squad/` files |
+| `GET /api/squad/file?path=X` | Read an allowed file's content |
+| `GET /api/squad/team` | Team roster (shortcut) |
+| `GET /api/squad/decisions` | Decision log (shortcut) |
+| `GET /api/squad/guide` | Compiled team context guide |
+| `GET /api/squad/prompts` | Auto-generated prompt catalog |
+
+All file access goes through a security allowlist — only approved files are exposed. Path traversal is blocked.
 
 ---
 
 ## Themes 🎨
 
-Squad Uplink includes a retro terminal theme system. The **Pip-Boy** theme is currently live — that Fallout Vault-Tec amber glow on deep black. More themes are coming (Apple IIe green phosphor, Commodore 64 blue, and others).
+Squad Uplink includes 8 retro terminal themes, switchable from the UI:
 
-Themes are applied to the React SPA via Tailwind utility classes and CSS custom properties.
+| Theme | Vibe |
+|-------|------|
+| **Pip-Boy** | Fallout Vault-Tec amber on deep black, walking Vault Boy, CRT scanline overlay |
+| **Apple IIe** | Green phosphor on black, 80-column nostalgia |
+| **Commodore 64** | Blue-on-blue PETSCII warmth |
+| **Matrix** | Falling green rain, digital noir |
+| **LCARS** | Star Trek TNG bridge console, rounded panels |
+| **MU-TH-UR** | Alien mainframe, cold clinical interface |
+| **W.O.P.R.** | WarGames missile command aesthetic |
+| **Windows 95** | Beveled gray, start menu energy |
+
+Themes use CSS custom properties and conditional layout wrappers. The Pip-Boy theme includes a CRT overlay effect; Matrix includes animated rain. Theme selection persists via localStorage.
 
 ---
 
