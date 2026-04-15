@@ -40,6 +40,7 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<ISessionStoreService, SessionStoreService>();
         services.AddSingleton<SquadFileWatcher>();
         services.AddSingleton<OtlpListener>();
+        services.AddSingleton<CastingHistoryParser>();
 
         // ViewModels
         services.AddTransient<DashboardViewModel>();

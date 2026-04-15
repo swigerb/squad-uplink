@@ -18,6 +18,7 @@ public interface IProcessLauncher
 public interface IOutputCapture
 {
     IAsyncEnumerable<string> CaptureAsync(Process process, CancellationToken ct = default);
+    event Action<string>? RemoteUrlDetected;
 }
 
 public interface ISessionManager

@@ -17,8 +17,12 @@ public partial class OutputCapture : IOutputCapture
     [GeneratedRegex(@"(Session started|Waiting for input|Session completed|Error:)", RegexOptions.IgnoreCase)]
     internal static partial Regex StatusChangeRegex();
 
+    [GeneratedRegex(@"Remote steering active at:\s*(https?://\S+)", RegexOptions.IgnoreCase)]
+    internal static partial Regex RemoteSteeringRegex();
+
     public event Action<string>? TaskUrlDetected;
     public event Action<string>? StatusChangeDetected;
+    public event Action<string>? RemoteUrlDetected;
 
     public OutputCapture() : this(Log.Logger) { }
 
@@ -97,6 +101,14 @@ public partial class OutputCapture : IOutputCapture
                 {
                     StatusChangeDetected?.Invoke(statusMatch.Value);
                     _logger.Debug("Detected status change: {Status}", statusMatch.Value);
+                }
+
+                var remoteMatch = RemoteSteeringRegex().Match(line);
+                if (remoteMatch.Success)
+                {
+                    var url = remoteMatch.Groups[1].Value;
+                    RemoteUrlDetected?.Invoke(url);
+                    _logger.Information("Detected remote steering URL: {Url}", url);
                 }
 
                 yield return line;

@@ -14,6 +14,7 @@ public class SessionManager : ISessionManager
     private readonly IDataService _dataService;
     private readonly INotificationService _notificationService;
     private readonly ICopilotSessionService? _copilotSessionService;
+    private readonly CastingHistoryParser? _castingParser;
     private readonly ILogger _logger;
     private readonly DispatcherQueue? _dispatcherQueue;
     private readonly object _sessionsLock = new();
@@ -28,8 +29,9 @@ public class SessionManager : ISessionManager
         ISquadDetector squadDetector,
         IDataService dataService,
         INotificationService notificationService,
-        ICopilotSessionService? copilotSessionService = null)
-        : this(scanner, launcher, squadDetector, dataService, notificationService, Log.Logger, copilotSessionService: copilotSessionService)
+        ICopilotSessionService? copilotSessionService = null,
+        CastingHistoryParser? castingParser = null)
+        : this(scanner, launcher, squadDetector, dataService, notificationService, Log.Logger, copilotSessionService: copilotSessionService, castingParser: castingParser)
     {
     }
 
@@ -42,7 +44,8 @@ public class SessionManager : ISessionManager
         ILogger logger,
         int scanIntervalSeconds = 5,
         DispatcherQueue? dispatcherQueue = null,
-        ICopilotSessionService? copilotSessionService = null)
+        ICopilotSessionService? copilotSessionService = null,
+        CastingHistoryParser? castingParser = null)
     {
         _scanner = scanner;
         _launcher = launcher;
@@ -50,6 +53,7 @@ public class SessionManager : ISessionManager
         _dataService = dataService;
         _notificationService = notificationService;
         _copilotSessionService = copilotSessionService;
+        _castingParser = castingParser;
         _logger = logger;
         _scanIntervalMs = scanIntervalSeconds * 1000;
         _dispatcherQueue = dispatcherQueue ?? ResolveDispatcherQueue();
@@ -138,6 +142,20 @@ public class SessionManager : ISessionManager
             {
                 _logger.Warning(ex, "Squad detection failed for session {Id}", session.Id);
                 session.Status = SessionStatus.Running;
+            }
+
+            // Enrich with casting history (assignment ID, universe from casting)
+            if (_castingParser is not null && !string.IsNullOrEmpty(session.WorkingDirectory))
+            {
+                try
+                {
+                    session.CastingAssignmentId = await _castingParser.GetLatestAssignmentIdAsync(session.WorkingDirectory, ct);
+                    session.SquadUniverse ??= await _castingParser.GetUniverseAsync(session.WorkingDirectory, ct);
+                }
+                catch (Exception ex)
+                {
+                    _logger.Warning(ex, "Casting history enrichment failed for {Id}", session.Id);
+                }
             }
 
             lock (_sessionsLock)

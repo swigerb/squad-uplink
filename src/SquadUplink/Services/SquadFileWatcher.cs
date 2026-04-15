@@ -10,7 +10,8 @@ namespace SquadUplink.Services;
 /// </summary>
 public class SquadFileWatcher : IDisposable
 {
-    private FileSystemWatcher? _watcher;
+    private FileSystemWatcher? _mdWatcher;
+    private FileSystemWatcher? _jsonWatcher;
     private Timer? _debounceTimer;
     private readonly object _lock = new();
     private FileSystemEventArgs? _lastArgs;
@@ -29,7 +30,7 @@ public class SquadFileWatcher : IDisposable
     }
 
     /// <summary>
-    /// Begins watching the specified .squad/ directory for .md file changes.
+    /// Begins watching the specified .squad/ directory for .md and .json file changes.
     /// </summary>
     public void StartWatching(string squadDirectory)
     {
@@ -43,29 +44,42 @@ public class SquadFileWatcher : IDisposable
             return;
         }
 
-        _watcher = new FileSystemWatcher(squadDirectory)
-        {
-            IncludeSubdirectories = true,
-            NotifyFilter = NotifyFilters.LastWrite | NotifyFilters.FileName,
-            Filter = "*.md"
-        };
-        _watcher.Changed += OnChanged;
-        _watcher.Created += OnChanged;
-        _watcher.EnableRaisingEvents = true;
+        _mdWatcher = CreateWatcher(squadDirectory, "*.md");
+        _jsonWatcher = CreateWatcher(squadDirectory, "*.json");
 
         _logger.SquadFileWatcherTriggered("Started", squadDirectory);
     }
 
-    /// <summary>Stops watching and disposes the internal watcher.</summary>
+    private FileSystemWatcher CreateWatcher(string directory, string filter)
+    {
+        var watcher = new FileSystemWatcher(directory)
+        {
+            IncludeSubdirectories = true,
+            NotifyFilter = NotifyFilters.LastWrite | NotifyFilters.FileName,
+            Filter = filter
+        };
+        watcher.Changed += OnChanged;
+        watcher.Created += OnChanged;
+        watcher.EnableRaisingEvents = true;
+        return watcher;
+    }
+
+    /// <summary>Stops watching and disposes the internal watchers.</summary>
     public void StopWatching()
     {
-        if (_watcher is not null)
+        DisposeWatcher(ref _mdWatcher);
+        DisposeWatcher(ref _jsonWatcher);
+    }
+
+    private void DisposeWatcher(ref FileSystemWatcher? watcher)
+    {
+        if (watcher is not null)
         {
-            _watcher.EnableRaisingEvents = false;
-            _watcher.Changed -= OnChanged;
-            _watcher.Created -= OnChanged;
-            _watcher.Dispose();
-            _watcher = null;
+            watcher.EnableRaisingEvents = false;
+            watcher.Changed -= OnChanged;
+            watcher.Created -= OnChanged;
+            watcher.Dispose();
+            watcher = null;
         }
     }
 

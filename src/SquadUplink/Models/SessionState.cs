@@ -90,6 +90,34 @@ public partial class SessionState : ObservableObject
     [ObservableProperty]
     private string? _eventsJsonlPath;
 
+    /// <summary>Remote steering URL captured from CLI STDOUT or manual entry.</summary>
+    [ObservableProperty]
+    private string? _remoteSteeringUrl;
+
+    /// <summary>True when a remote steering URL has been captured.</summary>
+    [ObservableProperty]
+    private bool _hasRemoteUrl;
+
+    /// <summary>Parsed URI for the remote steering endpoint.</summary>
+    [ObservableProperty]
+    private Uri? _remoteSteeringUri;
+
+    /// <summary>Casting assignment ID from .squad/casting/history.json.</summary>
+    [ObservableProperty]
+    private string? _castingAssignmentId;
+
+    /// <summary>Agent decision latency in milliseconds (from casting history).</summary>
+    [ObservableProperty]
+    private double? _agentLatencyMs;
+
+    partial void OnRemoteSteeringUrlChanged(string? value)
+    {
+        HasRemoteUrl = !string.IsNullOrEmpty(value);
+        RemoteSteeringUri = HasRemoteUrl && Uri.TryCreate(value, UriKind.Absolute, out var uri) ? uri : null;
+        if (HasRemoteUrl)
+            IsRemoteEnabled = true;
+    }
+
     partial void OnGitHubTaskUrlChanged(string? value)
     {
         HasGitHubUrl = !string.IsNullOrEmpty(value);

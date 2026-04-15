@@ -57,45 +57,74 @@ public partial class SquadDetector : ISquadDetector, IDisposable
             return null;
 
         var squadDir = Path.Combine(workingDirectory, ".squad");
-        if (!Directory.Exists(squadDir))
+        var hasSquadDir = Directory.Exists(squadDir);
+
+        // Secondary indicators: squad.config.ts or .github/agents/squad.agent.md
+        var hasSquadConfig = File.Exists(Path.Combine(workingDirectory, "squad.config.ts"));
+        var hasSquadAgentMd = File.Exists(Path.Combine(workingDirectory, ".github", "agents", "squad.agent.md"));
+
+        if (!hasSquadDir && !hasSquadConfig && !hasSquadAgentMd)
             return null;
 
         try
         {
-            var teamFile = Path.Combine(squadDir, "team.md");
-            if (!File.Exists(teamFile))
+            // Primary path: parse .squad/team.md
+            if (hasSquadDir)
+            {
+                var teamFile = Path.Combine(squadDir, "team.md");
+                if (File.Exists(teamFile))
+                {
+                    var content = await File.ReadAllTextAsync(teamFile, ct);
+                    var info = ParseTeamFile(content);
+
+                    // Check for current focus
+                    var nowFile = Path.Combine(squadDir, "identity", "now.md");
+                    if (File.Exists(nowFile))
+                    {
+                        var nowContent = await File.ReadAllTextAsync(nowFile, ct);
+                        info.CurrentFocus = ParseCurrentFocus(nowContent);
+                    }
+
+                    // Read recent decisions
+                    var decisionsFile = Path.Combine(squadDir, "decisions.md");
+                    if (File.Exists(decisionsFile))
+                    {
+                        var decisionsContent = await File.ReadAllTextAsync(decisionsFile, ct);
+                        info.RecentDecisions = ParseDecisions(decisionsContent, 5);
+                    }
+
+                    // Detect sub-squads in child directories
+                    await DetectSubSquadsAsync(workingDirectory, info, ct);
+
+                    // Read agent charters for mission summaries
+                    await ReadMemberChartersAsync(workingDirectory, info.Members, ct);
+
+                    _logger.Debug("Detected squad {Team} with {MemberCount} members in {Dir}",
+                        info.TeamName, info.Members.Count, workingDirectory);
+                    _msLogger?.SquadDetected(info.TeamName, info.Members.Count, info.Universe);
+
+                    return info;
+                }
+            }
+
+            // Fallback: secondary indicators found but no team.md
+            if (!hasSquadConfig && !hasSquadAgentMd)
                 return null;
 
-            var content = await File.ReadAllTextAsync(teamFile, ct);
-            var info = ParseTeamFile(content);
-
-            // Check for current focus
-            var nowFile = Path.Combine(squadDir, "identity", "now.md");
-            if (File.Exists(nowFile))
+            var fallbackInfo = new SquadInfo
             {
-                var nowContent = await File.ReadAllTextAsync(nowFile, ct);
-                info.CurrentFocus = ParseCurrentFocus(nowContent);
-            }
+                TeamName = Path.GetFileName(workingDirectory) ?? "Unknown",
+            };
 
-            // Read recent decisions
-            var decisionsFile = Path.Combine(squadDir, "decisions.md");
-            if (File.Exists(decisionsFile))
-            {
-                var decisionsContent = await File.ReadAllTextAsync(decisionsFile, ct);
-                info.RecentDecisions = ParseDecisions(decisionsContent, 5);
-            }
+            if (hasSquadConfig)
+                _logger.Information("Squad detected via squad.config.ts in {Dir}", workingDirectory);
+            else if (hasSquadAgentMd)
+                _logger.Information("Squad detected via .github/agents/squad.agent.md in {Dir}", workingDirectory);
 
-            // Detect sub-squads in child directories
-            await DetectSubSquadsAsync(workingDirectory, info, ct);
+            // Still try to read agent charters from .github/agents/
+            await ReadMemberChartersAsync(workingDirectory, fallbackInfo.Members, ct);
 
-            // Read agent charters for mission summaries
-            await ReadMemberChartersAsync(workingDirectory, info.Members, ct);
-
-            _logger.Debug("Detected squad {Team} with {MemberCount} members in {Dir}",
-                info.TeamName, info.Members.Count, workingDirectory);
-            _msLogger?.SquadDetected(info.TeamName, info.Members.Count, info.Universe);
-
-            return info;
+            return fallbackInfo;
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {

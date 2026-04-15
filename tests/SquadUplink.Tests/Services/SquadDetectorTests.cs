@@ -150,6 +150,32 @@ public class SquadDetectorTests : IDisposable
         Assert.Null(result);
     }
 
+    [Fact]
+    public async Task DetectAsync_FallsBackToSquadConfigTs()
+    {
+        File.WriteAllText(Path.Combine(_tempRoot, "squad.config.ts"), "export default {};");
+
+        var detector = new SquadDetector(TestLogger);
+        var result = await detector.DetectAsync(_tempRoot);
+
+        Assert.NotNull(result);
+        Assert.Equal(Path.GetFileName(_tempRoot), result!.TeamName);
+    }
+
+    [Fact]
+    public async Task DetectAsync_FallsBackToSquadAgentMd()
+    {
+        var agentDir = Path.Combine(_tempRoot, ".github", "agents");
+        Directory.CreateDirectory(agentDir);
+        File.WriteAllText(Path.Combine(agentDir, "squad.agent.md"), "# Squad Agent");
+
+        var detector = new SquadDetector(TestLogger);
+        var result = await detector.DetectAsync(_tempRoot);
+
+        Assert.NotNull(result);
+        Assert.Equal(Path.GetFileName(_tempRoot), result!.TeamName);
+    }
+
     // --- ParseTeamFile unit tests ---
 
     [Fact]

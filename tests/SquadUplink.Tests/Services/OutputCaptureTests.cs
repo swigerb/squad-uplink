@@ -24,6 +24,25 @@ public class OutputCaptureTests
         Assert.IsAssignableFrom<IOutputCapture>(capture);
     }
 
+    [Theory]
+    [InlineData("Remote steering active at: https://copilot.github.com/session/abc123", "https://copilot.github.com/session/abc123")]
+    [InlineData("Remote steering active at:  http://localhost:8080/steer", "http://localhost:8080/steer")]
+    public void RemoteSteeringRegex_MatchesValidUrls(string input, string expectedUrl)
+    {
+        var match = OutputCapture.RemoteSteeringRegex().Match(input);
+        Assert.True(match.Success);
+        Assert.Equal(expectedUrl, match.Groups[1].Value);
+    }
+
+    [Theory]
+    [InlineData("Some other output line")]
+    [InlineData("Remote steering not active")]
+    public void RemoteSteeringRegex_DoesNotMatchInvalid(string input)
+    {
+        var match = OutputCapture.RemoteSteeringRegex().Match(input);
+        Assert.False(match.Success);
+    }
+
     [Fact(Timeout = 10_000)]
     public async Task CaptureAsync_CapturesStdout()
     {

@@ -68,6 +68,12 @@ public class ProcessLauncher : IProcessLauncher
                 startInfo.EnvironmentVariables[key] = value;
         }
 
+        // Auto-enable OTLP telemetry for Squad Uplink's built-in listener
+        if (!startInfo.EnvironmentVariables.ContainsKey("COPILOT_OTEL_ENABLED"))
+            startInfo.EnvironmentVariables["COPILOT_OTEL_ENABLED"] = "true";
+        if (!startInfo.EnvironmentVariables.ContainsKey("OTEL_EXPORTER_OTLP_ENDPOINT"))
+            startInfo.EnvironmentVariables["OTEL_EXPORTER_OTLP_ENDPOINT"] = "http://localhost:4318";
+
         _logger.Information("Launching copilot session {SessionId} in {Dir} with args: {Args}",
             sessionId, options.WorkingDirectory, args);
 
