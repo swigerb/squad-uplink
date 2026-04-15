@@ -184,7 +184,7 @@ public class AllViewModels_NullSafetyTests
 
         Assert.Empty(vm.OutputLines);
         Assert.Equal(0, vm.OutputLineCount);
-        Assert.Equal("No output yet", vm.LastActivityText);
+        Assert.Equal("Awaiting first event", vm.LastActivityText);
     }
 
     [Fact]

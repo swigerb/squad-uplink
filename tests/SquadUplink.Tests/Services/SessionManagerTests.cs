@@ -108,9 +108,8 @@ public class SessionManagerTests
             .Returns(Task.CompletedTask);
 
         var manager = CreateManager(scanner: mockScanner, notificationService: mockNotifications, scanIntervalSeconds: 1);
-        using var cts = new CancellationTokenSource(TimeSpan.FromMilliseconds(500));
 
-        try { await manager.StartScanningAsync(cts.Token); } catch (OperationCanceledException) { }
+        await manager.ScanAndMergeAsync(CancellationToken.None);
 
         Assert.Single(manager.Sessions);
         Assert.Equal(100, manager.Sessions[0].ProcessId);
@@ -132,9 +131,8 @@ public class SessionManagerTests
             .ReturnsAsync(scanResult.AsReadOnly());
 
         var manager = CreateManager(scanner: mockScanner, scanIntervalSeconds: 1);
-        using var cts = new CancellationTokenSource(TimeSpan.FromMilliseconds(500));
 
-        try { await manager.StartScanningAsync(cts.Token); } catch (OperationCanceledException) { }
+        await manager.ScanAndMergeAsync(CancellationToken.None);
 
         Assert.Single(manager.Sessions);
     }
@@ -157,9 +155,8 @@ public class SessionManagerTests
             .ReturnsAsync(new SquadInfo { TeamName = "Alpha Squad" });
 
         var manager = CreateManager(scanner: mockScanner, detector: mockDetector, scanIntervalSeconds: 1);
-        using var cts = new CancellationTokenSource(TimeSpan.FromMilliseconds(500));
 
-        try { await manager.StartScanningAsync(cts.Token); } catch (OperationCanceledException) { }
+        await manager.ScanAndMergeAsync(CancellationToken.None);
 
         Assert.Single(manager.Sessions);
         Assert.Equal("Alpha Squad", manager.Sessions[0].Squad?.TeamName);

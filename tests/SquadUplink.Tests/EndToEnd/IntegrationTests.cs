@@ -66,9 +66,7 @@ public class IntegrationTests : IDisposable
             new LoggerConfiguration().CreateLogger(),
             scanIntervalSeconds: 1);
 
-        using var cts = new CancellationTokenSource(TimeSpan.FromMilliseconds(300));
-        try { await manager.StartScanningAsync(cts.Token); }
-        catch (OperationCanceledException) { }
+        await manager.ScanAndMergeAsync(CancellationToken.None);
 
         Assert.Single(manager.Sessions);
         Assert.Equal("e2e-scan-1", manager.Sessions[0].Id);

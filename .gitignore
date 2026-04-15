@@ -3,6 +3,9 @@
 .squad/log/
 .squad/decisions/inbox/
 .squad/sessions/
+# Squad: Cloned plugin repos (re-fetched on install)
+.squad/plugins/*/
+!.squad/plugins/*.json
 # Squad: SubSquad activation file (local to this machine)
 .squad-workstream
 

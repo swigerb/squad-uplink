@@ -190,9 +190,21 @@ public partial class DashboardViewModel : ViewModelBase
     }
 
     private void OnSessionsChanged(object? sender, System.Collections.Specialized.NotifyCollectionChangedEventArgs e) =>
-        _dispatcherQueue?.TryEnqueue(UpdateStats);
+        RunOnUIThreadOrInline(UpdateStats);
     private void OnLogReceived(Serilog.Events.LogEvent _) =>
-        _dispatcherQueue?.TryEnqueue(UpdateErrorCount);
+        RunOnUIThreadOrInline(UpdateErrorCount);
+
+    /// <summary>
+    /// Dispatches to the UI thread if a dispatcher is available,
+    /// or runs inline (unit-test context).
+    /// </summary>
+    private void RunOnUIThreadOrInline(Action action)
+    {
+        if (_dispatcherQueue is null)
+            action();
+        else
+            _dispatcherQueue.TryEnqueue(() => action());
+    }
 
     [RelayCommand]
     private async Task LaunchSessionAsync()
