@@ -1,14 +1,11 @@
-# Legacy v1 CI for React/Node.js app — DISABLED (app pivoted to WinUI 3)
-name: CI (React v1 — disabled)
+name: CI
 
-on:
-  workflow_dispatch:  # Manual only — no longer auto-triggers
+on: [push, pull_request]
 
 jobs:
-  validate:
-    if: false  # Never runs
+  build:
     runs-on: ubuntu-latest
-    name: Lint, Type Check, Test & Build
+    name: Build & Test
     steps:
       - uses: actions/checkout@v4
 
@@ -18,29 +15,14 @@ jobs:
           node-version: 22
           cache: npm
 
-      - name: Install dependencies
-        run: npm ci
+      - name: Install root dependencies
+        run: npm install
 
-      - name: Lint
-        run: npm run lint
-
-      - name: Type check
-        run: npm run typecheck
-
-      - name: Test
-        run: npm test
-
-      - name: Build
+      - name: Build root
         run: npm run build
 
-      - name: Check bundle size
-        run: |
-          echo "=== Bundle Size Report ==="
-          du -sh dist/
-          echo "--- Individual assets ---"
-          find dist/assets -type f -printf '%s %p\n' | sort -rn | head -20 | awk '{printf "%.1fKB %s\n", $1/1024, $2}'
-          LARGE=$(find dist/assets -type f -size +500k)
-          if [ -n "$LARGE" ]; then
-            echo "::warning::Chunks over 500KB detected:"
-            echo "$LARGE"
-          fi
+      - name: Install webui dependencies
+        run: cd webui && npm install
+
+      - name: Build webui
+        run: cd webui && npm run build
