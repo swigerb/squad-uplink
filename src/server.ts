@@ -10,6 +10,7 @@ import { WebSocketServer, WebSocket } from 'ws';
 import { SessionPool } from './session.js';
 import { RulesStore } from './rules.js';
 import { UpdateChecker } from './updater.js';
+import { SquadReader } from './squad.js';
 import type { PortalEvent, PortalInfo } from './session.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -28,6 +29,7 @@ export class PortalServer {
 	private shields: Record<string, boolean> = {};
 	private sessionPrompts: Record<string, Array<{ label: string; text: string }>> = {};
 	private updater: UpdateChecker;
+	private squadReader: SquadReader;
 	private failedAuth = new Map<string, { count: number; resetTime: number }>();
 
 	constructor(private port: number, dataDir?: string, opts?: { newToken?: boolean; cliUrl?: string }) {
@@ -45,6 +47,7 @@ export class PortalServer {
 		this.ensureDataDirs();
 		this.pool = new SessionPool((msg) => this.log(msg), new RulesStore(this.dataDir), workspacePath, opts?.cliUrl);
 		this.updater = new UpdateChecker((msg) => this.log(msg));
+		this.squadReader = new SquadReader(path.join(__dirname, '..'));
 		this.pool.onTitleChanged = (sessionId, summary) => {
 			this.broadcastAll({ type: 'session_renamed', sessionId, summary });
 		};
@@ -948,6 +951,41 @@ export class PortalServer {
 			} catch (e) {
 				this.sendJson(res, 500, { error: String(e) });
 			}
+			return;
+		}
+
+		// --- Squad file API ---
+
+		if (url.pathname === '/api/squad/files' && method === 'GET') {
+			try {
+				const files = this.squadReader.listFiles();
+				this.sendJson(res, 200, files);
+			} catch (e) {
+				this.sendJson(res, 500, { error: String(e) });
+			}
+			return;
+		}
+
+		if (url.pathname === '/api/squad/file' && method === 'GET') {
+			const filePath = url.searchParams.get('path');
+			if (!filePath) { this.sendJson(res, 400, { error: 'Missing path parameter' }); return; }
+			const result = this.squadReader.readFile(filePath);
+			if ('error' in result) { this.sendJson(res, result.status, { error: result.error }); return; }
+			this.sendJson(res, 200, result);
+			return;
+		}
+
+		if (url.pathname === '/api/squad/team' && method === 'GET') {
+			const result = this.squadReader.readFile('team.md');
+			if ('error' in result) { this.sendJson(res, result.status, { error: result.error }); return; }
+			this.sendJson(res, 200, result);
+			return;
+		}
+
+		if (url.pathname === '/api/squad/decisions' && method === 'GET') {
+			const result = this.squadReader.readFile('decisions.md');
+			if ('error' in result) { this.sendJson(res, result.status, { error: result.error }); return; }
+			this.sendJson(res, 200, result);
 			return;
 		}
 
