@@ -8,19 +8,82 @@
         <converters:ColorToSolidColorBrushConverter x:Key="ColorToBrush" />
         <converters:BoolToVisibilityConverter x:Key="BoolToVis" />
 
-        <!-- Icon-only sidebar button style -->
+        <!-- Icon-only sidebar button style with custom template -->
         <Style x:Key="SidebarIconButton" TargetType="RadioButton">
             <Setter Property="Width" Value="48" />
-            <Setter Property="Height" Value="44" />
+            <Setter Property="Height" Value="40" />
             <Setter Property="Padding" Value="0" />
             <Setter Property="MinWidth" Value="0" />
             <Setter Property="MinHeight" Value="0" />
             <Setter Property="Background" Value="Transparent" />
-            <Setter Property="BorderThickness" Value="3,0,0,0" />
-            <Setter Property="BorderBrush" Value="Transparent" />
             <Setter Property="HorizontalContentAlignment" Value="Center" />
             <Setter Property="VerticalContentAlignment" Value="Center" />
-            <Setter Property="CornerRadius" Value="0" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="RadioButton">
+                        <Grid Background="Transparent">
+                            <!-- Selection indicator pill (left edge) -->
+                            <Border x:Name="SelectionPill"
+                                    HorizontalAlignment="Left"
+                                    VerticalAlignment="Center"
+                                    Width="3" Height="16"
+                                    CornerRadius="2"
+                                    Background="{ThemeResource AccentFillColorDefaultBrush}"
+                                    Opacity="0" />
+                            
+                            <!-- Background highlight on hover/press -->
+                            <Border x:Name="BackgroundBorder"
+                                    Background="Transparent"
+                                    CornerRadius="4"
+                                    Margin="4,2" />
+                            
+                            <!-- The icon content -->
+                            <ContentPresenter x:Name="ContentPresenter"
+                                              Content="{TemplateBinding Content}"
+                                              ContentTemplate="{TemplateBinding ContentTemplate}"
+                                              HorizontalAlignment="Center"
+                                              VerticalAlignment="Center" />
+                            
+                            <VisualStateManager.VisualStateGroups>
+                                <VisualStateGroup x:Name="CommonStates">
+                                    <VisualState x:Name="Normal" />
+                                    <VisualState x:Name="PointerOver">
+                                        <Storyboard>
+                                            <ObjectAnimationUsingKeyFrames Storyboard.TargetName="BackgroundBorder" Storyboard.TargetProperty="Background">
+                                                <DiscreteObjectKeyFrame KeyTime="0" Value="{ThemeResource SubtleFillColorSecondaryBrush}" />
+                                            </ObjectAnimationUsingKeyFrames>
+                                        </Storyboard>
+                                    </VisualState>
+                                    <VisualState x:Name="Pressed">
+                                        <Storyboard>
+                                            <ObjectAnimationUsingKeyFrames Storyboard.TargetName="BackgroundBorder" Storyboard.TargetProperty="Background">
+                                                <DiscreteObjectKeyFrame KeyTime="0" Value="{ThemeResource SubtleFillColorTertiaryBrush}" />
+                                            </ObjectAnimationUsingKeyFrames>
+                                        </Storyboard>
+                                    </VisualState>
+                                    <VisualState x:Name="Disabled">
+                                        <Storyboard>
+                                            <DoubleAnimation Storyboard.TargetName="ContentPresenter" Storyboard.TargetProperty="Opacity" To="0.4" Duration="0" />
+                                        </Storyboard>
+                                    </VisualState>
+                                </VisualStateGroup>
+                                <VisualStateGroup x:Name="CheckStates">
+                                    <VisualState x:Name="Checked">
+                                        <Storyboard>
+                                            <DoubleAnimation Storyboard.TargetName="SelectionPill" Storyboard.TargetProperty="Opacity" To="1" Duration="0:0:0.15" />
+                                            <ObjectAnimationUsingKeyFrames Storyboard.TargetName="BackgroundBorder" Storyboard.TargetProperty="Background">
+                                                <DiscreteObjectKeyFrame KeyTime="0" Value="{ThemeResource SubtleFillColorSecondaryBrush}" />
+                                            </ObjectAnimationUsingKeyFrames>
+                                        </Storyboard>
+                                    </VisualState>
+                                    <VisualState x:Name="Unchecked" />
+                                    <VisualState x:Name="Indeterminate" />
+                                </VisualStateGroup>
+                            </VisualStateManager.VisualStateGroups>
+                        </Grid>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
         </Style>
 
         <!-- Section header style -->
@@ -40,7 +103,7 @@
         <Border x:Name="FlyoutPanel"
                 HorizontalAlignment="Right" VerticalAlignment="Stretch"
                 Width="460"
-                Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                Background="{ThemeResource SolidBackgroundFillColorBaseBrush}"
                 BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
                 BorderThickness="1,0,0,0"
                 AutomationProperties.Name="Settings panel">
@@ -88,7 +151,7 @@
 
                     <!-- MESS-style icon sidebar -->
                     <Border Grid.Column="0"
-                            Background="{ThemeResource CardBackgroundFillColorSecondaryBrush}"
+                            Background="{ThemeResource LayerFillColorDefaultBrush}"
                             BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
                             BorderThickness="0,0,1,0">
                         <StackPanel Spacing="2" Padding="0,8">
