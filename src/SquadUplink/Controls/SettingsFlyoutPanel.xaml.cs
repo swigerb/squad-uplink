@@ -10,7 +10,7 @@ namespace SquadUplink.Controls;
 
 public sealed partial class SettingsFlyoutPanel : UserControl
 {
-    private const double PanelWidth = 420;
+    private const double PanelWidth = 460;
 
     public SettingsViewModel ViewModel { get; }
 
@@ -19,10 +19,14 @@ public sealed partial class SettingsFlyoutPanel : UserControl
     /// <summary>Raised when the panel is dismissed.</summary>
     public event EventHandler? Dismissed;
 
+    private readonly StackPanel[] _sections;
+
     public SettingsFlyoutPanel()
     {
         ViewModel = App.Services.GetRequiredService<SettingsViewModel>();
         InitializeComponent();
+        _sections = [SectionAppearance, SectionScanning, SectionLaunching,
+                     SectionNotifications, SectionAudio, SectionSystemTray, SectionAbout];
         Log.Debug("SettingsFlyoutPanel initialized");
     }
 
@@ -77,6 +81,28 @@ public sealed partial class SettingsFlyoutPanel : UserControl
     private void CloseButton_Click(object sender, RoutedEventArgs e) => Hide();
 
     private void Backdrop_Tapped(object sender, TappedRoutedEventArgs e) => Hide();
+
+    private void SidebarNav_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is RadioButton rb && rb.Tag is string tag)
+        {
+            foreach (var section in _sections)
+                section.Visibility = Visibility.Collapsed;
+
+            var active = tag switch
+            {
+                "Appearance" => SectionAppearance,
+                "Scanning" => SectionScanning,
+                "Launching" => SectionLaunching,
+                "Notifications" => SectionNotifications,
+                "Audio" => SectionAudio,
+                "SystemTray" => SectionSystemTray,
+                "About" => SectionAbout,
+                _ => SectionAppearance
+            };
+            active.Visibility = Visibility.Visible;
+        }
+    }
 
     /// <summary>
     /// Handles Escape key to dismiss. Called from MainWindow.

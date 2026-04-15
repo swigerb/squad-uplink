@@ -250,11 +250,14 @@
                 Background="{ThemeResource CardBackgroundFillColorSecondaryBrush}"
                 BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
                 BorderThickness="0,1,0,0"
-                Padding="12,6">
+                Padding="12,4">
             <Grid>
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
                     <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
                     <ColumnDefinition Width="Auto" />
                     <ColumnDefinition Width="Auto" />
                 </Grid.ColumnDefinitions>
@@ -277,9 +280,16 @@
                                FontSize="11" Foreground="White" FontWeight="SemiBold" />
                 </Border>
 
-                <!-- Diagnostics toggle (triangle expander) -->
-                <ToggleButton x:Name="DiagToggle" Grid.Column="3"
-                              VerticalAlignment="Center" Margin="8,0,0,0"
+                <!-- App version (centered) -->
+                <TextBlock Grid.Column="3" Text="{x:Bind AppVersionText}"
+                           Style="{StaticResource CaptionTextBlockStyle}"
+                           Foreground="{ThemeResource TextFillColorTertiaryBrush}"
+                           HorizontalAlignment="Center" VerticalAlignment="Center"
+                           FontFamily="Cascadia Mono,Consolas,monospace" FontSize="11" />
+
+                <!-- Diagnostics toggle -->
+                <ToggleButton x:Name="DiagToggle" Grid.Column="4"
+                              VerticalAlignment="Center" Margin="0,0,8,0"
                               Padding="6,3" MinWidth="0" MinHeight="0"
                               Background="Transparent" BorderThickness="0"
                               Checked="DiagToggle_Checked" Unchecked="DiagToggle_Unchecked"
@@ -292,6 +302,27 @@
                                    Visibility="Collapsed" VerticalAlignment="Center" />
                     </StackPanel>
                 </ToggleButton>
+
+                <!-- Theme selector -->
+                <TextBlock Grid.Column="5" Text="Theme:"
+                           Style="{StaticResource CaptionTextBlockStyle}"
+                           VerticalAlignment="Center" Margin="0,0,6,0" />
+                <ComboBox x:Name="FooterThemeCombo" Grid.Column="6"
+                          SelectedIndex="{x:Bind SettingsVm.SelectedThemeIndex, Mode=TwoWay}"
+                          MinWidth="150" VerticalAlignment="Center"
+                          FontSize="11" Padding="8,3">
+                    <ComboBoxItem Content="☀️  Fluent Light" />
+                    <ComboBoxItem Content="🌙  Fluent Dark" />
+                    <ComboBoxItem Content="🍏  Apple IIe" />
+                    <ComboBoxItem Content="📺  Commodore 64" />
+                    <ComboBoxItem Content="☢️  Pip-Boy" />
+                    <ComboBoxItem Content="👽  MU-TH-UR 6000" />
+                    <ComboBoxItem Content="🎮  W.O.P.R." />
+                    <ComboBoxItem Content="💊  The Matrix" />
+                    <ComboBoxItem Content="🖥️  Windows 95" />
+                    <ComboBoxItem Content="🖖  LCARS" />
+                    <ComboBoxItem Content="⭐  Star Wars" />
+                </ComboBox>
             </Grid>
         </Border>
 

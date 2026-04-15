@@ -28,6 +28,9 @@ public sealed partial class MainWindow : Window
     private DateTimeOffset _lastPanelOpenedAt = DateTimeOffset.UtcNow;
     private bool _isCrtEnabled;
 
+    public SettingsViewModel SettingsVm { get; }
+    public string AppVersionText { get; } = $"v{typeof(App).Assembly.GetName().Version}";
+
     public bool IsCrtEnabled
     {
         get => _isCrtEnabled;
@@ -112,6 +115,7 @@ public sealed partial class MainWindow : Window
         _sessionManager = App.Services.GetRequiredService<ISessionManager>();
         _diagnosticsSink = App.Services.GetRequiredService<Core.Logging.InMemorySink>();
         _formatter = App.Services.GetRequiredService<ILogPayloadFormatter>();
+        SettingsVm = App.Services.GetRequiredService<SettingsViewModel>();
         _sessionManager.Sessions.CollectionChanged += (_, _) => UpdateStatus();
 
         // Intercept window close to support minimize-to-tray
