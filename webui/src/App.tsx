@@ -10,6 +10,7 @@ import { CRTOverlay } from './components/CRTOverlay';
 import { PipBoyLayout } from './components/PipBoyLayout';
 import { MatrixRain } from './components/MatrixRain';
 import { SquadPanel } from './components/SquadPanel';
+import type { SquadFileChange } from './components/SquadPanel';
 import { SquadButton } from './components/SquadButton';
 
 // pre and table need React wrappers for the .code-scroll div — CSS alone can't inject a parent element.
@@ -652,6 +653,7 @@ export default function App() {
 	const [sessionQuota, setSessionQuota] = useState<{ unlimited: boolean; used: number; total: number; remaining: number; resetDate?: string } | null>(null);
 	const [drawerOpen, setDrawerOpen] = useState(false);
 	const [squadPanelOpen, setSquadPanelOpen] = useState(false);
+	const [lastSquadChange, setLastSquadChange] = useState<SquadFileChange | null>(null);
 	const [noSession, setNoSession] = useState(!hasSessionInUrl);
 	const noSessionRef = useRef(!hasSessionInUrl);
 	const [updateStatus, setUpdateStatus] = useState<UpdateStatus | null>(null);
@@ -767,6 +769,8 @@ export default function App() {
 						setSessions(prev => prev.map(s => s.sessionId === event.sessionId ? { ...s, summary: event.summary ?? s.summary } : s));
 					} else if (event.type === 'session_created' && event.session) {
 						setSessions(prev => prev.some(s => s.sessionId === event.session!.sessionId) ? prev : [event.session!, ...prev]);
+					} else if (event.type === 'squad_file_changed') {
+						setLastSquadChange({ path: (event as Record<string, string>).path, changeType: (event as Record<string, string>).changeType, timestamp: Date.now() });
 					}
 				} catch {}
 			};
@@ -1007,6 +1011,11 @@ export default function App() {
 
 				if (event.type === 'session_created' && event.session) {
 					setSessions(prev => prev.some(s => s.sessionId === event.session!.sessionId) ? prev : [event.session!, ...prev]);
+					return;
+				}
+
+				if (event.type === 'squad_file_changed') {
+					setLastSquadChange({ path: event.path, changeType: event.changeType, timestamp: Date.now() });
 					return;
 				}
 
@@ -1373,6 +1382,8 @@ export default function App() {
 							setSessions(prev => prev.map(s => s.sessionId === event.sessionId ? { ...s, shielded: event.shielded ?? false } : s));
 						} else if (event.type === 'session_created' && event.session) {
 							setSessions(prev => prev.some(s => s.sessionId === event.session!.sessionId) ? prev : [event.session!, ...prev]);
+						} else if (event.type === 'squad_file_changed') {
+							setLastSquadChange({ path: (event as Record<string, string>).path, changeType: (event as Record<string, string>).changeType, timestamp: Date.now() });
 						}
 					} catch {}
 				};
@@ -2541,7 +2552,7 @@ export default function App() {
 			)}
 
 			{/* Squad Panel */}
-			<SquadPanel open={squadPanelOpen} onClose={() => setSquadPanelOpen(false)} />
+			<SquadPanel open={squadPanelOpen} onClose={() => setSquadPanelOpen(false)} lastChange={lastSquadChange} />
 
 			{/* Header */}
 			<header

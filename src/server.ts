@@ -30,6 +30,8 @@ export class PortalServer {
 	private sessionPrompts: Record<string, Array<{ label: string; text: string }>> = {};
 	private updater: UpdateChecker;
 	private squadReader: SquadReader;
+	private squadContext = true; // auto-inject squad context into first message per session
+	private squadContextInjected = new Set<string>(); // track sessions that already got context
 	private failedAuth = new Map<string, { count: number; resetTime: number }>();
 
 	constructor(private port: number, dataDir?: string, opts?: { newToken?: boolean; cliUrl?: string }) {
@@ -48,6 +50,10 @@ export class PortalServer {
 		this.pool = new SessionPool((msg) => this.log(msg), new RulesStore(this.dataDir), workspacePath, opts?.cliUrl);
 		this.updater = new UpdateChecker((msg) => this.log(msg));
 		this.squadReader = new SquadReader(path.join(__dirname, '..'));
+		this.squadReader.startWatching();
+		this.squadReader.on('change', (change: { path: string; type: string }) => {
+			this.broadcastAll({ type: 'squad_file_changed', path: change.path, changeType: change.type });
+		});
 		this.pool.onTitleChanged = (sessionId, summary) => {
 			this.broadcastAll({ type: 'session_renamed', sessionId, summary });
 		};
@@ -287,8 +293,20 @@ export class PortalServer {
 				ruleId?: string;
 			};
 			if (msg.type === 'prompt' && msg.content) {
+				// Auto-inject squad context on first message per session
+				let prompt = msg.content;
+				const squadCtxParam = url.searchParams.get('squadContext');
+				const squadEnabled = squadCtxParam !== null ? squadCtxParam !== '0' && squadCtxParam !== 'false' : this.squadContext;
+				if (squadEnabled && !this.squadContextInjected.has(sessionId)) {
+					const guide = this.squadReader.generateGuide();
+					if (guide) {
+						prompt = `<squad-context>\n${guide}\n</squad-context>\n\n${prompt}`;
+						this.log(`[${clientId}] Injected squad context (${guide.length} chars)`);
+					}
+					this.squadContextInjected.add(sessionId);
+				}
 				this.log(`[${clientId}] Prompt: ${msg.content.slice(0, 80)}`);
-				handle.send(msg.content).catch(async (e) => {
+				handle.send(prompt).catch(async (e) => {
 					const errMsg = String(e);
 					this.log(`[${clientId}] Send error: ${errMsg}`);
 					if (errMsg.includes('Connection is closed') || errMsg.includes('not connected')) {
@@ -609,13 +627,27 @@ export class PortalServer {
 				const instrFiles = fs.existsSync(instrDir) ? fs.readdirSync(instrDir).filter(f => f.endsWith('.md')) : [];
 				const promptFiles = fs.existsSync(promptsDir) ? fs.readdirSync(promptsDir).filter(f => f.endsWith('.md')) : [];
 				const allIds = [...new Set([...instrFiles.map(f => f.replace(/\.md$/, '')), ...promptFiles.map(f => f.replace(/\.md$/, ''))])].sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }));
-				const items = allIds.map(id => ({
+				const items: Array<{ id: string; name: string; file: string; hasGuide: boolean; hasPrompts: boolean; virtual?: boolean }> = allIds.map(id => ({
 					id,
 					name: id + '.md',
 					file: id + '.md',
 					hasGuide: instrFiles.includes(id + '.md'),
 					hasPrompts: promptFiles.includes(id + '.md'),
 				}));
+				// Inject virtual Squad guide if .squad/ exists and has prompts
+				if (this.squadReader.exists()) {
+					const squadPrompts = this.squadReader.generatePrompts();
+					if (squadPrompts.length > 0) {
+						items.unshift({
+							id: '_squad',
+							name: 'Squad',
+							file: '_squad.md',
+							hasGuide: true,
+							hasPrompts: true,
+							virtual: true,
+						});
+					}
+				}
 				this.sendJson(res, 200, items);
 			} catch (e) {
 				this.sendJson(res, 500, { error: String(e) });
@@ -625,6 +657,17 @@ export class PortalServer {
 
 		const promptsMatch = url.pathname.match(/^\/api\/guides\/(.+)\/prompts$/);
 		if (promptsMatch && method === 'GET') {
+			const guideId = decodeURIComponent(promptsMatch[1]);
+			// Virtual Squad guide prompts
+			if (guideId === '_squad') {
+				try {
+					const prompts = this.squadReader.generatePrompts();
+					this.sendJson(res, 200, { prompts });
+				} catch (e) {
+					this.sendJson(res, 500, { error: String(e) });
+				}
+				return;
+			}
 			try {
 				const promptsFile = path.join(this.dataDir, 'prompts', decodeURIComponent(promptsMatch[1]) + '.md');
 				const resolved = path.resolve(promptsFile);
@@ -658,6 +701,17 @@ export class PortalServer {
 
 		const contextMatch = url.pathname.match(/^\/api\/guides\/(.+)$/);
 		if (contextMatch && method === 'GET') {
+			const guideId = decodeURIComponent(contextMatch[1]);
+			// Virtual Squad guide content
+			if (guideId === '_squad') {
+				try {
+					const guide = this.squadReader.generateGuide();
+					this.sendJson(res, 200, { title: 'Squad Context', content: guide, virtual: true });
+				} catch (e) {
+					this.sendJson(res, 500, { error: String(e) });
+				}
+				return;
+			}
 			try {
 				const contextFile = path.join(this.dataDir, 'guides', decodeURIComponent(contextMatch[1]) + '.md');
 				const resolved = path.resolve(contextFile);
@@ -989,6 +1043,26 @@ export class PortalServer {
 			return;
 		}
 
+		if (url.pathname === '/api/squad/guide' && method === 'GET') {
+			try {
+				const guide = this.squadReader.generateGuide();
+				this.sendJson(res, 200, { guide });
+			} catch (e) {
+				this.sendJson(res, 500, { error: String(e) });
+			}
+			return;
+		}
+
+		if (url.pathname === '/api/squad/prompts' && method === 'GET') {
+			try {
+				const prompts = this.squadReader.generatePrompts();
+				this.sendJson(res, 200, { prompts });
+			} catch (e) {
+				this.sendJson(res, 500, { error: String(e) });
+			}
+			return;
+		}
+
 		if (url.pathname === '/' || url.pathname === '/index.html') {
 			// Serve the HTML unconditionally — auth is handled client-side via localStorage token.
 			// API and WebSocket endpoints still require the token.
@@ -1239,6 +1313,7 @@ export class PortalServer {
 
 	async stop(): Promise<void> {
 		this.updater.stop();
+		this.squadReader.stopWatching();
 		await this.pool.stop();
 		// Forcefully close all open WebSocket connections so httpServer.close() doesn't hang
 		for (const client of this.wss.clients) client.terminate();

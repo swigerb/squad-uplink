@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import Markdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import remarkBreaks from 'remark-breaks';
@@ -33,6 +33,13 @@ interface SquadFileInfo {
 	lastModified: string;
 }
 
+/** Describes a squad_file_changed WebSocket event */
+export interface SquadFileChange {
+	path: string;
+	changeType: string;
+	timestamp: number;
+}
+
 function getToken(): string | null {
 	const match = document.cookie.match(/(?:^|; )token=([^;]*)/);
 	return match ? decodeURIComponent(match[1]) : null;
@@ -44,7 +51,7 @@ const apiFetch = (url: string, init?: RequestInit) => {
 	return fetch(url, { ...init, headers });
 };
 
-export function SquadPanel({ open, onClose }: { open: boolean; onClose: () => void }) {
+export function SquadPanel({ open, onClose, lastChange }: { open: boolean; onClose: () => void; lastChange?: SquadFileChange | null }) {
 	const [activeTab, setActiveTab] = useState<'team' | 'decisions' | 'files'>('team');
 	const [teamContent, setTeamContent] = useState<string | null>(null);
 	const [decisionsContent, setDecisionsContent] = useState<string | null>(null);
@@ -53,47 +60,92 @@ export function SquadPanel({ open, onClose }: { open: boolean; onClose: () => vo
 	const [selectedFileContent, setSelectedFileContent] = useState<string | null>(null);
 	const [loading, setLoading] = useState(false);
 	const [error, setError] = useState<string | null>(null);
+	const [updatedIndicator, setUpdatedIndicator] = useState(false);
 
+	const fetchAllData = useCallback(async () => {
+		setLoading(true);
+		setError(null);
+		try {
+			const [teamRes, decisionsRes, filesRes] = await Promise.all([
+				apiFetch('/api/squad/team'),
+				apiFetch('/api/squad/decisions'),
+				apiFetch('/api/squad/files'),
+			]);
+
+			if (teamRes.ok) {
+				const data = await teamRes.json();
+				setTeamContent(data.content || '_No team.md found_');
+			} else {
+				setTeamContent('_Team information not available_');
+			}
+
+			if (decisionsRes.ok) {
+				const data = await decisionsRes.json();
+				setDecisionsContent(data.content || '_No decisions.md found_');
+			} else {
+				setDecisionsContent('_Decisions log not available_');
+			}
+
+			if (filesRes.ok) {
+				const data = await filesRes.json();
+				setFiles(data.files || []);
+			}
+		} catch (err) {
+			setError(err instanceof Error ? err.message : 'Failed to fetch Squad data');
+		} finally {
+			setLoading(false);
+		}
+	}, []);
+
+	// Initial fetch when panel opens
 	useEffect(() => {
 		if (!open) return;
-		
-		const fetchData = async () => {
-			setLoading(true);
-			setError(null);
+		fetchAllData();
+	}, [open, fetchAllData]);
+
+	// React to file change events — only refresh when panel is open
+	useEffect(() => {
+		if (!open || !lastChange) return;
+
+		const refreshTabs = async () => {
 			try {
-				const [teamRes, decisionsRes, filesRes] = await Promise.all([
-					apiFetch('/api/squad/team'),
-					apiFetch('/api/squad/decisions'),
-					apiFetch('/api/squad/files'),
-				]);
+				const changedPath = lastChange.path.toLowerCase();
 
-				if (teamRes.ok) {
-					const data = await teamRes.json();
-					setTeamContent(data.content || '_No team.md found_');
-				} else {
-					setTeamContent('_Team information not available_');
-				}
-
-				if (decisionsRes.ok) {
-					const data = await decisionsRes.json();
-					setDecisionsContent(data.content || '_No decisions.md found_');
-				} else {
-					setDecisionsContent('_Decisions log not available_');
-				}
-
+				// Always refresh files list
+				const filesRes = await apiFetch('/api/squad/files');
 				if (filesRes.ok) {
 					const data = await filesRes.json();
 					setFiles(data.files || []);
 				}
-			} catch (err) {
-				setError(err instanceof Error ? err.message : 'Failed to fetch Squad data');
-			} finally {
-				setLoading(false);
+
+				// Refresh team tab if team-related file changed
+				if (changedPath.includes('team')) {
+					const teamRes = await apiFetch('/api/squad/team');
+					if (teamRes.ok) {
+						const data = await teamRes.json();
+						setTeamContent(data.content || '_No team.md found_');
+					}
+				}
+
+				// Refresh decisions tab if decisions-related file changed
+				if (changedPath.includes('decisions')) {
+					const decisionsRes = await apiFetch('/api/squad/decisions');
+					if (decisionsRes.ok) {
+						const data = await decisionsRes.json();
+						setDecisionsContent(data.content || '_No decisions.md found_');
+					}
+				}
+
+				// Show updated indicator briefly
+				setUpdatedIndicator(true);
+				setTimeout(() => setUpdatedIndicator(false), 2000);
+			} catch {
+				// Silently ignore refresh errors
 			}
 		};
 
-		fetchData();
-	}, [open]);
+		refreshTabs();
+	}, [open, lastChange]);
 
 	const handleFileClick = async (filePath: string) => {
 		setSelectedFile(filePath);
@@ -130,7 +182,17 @@ export function SquadPanel({ open, onClose }: { open: boolean; onClose: () => vo
 			>
 				{/* Header */}
 				<div className="flex items-center justify-between px-4 py-3" style={{ borderBottom: '1px solid var(--border)' }}>
-					<h2 className="text-lg font-semibold" style={{ color: 'var(--text)' }}>Squad Info</h2>
+					<div className="flex items-center gap-2">
+						<h2 className="text-lg font-semibold" style={{ color: 'var(--text)' }}>Squad Info</h2>
+						{updatedIndicator && (
+							<span
+								className="text-xs px-2 py-0.5 rounded-full"
+								style={{ background: 'var(--primary-tint)', color: 'var(--accent)', fontWeight: 500 }}
+							>
+								Updated
+							</span>
+						)}
+					</div>
 					<button
 						type="button"
 						onClick={onClose}
