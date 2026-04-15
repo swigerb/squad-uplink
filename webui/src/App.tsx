@@ -4,6 +4,10 @@ import Markdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import remarkBreaks from 'remark-breaks';
 import type { ComponentProps } from 'react';
+import { ThemeProvider } from './hooks/useTheme';
+import { ThemeToggle } from './components/ThemeToggle';
+import { CRTOverlay } from './components/CRTOverlay';
+import { PipBoyLayout } from './components/PipBoyLayout';
 
 // pre and table need React wrappers for the .code-scroll div — CSS alone can't inject a parent element.
 // p, th, and a need inline styles to unconditionally beat Tailwind Typography's generated rules.
@@ -1767,7 +1771,9 @@ export default function App() {
 	}
 
 	return (
+		<PipBoyLayout>
 		<div className="flex flex-col" style={{ height: '100%' }}>
+			<CRTOverlay />
 			{/* QR Code Modal */}
 			{showQR && (
 				<div
@@ -2574,6 +2580,7 @@ export default function App() {
 								</svg>
 							</button>
 						)}
+						<ThemeToggle />
 						<button
 							className="inline-flex items-center justify-center h-8 px-2 rounded-lg"
 							style={{ background: 'var(--bg)', border: '1px solid var(--border)' }}
@@ -3289,5 +3296,6 @@ export default function App() {
 				}
 			</main>
 		</div>
+		</PipBoyLayout>
 	);
 }

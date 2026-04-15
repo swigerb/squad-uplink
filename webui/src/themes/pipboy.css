@@ -1,0 +1,371 @@
+/* ═══════════════════════════════════════════════
+   Pip-Boy 3000 Theme — Adapted for Copilot Portal
+   Based on: https://codepen.io/stix/pen/KdJEwB
+   All rules scoped to [data-theme='pipboy']
+   ═══════════════════════════════════════════════ */
+
+@import url(https://fonts.googleapis.com/css?family=Droid+Sans);
+@import url(https://fonts.googleapis.com/css2?family=VT323&display=swap);
+
+/* ── Animations ──────────────────────────────── */
+@keyframes pipboy-flicker {
+  0%   { box-shadow: 0px 0px 5px 0px red; }
+  5%   { box-shadow: 0px 0px 30px 2px red; }
+  60%  { box-shadow: 0px 0px 30px 2px red; }
+  80%  { box-shadow: 0px 0px 10px 0px orange; }
+  90%  { box-shadow: 0px 0px 30px 2px red; }
+  100% { box-shadow: 0px 0px 0px 0px red; }
+}
+
+@keyframes pipboy-scan {
+  0%   { top: -80px; }
+  70%  { top: 100%; }
+  100% { top: 100%; }
+}
+
+@keyframes pipboy-walk {
+  0%, 100% { transform: translateX(0); }
+  50% { transform: translateX(3px); }
+}
+
+/* ── Theme-wide overrides ────────────────────── */
+[data-theme='pipboy'] {
+  --bg: #0a0e0a;
+  --surface: #0d120d;
+  --border: #1bff80;
+  --text: #1bff80;
+  --text-muted: #0dcc66;
+  --text-bright: #4dffaa;
+  --primary: #1bff80;
+  --primary-hover: #4dffaa;
+  --error: #ffb641;
+  --success: #1bff80;
+  --tool-call: #ffb641;
+  --purple: #1bff80;
+  --accent: #1bff80;
+  --warning: #ffb641;
+  --shield: #ffb641;
+  --error-tint: rgba(255,182,65,0.10);
+  --success-tint: rgba(27,255,128,0.10);
+  --tool-call-tint: rgba(255,182,65,0.10);
+  --primary-tint: rgba(27,255,128,0.10);
+  --warning-tint: rgba(255,182,65,0.12);
+  --muted-tint: rgba(27,255,128,0.05);
+  --overlay: rgba(0,5,0,0.85);
+  --subtle-bg: rgba(27,255,128,0.08);
+  --code-inline: #4dffaa;
+  --code-bg: #050a05;
+  --code-fg: #1bff80;
+  --scrollbar: rgba(27,255,128,0.25);
+  --scrollbar-code: rgba(27,255,128,0.35);
+
+  font-family: 'VT323', 'Droid Sans', monospace;
+  text-shadow: 0 0 4px rgba(27,255,128,0.5);
+}
+
+/* ── CRT Overlay ─────────────────────────────── */
+.crt-overlay {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 9999;
+}
+
+.crt-scanlines {
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(
+    to bottom,
+    transparent 0px,
+    transparent 1px,
+    rgba(0, 0, 0, var(--crt-scanline-opacity, 0.1)) 1px,
+    rgba(0, 0, 0, var(--crt-scanline-opacity, 0.1)) 2px
+  );
+}
+
+.crt-glow {
+  position: absolute;
+  inset: 0;
+  box-shadow: inset 0 0 80px var(--crt-glow-color, rgba(51, 255, 51, 0.3));
+  border-radius: 4px;
+}
+
+.crt-overlay::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    ellipse at center,
+    transparent 60%,
+    rgba(0, 0, 0, 0.4) 100%
+  );
+  border-radius: 4px;
+}
+
+/* ── PIP Boy Viewport ────────────────────────── */
+[data-theme='pipboy'] .pipboy-viewport {
+  width: 100%;
+  height: 100%;
+  background: #0a0e0a;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  position: relative;
+}
+
+/* ── PIP Boy Outer Shell ─────────────────────── */
+[data-theme='pipboy'] .pipboy-pip {
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(180deg, #1a1510 0%, #0d0a07 100%);
+  border: 2px solid #3d3428;
+  border-radius: 8px;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-shadow:
+    inset 0 1px 0 rgba(195,191,180,0.15),
+    0 0 30px rgba(27,255,128,0.1);
+}
+
+/* ── PIP Boy Front Panel ─────────────────────── */
+[data-theme='pipboy'] .pipboy-pipfront {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  overflow: hidden;
+}
+
+/* ── Decorative Dials (top corners) ──────────── */
+[data-theme='pipboy'] .pipboy-dtop {
+  position: absolute;
+  top: 4px;
+  left: 8px;
+  z-index: 10;
+}
+
+[data-theme='pipboy'] .pipboy-dial {
+  width: 16px;
+  height: 16px;
+  background: radial-gradient(circle, #c3b9af 40%, #8b7867 100%);
+  border-radius: 50%;
+  border: 2px solid #5a5f5b;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.5);
+}
+
+[data-theme='pipboy'] .pipboy-dial::after {
+  content: '';
+  display: block;
+  width: 100%;
+  height: 2px;
+  background: rgba(0,0,0,0.5);
+  margin-top: 5px;
+  transform: rotate(30deg);
+}
+
+[data-theme='pipboy'] .pipboy-dtop2 {
+  position: absolute;
+  top: 4px;
+  right: 8px;
+  z-index: 10;
+}
+
+[data-theme='pipboy'] .pipboy-dial2 {
+  width: 16px;
+  height: 16px;
+  background: radial-gradient(circle, #c3b9af 40%, #8b7867 100%);
+  border-radius: 50%;
+  border: 2px solid #5a5f5b;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.5);
+}
+
+[data-theme='pipboy'] .pipboy-dial2::after {
+  content: '';
+  display: block;
+  width: 100%;
+  height: 2px;
+  background: rgba(0,0,0,0.5);
+  margin-top: 5px;
+  transform: rotate(-45deg);
+}
+
+/* ── Screen Area ─────────────────────────────── */
+[data-theme='pipboy'] .pipboy-screen {
+  flex: 1;
+  background: #000500;
+  border: 3px solid #333;
+  border-radius: 6px;
+  margin: 4px;
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  box-shadow:
+    inset 0 0 40px rgba(27,255,128,0.05),
+    0 0 8px rgba(27,255,128,0.2);
+}
+
+/* ── Scanline sweep ──────────────────────────── */
+[data-theme='pipboy'] .pipboy-scanline {
+  position: absolute;
+  width: 100%;
+  height: 80px;
+  background: linear-gradient(rgba(0,0,0,0), rgba(27,255,128,0.06));
+  animation: pipboy-scan 4s infinite;
+  z-index: 50;
+  pointer-events: none;
+}
+
+/* ── Walking Vault Boy ───────────────────────── */
+[data-theme='pipboy'] .pipboy-vaultboy-walk {
+  position: absolute;
+  bottom: 8px;
+  right: 8px;
+  z-index: 40;
+  opacity: 0.7;
+  animation: pipboy-walk 0.8s ease-in-out infinite;
+  filter: brightness(1.2) hue-rotate(60deg);
+}
+
+/* ── Screen content (wraps the real app UI) ──── */
+[data-theme='pipboy'] .pipboy-screen-content {
+  flex: 1;
+  overflow: auto;
+  position: relative;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ── Header overrides ────────────────────────── */
+[data-theme='pipboy'] header {
+  background: #0d120d !important;
+  border-color: #1bff80 !important;
+  border-bottom-width: 1px;
+}
+
+/* ── Button overrides ────────────────────────── */
+[data-theme='pipboy'] button {
+  text-shadow: 0 0 4px rgba(27,255,128,0.5);
+}
+
+/* ── Prose / Markdown overrides ──────────────── */
+[data-theme='pipboy'] .prose {
+  color: #1bff80;
+}
+
+[data-theme='pipboy'] .prose h1,
+[data-theme='pipboy'] .prose h2,
+[data-theme='pipboy'] .prose h3,
+[data-theme='pipboy'] .prose h4,
+[data-theme='pipboy'] .prose h5,
+[data-theme='pipboy'] .prose h6 {
+  color: #4dffaa;
+}
+
+[data-theme='pipboy'] .prose strong {
+  color: #4dffaa;
+}
+
+[data-theme='pipboy'] .prose em {
+  color: #0dcc66;
+}
+
+[data-theme='pipboy'] .prose a {
+  color: #1bff80;
+}
+
+[data-theme='pipboy'] .prose code:not(pre code) {
+  color: #ffb641;
+  background: rgba(27,255,128,0.08);
+}
+
+[data-theme='pipboy'] .prose pre {
+  background: #050a05;
+  border-color: rgba(27,255,128,0.3);
+}
+
+[data-theme='pipboy'] .prose pre code {
+  color: #1bff80;
+}
+
+[data-theme='pipboy'] .prose blockquote {
+  border-left-color: rgba(27,255,128,0.4);
+  color: #0dcc66;
+}
+
+/* ── Stat icons from original Codepen ────────── */
+[data-theme='pipboy'] .pipboy-info-bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 4px 8px;
+}
+
+[data-theme='pipboy'] .pipboy-info-bar span {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+}
+
+[data-theme='pipboy'] .pipboy-weapon {
+  width: 20px;
+  height: 20px;
+  background: url('/images/pipboy/pipboy-gun2.png') no-repeat center;
+  background-size: contain;
+  filter: brightness(2) hue-rotate(60deg);
+}
+
+[data-theme='pipboy'] .pipboy-aim {
+  width: 20px;
+  height: 20px;
+  background: url('/images/pipboy/pipboy-aim2.png') no-repeat center;
+  background-size: contain;
+  filter: brightness(2) hue-rotate(60deg);
+}
+
+[data-theme='pipboy'] .pipboy-helmet {
+  width: 20px;
+  height: 20px;
+  background: url('/images/pipboy/pipboy-helmet2.png') no-repeat center;
+  background-size: contain;
+  filter: brightness(2) hue-rotate(60deg);
+}
+
+[data-theme='pipboy'] .pipboy-shield {
+  width: 20px;
+  height: 20px;
+  background: url('/images/pipboy/pipboy-shield2.png') no-repeat center;
+  background-size: contain;
+  filter: brightness(2) hue-rotate(60deg);
+}
+
+[data-theme='pipboy'] .pipboy-voltage {
+  width: 20px;
+  height: 20px;
+  background: url('/images/pipboy/pipboy-voltage2.png') no-repeat center;
+  background-size: contain;
+  filter: brightness(2) hue-rotate(60deg);
+}
+
+[data-theme='pipboy'] .pipboy-nuclear {
+  width: 20px;
+  height: 20px;
+  background: url('/images/pipboy/pipboy-nuclear2.png') no-repeat center;
+  background-size: contain;
+  filter: brightness(2) hue-rotate(60deg);
+}
+
+/* ── Reduced motion ──────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  [data-theme='pipboy'] .pipboy-scanline,
+  [data-theme='pipboy'] .pipboy-vaultboy-walk {
+    animation: none;
+  }
+  .crt-scanlines {
+    display: none;
+  }
+}
