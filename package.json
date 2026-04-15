@@ -1,0 +1,54 @@
+{
+	"name": "squad-uplink",
+	"description": "Mobile-friendly web portal for GitHub Copilot CLI — share a session across any device",
+	"version": "0.5.6",
+	"author": "Shannon Fritz",
+	"license": "MIT",
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/shannonfritz/copilot-portal.git"
+	},
+	"type": "module",
+	"engines": {
+		"node": ">=22.5.0"
+	},
+	"main": "./dist/server.js",
+	"bin": {
+		"copilot-portal": "./bin/copilot-portal.mjs"
+	},
+	"files": [
+		"dist/",
+		"bin/",
+		"examples/",
+		"patches/",
+		"patch.mjs",
+		"start-portal.cmd",
+		"start-portal.sh",
+		"BUILD"
+	],
+	"scripts": {
+		"build": "node esbuild.cjs --production && cd webui && npm run build",
+		"build:ext": "node esbuild.cjs",
+		"build:ui": "cd webui && npm run build",
+		"start": "node dist/launcher.js",
+		"dev": "node esbuild.cjs --watch",
+		"watch:ui": "cd webui && npm run dev",
+		"test": "node tools/test-client.mjs",
+		"package": "node package.mjs",
+		"postinstall": "node patch.mjs"
+	},
+	"devDependencies": {
+		"@types/node": "^22.0.0",
+		"@types/qrcode": "^1.5.5",
+		"@types/ws": "^8.5.14",
+		"esbuild": "^0.25.0",
+		"typescript": "^5.0.0"
+	},
+	"dependencies": {
+		"@github/copilot": "^1.0.26",
+		"@github/copilot-sdk": "^0.2.2",
+		"qrcode": "^1.5.4",
+		"qrcode-terminal": "^0.12.0",
+		"ws": "^8.18.0"
+	}
+}

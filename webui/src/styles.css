@@ -1,0 +1,211 @@
+@import "tailwindcss";
+@plugin "@tailwindcss/typography";
+
+button { cursor: pointer; }
+
+:root {
+	--bg: #1e1e1e;
+	--surface: #252526;
+	--border: #3e3e42;
+	--text: #cccccc;
+	--text-muted: #858585;
+	--text-bright: #e8e8e8;
+	--primary: #0e639c;
+	--primary-hover: #1177bb;
+	--error: #f48771;
+	--success: #4ec9b0;
+	--tool-call: #dcdcaa;
+	--purple: #c586c0;
+	--accent: #4fc3f7;
+	--warning: #e6b43c;
+	--shield: #f5a623;
+	/* Tint backgrounds — base colors at low opacity */
+	--error-tint: rgba(244,135,113,0.10);
+	--success-tint: rgba(78,201,176,0.10);
+	--tool-call-tint: rgba(220,220,170,0.10);
+	--primary-tint: rgba(88,166,255,0.10);
+	--warning-tint: rgba(230,180,60,0.12);
+	--muted-tint: rgba(128,128,160,0.08);
+	--overlay: rgba(0,0,0,0.6);
+	--subtle-bg: rgba(255,255,255,0.08);
+	/* Code / prose */
+	--code-inline: #ce9178;
+	--code-bg: #1a1a1a;
+	--code-fg: #d4d4d4;
+	/* Scrollbar */
+	--scrollbar: rgba(255,255,255,0.15);
+	--scrollbar-code: rgba(255,255,255,0.25);
+}
+
+* {
+	box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+	height: 100%;
+	margin: 0;
+	background: var(--bg);
+	color: var(--text);
+	font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+	font-size: 15px;
+}
+
+@keyframes blink {
+	0%, 100% { opacity: 1; }
+	50% { opacity: 0; }
+}
+
+@keyframes thinking {
+	0%, 100% { transform: translateY(0); opacity: 0.4; }
+	50% { transform: translateY(-4px); opacity: 1; }
+}
+
+/* ─── Prose / Markdown overrides ─────────────────────────────────────────── */
+
+.prose {
+	color: var(--text);
+	max-width: none;
+}
+
+/* Headings */
+.prose h1, .prose h2, .prose h3, .prose h4, .prose h5, .prose h6 {
+	color: var(--text-bright);
+	margin-top: 1em;
+	margin-bottom: 0.4em;
+	font-weight: 600;
+}
+
+/* Paragraphs */
+.prose p {
+	margin-top: 0.5em;
+	margin-bottom: 0.5em;
+}
+.prose > p:first-child { margin-top: 0; }
+.prose > p:last-child  { margin-bottom: 0; }
+
+/* Lists — explicit bullets/numbers */
+.prose ul {
+	list-style-type: disc;
+	padding-left: 1.5em;
+	margin: 0.5em 0;
+}
+.prose ol {
+	list-style-type: decimal;
+	padding-left: 1.5em;
+	margin: 0.5em 0;
+}
+.prose li {
+	margin: 0.25em 0;
+	color: var(--text);
+}
+.prose li::marker {
+	color: var(--text-muted);
+}
+.prose ul ul { list-style-type: circle; }
+.prose ul ul ul { list-style-type: square; }
+
+/* Inline code */
+.prose code:not(pre code) {
+	background: var(--subtle-bg);
+	color: var(--code-inline);
+	padding: 0.15em 0.4em;
+	border-radius: 3px;
+	font-size: 0.875em;
+	font-family: 'Cascadia Code', 'Fira Code', 'Consolas', monospace;
+}
+
+/* Code blocks */
+.prose pre {
+	overflow-x: auto;
+	background: var(--code-bg);
+	border: 1px solid var(--border);
+	border-radius: 6px;
+	padding: 0.75em 1em;
+	margin: 0.75em 0;
+}
+.prose pre code {
+	background: none;
+	color: var(--code-fg);
+	padding: 0;
+	font-size: 0.875em;
+	font-family: 'Cascadia Code', 'Fira Code', 'Consolas', monospace;
+}
+
+/* Blockquotes */
+.prose blockquote {
+	border-left: 3px solid var(--border);
+	padding-left: 1em;
+	color: var(--text-muted);
+	margin: 0.5em 0;
+	font-style: italic;
+}
+
+/* Links */
+.prose a {
+	color: var(--accent);
+	text-decoration: underline;
+}
+
+/* Horizontal rule */
+.prose hr {
+	border-color: var(--border);
+	margin: 1em 0;
+}
+
+/* Strong / em */
+.prose strong { color: var(--text-bright); font-weight: 600; }
+.prose em { color: var(--code-fg); }
+
+/* Code blocks inside assistant bubbles: scroll horizontally, don't overflow */
+.prose pre {
+	overflow-x: auto;
+}
+
+/* Thin scrollbar for main chat area */
+.chat-scroll {
+	scrollbar-width: thin;
+	scrollbar-color: transparent transparent;
+}
+.chat-scroll:hover {
+	scrollbar-color: var(--scrollbar) transparent;
+}
+.chat-scroll::-webkit-scrollbar {
+	width: 4px;
+}
+.chat-scroll::-webkit-scrollbar-track {
+	background: transparent;
+}
+.chat-scroll::-webkit-scrollbar-thumb {
+	background: transparent;
+	border-radius: 2px;
+}
+.chat-scroll:hover::-webkit-scrollbar-thumb {
+	background: var(--scrollbar);
+}
+
+/* Visible scrollbar for code blocks on desktop */
+.code-scroll {
+	overflow-x: auto;
+	scrollbar-width: thin;
+	scrollbar-color: var(--scrollbar-code) transparent;
+}
+.code-scroll::-webkit-scrollbar {
+	height: 6px;
+}
+.code-scroll::-webkit-scrollbar-track {
+	background: transparent;
+}
+.code-scroll::-webkit-scrollbar-thumb {
+	background: var(--scrollbar-code);
+	border-radius: 3px;
+}
+
+/* Table cells */
+.prose table td, .prose table th {
+	border: 1px solid var(--border);
+	padding: 0.4em 0.75em;
+	vertical-align: top;
+	text-align: left;
+}

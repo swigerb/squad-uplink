@@ -9,7 +9,24 @@
 # Squad: SubSquad activation file (local to this machine)
 .squad-workstream
 
-# Vite / Node
+# Node / Build
+node_modules/
+dist/
+dist-ssr
+webui/node_modules/
+webui/dist/
+*.local
+*.vsix
+.vscode-test/
+
+# Runtime-generated data — session-specific, never commit
+data/
+debug/
+
+# Build artifacts
+releases/
+copilot-portal-*.zip
+
 # Logs
 logs
 *.log
@@ -19,12 +36,8 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
-node_modules
-dist
-dist-ssr
-*.local
-
 # Editor directories and files
+.vs/
 .vscode/*
 !.vscode/extensions.json
 .idea

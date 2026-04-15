@@ -1,9 +1,0 @@
-﻿<UserControl
-    x:Class="SquadUplink.Controls.GridLayoutPanel"
-    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-    xmlns:controls="using:SquadUplink.Controls">
-
-    <Grid x:ConnectionId='2' x:Name="RootGrid" />
-</UserControl>
-
