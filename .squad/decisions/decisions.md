@@ -663,5 +663,81 @@ User request — quality gate before shipping.
 
 ---
 
+## CopilotSessionService Enrichment Order — Before Squad Detection
+
+**By:** Woz (Lead Dev)  
+**Date:** 2026-04-14  
+**Status:** Implemented
+
+### Context
+
+SessionManager.ScanAndMergeAsync() ran squad detection before Copilot session enrichment. ProcessScanner often can't determine WorkingDirectory from command-line args alone. CopilotSessionService reads cwd/git_root from workspace.yaml but ran second — so squad detection got an empty directory and returned null.
+
+### Decision
+
+1. **Enrichment order:** CopilotSessionService.EnrichSessionAsync() runs FIRST, then SquadDetector.DetectAsync().
+2. **WorkingDirectory backfill:** CopilotSessionService now writes git_root (preferred) or cwd back to session.WorkingDirectory when empty.
+3. **Watcher activation:** SquadFileWatcher.StartWatching() is called from RebuildSquadTree() when squads are found. EventStreamWatcher is created and started from UpdateStats() when sessions have EventsJsonlPath.
+
+### Consequences
+
+- All intelligence surfaces (Squad Tree, Decision Feed, Orchestration Timeline) now populate correctly.
+- Any future enrichment services that provide WorkingDirectory should also run before squad detection.
+- EventStreamWatcher is created per-session (not via DI) — acceptable since it's lightweight and session-scoped.
+
+---
+
+## Reboot squad-uplink on copilot-portal Foundation
+
+**By:** Woz (Lead Dev)  
+**Date:** 2026-04-14  
+**Status:** Implemented  
+**Risk:** Medium (full stack replacement)
+
+### Context
+
+squad-uplink was originally a WinUI 3 / .NET 10 / C# desktop app for monitoring and controlling Squad agents via devtunnel. The project is pivoting to a web-based architecture using Shannon Fritz's copilot-portal as the foundation.
+
+### Decision
+
+Replace the entire WinUI C# codebase with copilot-portal — a Node.js server + React 19 + Vite webui that proxies GitHub Copilot CLI sessions to a browser.
+
+### Rationale
+
+1. **Cross-platform reach** — Web app runs on any device with a browser (mobile, tablet, any OS), vs WinUI which is Windows-only
+2. **Proven foundation** — copilot-portal already solves the hard problem of proxying Copilot CLI to browser with session management, QR code sharing, and approval flows
+3. **Stack alignment** — Node.js/React/TypeScript is the team's strongest competency (original v1 was React before the WinUI pivot)
+4. **Faster iteration** — Hot reload, npm ecosystem, no Windows SDK toolchain friction
+
+### What Changed
+
+- **Archived:** WinUI app tagged `archive/winui-v1` — full history preserved
+- **Removed:** All C#/XAML source, .sln, Directory.Build.props, build artifacts
+- **Imported:** copilot-portal src/ (Node server), webui/ (React 19 + Vite 6), bin/, tools/, docs/, examples/, img/
+- **Preserved:** .squad/ team state, .github/ workflows, scripts/, README.md, .gitattributes
+- **Renamed:** package.json name → "squad-uplink"
+
+### Architecture (New)
+
+- **Server:** Node.js 22+ — esbuild-bundled TypeScript → `dist/server.js`. Uses `@github/copilot` + `@github/copilot-sdk` for Copilot CLI session management
+- **WebUI:** React 19 + Vite 6 + Tailwind — builds to `dist/webui/`. Communicates with server via WebSocket
+- **Build:** `npm run build` (runs esbuild for server + vite for webui)
+- **Entry:** `start-portal.cmd` / `start-portal.sh` or `node dist/launcher.js`
+
+### Risks & Mitigations
+
+- **Lost WinUI features** (system tray, process scanning, SQLite persistence) — Will be rebuilt as needed in the web stack or via companion services
+- **MIT License obligation** — LICENSE file preserved, attribution in commit message
+- **Team knowledge gap** — Original React/TS history means team is already fluent
+
+### Next Steps
+
+- Update README.md for the new architecture
+- Customize webui for squad-uplink identity (branding, squad-rc integration)
+- Set up CI/CD for the new Node.js + Vite stack
+- Integrate devtunnel connectivity for remote agent control
+
+---
+
 ## Archive Log
 (Post-release decisions logged here).
