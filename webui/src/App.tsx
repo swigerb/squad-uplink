@@ -4,10 +4,11 @@ import Markdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import remarkBreaks from 'remark-breaks';
 import type { ComponentProps } from 'react';
-import { ThemeProvider } from './hooks/useTheme';
+import { ThemeProvider, useTheme } from './hooks/useTheme';
 import { ThemeToggle } from './components/ThemeToggle';
 import { CRTOverlay } from './components/CRTOverlay';
 import { PipBoyLayout } from './components/PipBoyLayout';
+import { MatrixRain } from './components/MatrixRain';
 import { SquadPanel } from './components/SquadPanel';
 import { SquadButton } from './components/SquadButton';
 
@@ -572,6 +573,7 @@ function SessionDrawer({
 
 
 export default function App() {
+	const { themeId } = useTheme();
 	const hasSessionInUrl = !!new URLSearchParams(window.location.search).get('session');
 	const [connectionState, setConnectionState] = useState<ConnectionState>(hasSessionInUrl ? 'connecting' : 'disconnected');
 	const [messages, setMessages] = useState<Message[]>([]);
@@ -1777,6 +1779,7 @@ export default function App() {
 		<PipBoyLayout>
 		<div className="flex flex-col" style={{ height: '100%' }}>
 			<CRTOverlay />
+			<MatrixRain enabled={themeId === 'matrix'} />
 			{/* QR Code Modal */}
 			{showQR && (
 				<div
