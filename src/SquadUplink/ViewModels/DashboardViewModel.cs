@@ -24,6 +24,7 @@ public partial class DashboardViewModel : ViewModelBase
     private readonly DispatcherQueue? _dispatcherQueue;
     private CancellationTokenSource? _uptimeCts;
     private CancellationTokenSource? _telemetryCts;
+    private EventStreamWatcher? _eventWatcher;
 
     /// <summary>Approximate time the application started (static, set once at class load).</summary>
     internal static readonly DateTime AppStartedAt = DateTime.UtcNow;
@@ -414,6 +415,23 @@ public partial class DashboardViewModel : ViewModelBase
 
         // Rebuild squad tree
         RebuildSquadTree();
+
+        StartEventStreamIfNeeded();
+    }
+
+    private void StartEventStreamIfNeeded()
+    {
+        var session = Sessions.FirstOrDefault(s => !string.IsNullOrEmpty(s.EventsJsonlPath));
+        if (session is null) return;
+        if (_eventWatcher?.CurrentPath == session.EventsJsonlPath) return;
+
+        _eventWatcher?.Dispose();
+        _eventWatcher = new EventStreamWatcher(OrchestrationTimeline, action =>
+        {
+            _dispatcherQueue?.TryEnqueue(() => action());
+        });
+        _eventWatcher.StartWatching(session.EventsJsonlPath!);
+        Log.Information("EventStreamWatcher started for session {Id}", session.Id);
     }
 
     private void UpdateUptime()
@@ -451,6 +469,7 @@ public partial class DashboardViewModel : ViewModelBase
         _telemetryCts?.Dispose();
         Sessions.CollectionChanged -= OnSessionsChanged;
         _diagnosticsSink.LogReceived -= OnLogReceived;
+        _eventWatcher?.Dispose();
         if (_fileWatcher is not null)
             _fileWatcher.FileChanged -= OnSquadFileChanged;
         base.Dispose();
@@ -532,6 +551,14 @@ public partial class DashboardViewModel : ViewModelBase
         }
 
         UpdateHeartbeats();
+
+        // Pipe event stream timestamps to session heartbeats
+        if (_eventWatcher?.LastEventTimestamp is { } ts)
+        {
+            var watchedPath = _eventWatcher.CurrentPath;
+            if (watchedPath is not null)
+                UpdateSessionLastEvent(watchedPath, ts);
+        }
     }
 
     private void UpdateHeartbeats()
@@ -707,6 +734,18 @@ public partial class DashboardViewModel : ViewModelBase
 
         HasSquads = squadsFound;
         NoSquadsVisible = !squadsFound;
+
+        // Start file watcher on the first squad's directory
+        if (squadsFound && _fileWatcher is not null)
+        {
+            var firstSquadSession = Sessions.FirstOrDefault(s => s.Squad is not null);
+            if (firstSquadSession is not null && !string.IsNullOrEmpty(firstSquadSession.WorkingDirectory))
+            {
+                var squadDir = Path.Combine(firstSquadSession.WorkingDirectory, ".squad");
+                if (Directory.Exists(squadDir))
+                    _fileWatcher.StartWatching(squadDir);
+            }
+        }
 
         // Auto-select first squad if none selected
         if (SelectedSquad is null && Squads.Count > 0)

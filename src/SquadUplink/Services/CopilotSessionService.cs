@@ -73,6 +73,16 @@ public partial class CopilotSessionService : ICopilotSessionService
                 session.GitBranch = info.Branch;
                 session.EventsJsonlPath = info.EventsJsonlPath;
 
+                // Backfill working directory from workspace.yaml if not already known
+                if (string.IsNullOrEmpty(session.WorkingDirectory))
+                {
+                    session.WorkingDirectory = !string.IsNullOrEmpty(info.GitRoot)
+                        ? info.GitRoot
+                        : !string.IsNullOrEmpty(info.Cwd)
+                            ? info.Cwd
+                            : session.WorkingDirectory;
+                }
+
                 // Backfill repository name if not already set
                 if (string.IsNullOrEmpty(session.RepositoryName) && !string.IsNullOrEmpty(info.Repository))
                     session.RepositoryName = info.Repository;

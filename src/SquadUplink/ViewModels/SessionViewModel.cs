@@ -12,6 +12,8 @@ namespace SquadUplink.ViewModels;
 public partial class SessionViewModel : ViewModelBase
 {
     private readonly ISessionManager _sessionManager;
+    private readonly Microsoft.UI.Dispatching.DispatcherQueue? _dispatcherQueue;
+    private System.Threading.Timer? _refreshTimer;
 
     [ObservableProperty]
     private string _statusText = "No session selected";
@@ -52,6 +54,27 @@ public partial class SessionViewModel : ViewModelBase
     [ObservableProperty]
     private string _terminalContent = string.Empty;
 
+    [ObservableProperty]
+    private string _gitBranch = "—";
+
+    [ObservableProperty]
+    private string _sessionSummary = "—";
+
+    [ObservableProperty]
+    private int _agentCount;
+
+    [ObservableProperty]
+    private string _heartbeatText = "—";
+
+    [ObservableProperty]
+    private string _copilotSessionId = "—";
+
+    [ObservableProperty]
+    private string _squadUniverse = "—";
+
+    [ObservableProperty]
+    private string _memberRoster = "—";
+
     public ObservableCollection<string> OutputLines { get; } = [];
 
     private SessionState? _currentSession;
@@ -64,6 +87,8 @@ public partial class SessionViewModel : ViewModelBase
         : base(logger)
     {
         _sessionManager = sessionManager;
+        try { _dispatcherQueue = Microsoft.UI.Dispatching.DispatcherQueue.GetForCurrentThread(); }
+        catch (System.Runtime.InteropServices.COMException) { _dispatcherQueue = null; }
     }
 
     public void LoadSession(SessionState session)
@@ -77,7 +102,37 @@ public partial class SessionViewModel : ViewModelBase
         GitHubUri = session.GitHubTaskUrl is not null ? new Uri(session.GitHubTaskUrl) : null;
         HasGitHubUrl = session.GitHubTaskUrl is not null;
         OutputLineCount = session.OutputLines.Count;
-        SquadName = session.Squad?.TeamName ?? "—";
+
+        // Rich session data from CopilotSessionService enrichment
+        GitBranch = session.GitBranch ?? "—";
+        SessionSummary = !string.IsNullOrEmpty(session.SessionSummary)
+            ? session.SessionSummary
+            : "—";
+        AgentCount = session.AgentCount;
+        CopilotSessionId = !string.IsNullOrEmpty(session.CopilotSessionId)
+            ? session.CopilotSessionId[..Math.Min(8, session.CopilotSessionId.Length)] + "…"
+            : "—";
+        SquadUniverse = session.SquadUniverse ?? "—";
+
+        // Use actual team name + agent count
+        SquadName = session.Squad is not null
+            ? $"{session.Squad.TeamName} ({session.Squad.Members.Count} agents)"
+            : "—";
+
+        // Member roster as compact string
+        MemberRoster = session.Squad is not null
+            ? string.Join(" · ", session.Squad.Members.Select(m => $"{m.Emoji}{m.Name}"))
+            : "—";
+
+        // Heartbeat from session state
+        HeartbeatText = session.Heartbeat switch
+        {
+            HeartbeatStatus.Active => "🟢 Active",
+            HeartbeatStatus.Idle => "🟡 Idle",
+            HeartbeatStatus.Waiting => "🟠 Waiting",
+            HeartbeatStatus.Ended => "🔴 Ended",
+            _ => "⚪ Unknown"
+        };
 
         // Sync output lines to our observable collection
         OutputLines.Clear();
@@ -95,8 +150,59 @@ public partial class SessionViewModel : ViewModelBase
             ? $"{(int)elapsed.TotalMinutes}m"
             : $"{(int)elapsed.TotalHours}h {(int)(elapsed.TotalMinutes % 60)}m";
 
-        LastActivityText = session.OutputLines.Count > 0 ? "Active" : "No output yet";
+        // Fix Last Activity — use LastEventAt if available, fall back to session summary
+        LastActivityText = session.LastEventAt is not null
+            ? FormatTimeAgo(session.LastEventAt.Value)
+            : session.OutputLines.Count > 0
+                ? "Active"
+                : !string.IsNullOrEmpty(session.SessionSummary)
+                    ? "Running (no events captured)"
+                    : "Awaiting first event";
+
         ErrorLogSummary = session.Status == SessionStatus.Error ? "1 error" : "0 errors";
+
+        // Start periodic refresh for live data (age, heartbeat, last activity)
+        _refreshTimer?.Dispose();
+        _refreshTimer = new System.Threading.Timer(_ =>
+        {
+            _dispatcherQueue?.TryEnqueue(RefreshLiveData);
+        }, null, TimeSpan.FromSeconds(5), TimeSpan.FromSeconds(5));
+    }
+
+    private void RefreshLiveData()
+    {
+        if (_currentSession is null) return;
+
+        var elapsed = DateTime.UtcNow - _currentSession.StartedAt;
+        SessionAge = elapsed.TotalMinutes < 60
+            ? $"{(int)elapsed.TotalMinutes}m"
+            : $"{(int)elapsed.TotalHours}h {(int)(elapsed.TotalMinutes % 60)}m";
+
+        HeartbeatText = _currentSession.Heartbeat switch
+        {
+            HeartbeatStatus.Active => "🟢 Active",
+            HeartbeatStatus.Idle => "🟡 Idle",
+            HeartbeatStatus.Waiting => "🟠 Waiting",
+            HeartbeatStatus.Ended => "🔴 Ended",
+            _ => "⚪ Unknown"
+        };
+
+        if (_currentSession.LastEventAt is not null)
+            LastActivityText = FormatTimeAgo(_currentSession.LastEventAt.Value);
+
+        OutputLineCount = _currentSession.OutputLines.Count;
+    }
+
+    private static string FormatTimeAgo(DateTime utcTime)
+    {
+        var elapsed = DateTime.UtcNow - utcTime;
+        return elapsed.TotalSeconds switch
+        {
+            < 10 => "Just now",
+            < 60 => $"{(int)elapsed.TotalSeconds}s ago",
+            < 3600 => $"{(int)elapsed.TotalMinutes}m ago",
+            _ => $"{(int)elapsed.TotalHours}h {(int)(elapsed.TotalMinutes % 60)}m ago"
+        };
     }
 
     internal void ExtractGitHubUrlFromOutput(SessionState session)
@@ -182,5 +288,11 @@ public partial class SessionViewModel : ViewModelBase
             Windows.ApplicationModel.DataTransfer.Clipboard.SetContent(package);
             Log.Debug("Task URL copied to clipboard");
         }
+    }
+
+    public override void Dispose()
+    {
+        _refreshTimer?.Dispose();
+        base.Dispose();
     }
 }

@@ -18,6 +18,7 @@
             <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
             <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
 
         <!-- ═══ Session Info Bar ═══ -->
@@ -130,51 +131,117 @@
             </ScrollViewer>
         </Border>
 
-        <!-- ═══ Collapsible Telemetry Panel ═══ -->
-        <Expander Grid.Row="2" Header="Session Telemetry"
-                  HorizontalAlignment="Stretch"
-                  HorizontalContentAlignment="Stretch"
-                  IsExpanded="False">
-            <Grid ColumnSpacing="24" Padding="8">
+        <!-- ═══ Key Session Info (always visible) ═══ -->
+        <Border Grid.Row="2" Style="{StaticResource CockpitPanelStyle}" Padding="12,8">
+            <Grid ColumnSpacing="16">
                 <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
                     <ColumnDefinition Width="*" />
-                    <ColumnDefinition Width="*" />
-                    <ColumnDefinition Width="*" />
-                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
                 </Grid.ColumnDefinitions>
 
-                <!-- Output Lines -->
-                <StackPanel Grid.Column="0" Spacing="4">
-                    <TextBlock Text="OUTPUT LINES" FontSize="10" CharacterSpacing="80"
+                <!-- Heartbeat -->
+                <TextBlock Grid.Column="0" Text="{x:Bind ViewModel.HeartbeatText, Mode=OneWay}"
+                           FontSize="13" VerticalAlignment="Center" />
+
+                <!-- Git Branch -->
+                <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
+                    <FontIcon Glyph="&#xE8AD;" FontSize="12"
+                              Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                    <TextBlock Text="{x:Bind ViewModel.GitBranch, Mode=OneWay}"
+                               FontSize="12" FontFamily="Cascadia Mono,Consolas,monospace"
                                Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
-                    <TextBlock Text="{x:Bind ViewModel.OutputLineCount, Mode=OneWay}"
-                               FontSize="20" FontWeight="SemiBold" />
                 </StackPanel>
 
-                <!-- Last Activity -->
-                <StackPanel Grid.Column="1" Spacing="4">
-                    <TextBlock Text="LAST ACTIVITY" FontSize="10" CharacterSpacing="80"
-                               Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
-                    <TextBlock Text="{x:Bind ViewModel.LastActivityText, Mode=OneWay}"
-                               FontSize="13" />
-                </StackPanel>
+                <!-- Session Summary -->
+                <TextBlock Grid.Column="2" Text="{x:Bind ViewModel.SessionSummary, Mode=OneWay}"
+                           TextTrimming="CharacterEllipsis" FontSize="12"
+                           Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                           VerticalAlignment="Center" />
 
-                <!-- Squad Info -->
-                <StackPanel Grid.Column="2" Spacing="4">
-                    <TextBlock Text="SQUAD" FontSize="10" CharacterSpacing="80"
-                               Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
-                    <TextBlock Text="{x:Bind ViewModel.SquadName, Mode=OneWay}"
-                               FontSize="13" />
-                </StackPanel>
+                <!-- Agent Count Badge -->
+                <Border Grid.Column="3" CornerRadius="10" Padding="8,2"
+                        Background="{ThemeResource SubtleFillColorSecondaryBrush}">
+                    <StackPanel Orientation="Horizontal" Spacing="4">
+                        <FontIcon Glyph="&#xE716;" FontSize="11" />
+                        <TextBlock FontSize="12">
+                            <Run Text="{x:Bind ViewModel.AgentCount, Mode=OneWay}" />
+                            <Run Text=" agents" />
+                        </TextBlock>
+                    </StackPanel>
+                </Border>
+            </Grid>
+        </Border>
 
-                <!-- Error Log -->
-                <StackPanel Grid.Column="3" Spacing="4">
-                    <TextBlock Text="ERRORS" FontSize="10" CharacterSpacing="80"
-                               Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
-                    <TextBlock Text="{x:Bind ViewModel.ErrorLogSummary, Mode=OneWay}"
-                               FontSize="13"
-                               Foreground="{StaticResource SquadErrorRedBrush}" />
-                </StackPanel>
+        <!-- ═══ Detailed Session Telemetry ═══ -->
+        <Expander Grid.Row="3" Header="Session Details"
+                  HorizontalAlignment="Stretch"
+                  HorizontalContentAlignment="Stretch"
+                  Margin="0,4,0,0"
+                  IsExpanded="False">
+            <Grid RowSpacing="8" Padding="8">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+
+                <!-- Row 1: Identity -->
+                <Grid Grid.Row="0" ColumnSpacing="24">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+
+                    <StackPanel Grid.Column="0" Spacing="2">
+                        <TextBlock Text="SQUAD" FontSize="10" CharacterSpacing="80"
+                                   Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                        <TextBlock Text="{x:Bind ViewModel.SquadName, Mode=OneWay}" FontSize="13" />
+                    </StackPanel>
+
+                    <StackPanel Grid.Column="1" Spacing="2">
+                        <TextBlock Text="UNIVERSE" FontSize="10" CharacterSpacing="80"
+                                   Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                        <TextBlock Text="{x:Bind ViewModel.SquadUniverse, Mode=OneWay}" FontSize="13" />
+                    </StackPanel>
+
+                    <StackPanel Grid.Column="2" Spacing="2">
+                        <TextBlock Text="SESSION ID" FontSize="10" CharacterSpacing="80"
+                                   Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                        <TextBlock Text="{x:Bind ViewModel.CopilotSessionId, Mode=OneWay}"
+                                   FontSize="12" FontFamily="Cascadia Mono,Consolas,monospace" />
+                    </StackPanel>
+                </Grid>
+
+                <!-- Row 2: Activity + Members -->
+                <Grid Grid.Row="1" ColumnSpacing="24">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+
+                    <StackPanel Grid.Column="0" Spacing="2">
+                        <TextBlock Text="LAST ACTIVITY" FontSize="10" CharacterSpacing="80"
+                                   Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                        <TextBlock Text="{x:Bind ViewModel.LastActivityText, Mode=OneWay}" FontSize="13" />
+                    </StackPanel>
+
+                    <StackPanel Grid.Column="1" Spacing="2">
+                        <TextBlock Text="ERRORS" FontSize="10" CharacterSpacing="80"
+                                   Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                        <TextBlock Text="{x:Bind ViewModel.ErrorLogSummary, Mode=OneWay}" FontSize="13"
+                                   Foreground="{StaticResource SquadErrorRedBrush}" />
+                    </StackPanel>
+
+                    <StackPanel Grid.Column="2" Spacing="2">
+                        <TextBlock Text="MEMBERS" FontSize="10" CharacterSpacing="80"
+                                   Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                        <TextBlock Text="{x:Bind ViewModel.MemberRoster, Mode=OneWay}" FontSize="12"
+                                   TextTrimming="CharacterEllipsis" />
+                    </StackPanel>
+                </Grid>
             </Grid>
         </Expander>
     </Grid>

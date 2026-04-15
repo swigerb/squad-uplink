@@ -112,6 +112,20 @@ public class SessionManager : ISessionManager
                     continue;
             }
 
+            // Enrich with Copilot session-state data FIRST so WorkingDirectory
+            // is backfilled before squad detection needs it.
+            if (_copilotSessionService is not null)
+            {
+                try
+                {
+                    await _copilotSessionService.EnrichSessionAsync(session, ct);
+                }
+                catch (Exception ex)
+                {
+                    _logger.Warning(ex, "Copilot session enrichment failed for {Id}", session.Id);
+                }
+            }
+
             try
             {
                 session.Squad = await _squadDetector.DetectAsync(session.WorkingDirectory, ct);
@@ -124,19 +138,6 @@ public class SessionManager : ISessionManager
             {
                 _logger.Warning(ex, "Squad detection failed for session {Id}", session.Id);
                 session.Status = SessionStatus.Running;
-            }
-
-            // Enrich with Copilot session-state data (summary, branch, events path)
-            if (_copilotSessionService is not null)
-            {
-                try
-                {
-                    await _copilotSessionService.EnrichSessionAsync(session, ct);
-                }
-                catch (Exception ex)
-                {
-                    _logger.Warning(ex, "Copilot session enrichment failed for {Id}", session.Id);
-                }
             }
 
             lock (_sessionsLock)
