@@ -44,7 +44,7 @@ public static class ServiceCollectionExtensions
         // ViewModels
         services.AddTransient<DashboardViewModel>();
         services.AddTransient<SessionViewModel>();
-        services.AddTransient<SettingsViewModel>();
+        services.AddSingleton<SettingsViewModel>();
         services.AddTransient<DiagnosticsViewModel>();
 
         return services;

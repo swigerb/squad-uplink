@@ -103,6 +103,13 @@ public sealed partial class MainWindow : Window
     public MainWindow()
     {
         Log.Debug("MainWindow constructor entered");
+
+        // Resolve DI services BEFORE InitializeComponent so x:Bind sees them
+        _sessionManager = App.Services.GetRequiredService<ISessionManager>();
+        _diagnosticsSink = App.Services.GetRequiredService<Core.Logging.InMemorySink>();
+        _formatter = App.Services.GetRequiredService<ILogPayloadFormatter>();
+        SettingsVm = App.Services.GetRequiredService<SettingsViewModel>();
+
         InitializeComponent();
 
         // Mica backdrop for modern Windows 11 feel
@@ -112,10 +119,6 @@ public sealed partial class MainWindow : Window
         ExtendsContentIntoTitleBar = true;
         SetTitleBar(AppTitleBar);
 
-        _sessionManager = App.Services.GetRequiredService<ISessionManager>();
-        _diagnosticsSink = App.Services.GetRequiredService<Core.Logging.InMemorySink>();
-        _formatter = App.Services.GetRequiredService<ILogPayloadFormatter>();
-        SettingsVm = App.Services.GetRequiredService<SettingsViewModel>();
         _sessionManager.Sessions.CollectionChanged += (_, _) => UpdateStatus();
 
         // Intercept window close to support minimize-to-tray
