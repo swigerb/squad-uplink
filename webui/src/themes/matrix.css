@@ -1,0 +1,83 @@
+/* Matrix Theme - Digital rain effect */
+
+[data-theme="matrix"] {
+  --fg: #00ff00;
+  --bg: #000000;
+  --cursor: #00ff00;
+  --selection: rgba(0, 255, 0, 0.2);
+  --glow-color: rgba(0, 255, 0, 0.4);
+  --scanline-opacity: 0.06;
+  
+  --font-family: 'Share Tech Mono', 'Courier New', monospace;
+  --font-size: 16px;
+  
+  background: var(--bg);
+  color: var(--fg);
+  font-family: var(--font-family);
+}
+
+/* Fullscreen layout */
+[data-theme="matrix"] {
+  position: relative;
+  overflow: hidden;
+}
+
+/* Green terminal glow */
+[data-theme="matrix"] .terminal-text,
+[data-theme="matrix"] .xterm-rows {
+  color: var(--fg);
+  text-shadow: 
+    0 0 5px var(--glow-color),
+    0 0 10px var(--glow-color);
+}
+
+/* Matrix rain canvas */
+[data-theme="matrix"] .matrix-rain {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 0;
+  opacity: 0.3;
+  pointer-events: none;
+}
+
+[data-theme="matrix"] .terminal-container {
+  position: relative;
+  z-index: 1;
+}
+
+/* Subtle scanlines */
+[data-theme="matrix"] .crt-overlay::before {
+  background: repeating-linear-gradient(
+    0deg,
+    rgba(0, 0, 0, 0.06) 0px,
+    transparent 1px,
+    transparent 2px,
+    rgba(0, 0, 0, 0.06) 3px
+  );
+}
+
+/* Fade-in effect for text */
+[data-theme="matrix"] .xterm-rows {
+  animation: matrix-fade-in 0.5s ease-in;
+}
+
+@keyframes matrix-fade-in {
+  0% { opacity: 0; transform: scaleY(0); }
+  100% { opacity: 1; transform: scaleY(1); }
+}
+
+/* Glowing cursor */
+[data-theme="matrix"] .xterm-cursor {
+  background-color: var(--cursor);
+  box-shadow: 0 0 10px var(--glow-color);
+}
+
+/* Matrix-style prompt */
+[data-theme="matrix"] .terminal-prompt::before {
+  content: '> ';
+  color: #00ff00;
+  font-weight: bold;
+}

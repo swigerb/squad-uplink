@@ -8,6 +8,8 @@ import { ThemeProvider } from './hooks/useTheme';
 import { ThemeToggle } from './components/ThemeToggle';
 import { CRTOverlay } from './components/CRTOverlay';
 import { PipBoyLayout } from './components/PipBoyLayout';
+import { SquadPanel } from './components/SquadPanel';
+import { SquadButton } from './components/SquadButton';
 
 // pre and table need React wrappers for the .code-scroll div — CSS alone can't inject a parent element.
 // p, th, and a need inline styles to unconditionally beat Tailwind Typography's generated rules.
@@ -647,6 +649,7 @@ export default function App() {
 	const [sessionUsage, setSessionUsage] = useState<{ inputTokens: number; outputTokens: number; cacheReadTokens: number; reasoningTokens: number; requests: number } | null>(null);
 	const [sessionQuota, setSessionQuota] = useState<{ unlimited: boolean; used: number; total: number; remaining: number; resetDate?: string } | null>(null);
 	const [drawerOpen, setDrawerOpen] = useState(false);
+	const [squadPanelOpen, setSquadPanelOpen] = useState(false);
 	const [noSession, setNoSession] = useState(!hasSessionInUrl);
 	const noSessionRef = useRef(!hasSessionInUrl);
 	const [updateStatus, setUpdateStatus] = useState<UpdateStatus | null>(null);
@@ -2534,6 +2537,9 @@ export default function App() {
 				</div>
 			)}
 
+			{/* Squad Panel */}
+			<SquadPanel open={squadPanelOpen} onClose={() => setSquadPanelOpen(false)} />
+
 			{/* Header */}
 			<header
 				className="flex items-center justify-between border-b px-4 py-3"
@@ -2581,6 +2587,7 @@ export default function App() {
 							</button>
 						)}
 						<ThemeToggle />
+						<SquadButton onClick={() => setSquadPanelOpen(true)} />
 						<button
 							className="inline-flex items-center justify-center h-8 px-2 rounded-lg"
 							style={{ background: 'var(--bg)', border: '1px solid var(--border)' }}

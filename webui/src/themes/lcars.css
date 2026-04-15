@@ -1,0 +1,141 @@
+/* LCARS Theme - Star Trek interface (TNG/DS9/Voyager) */
+
+[data-theme="lcars"] {
+  --fg: #ff9900;
+  --bg: #000000;
+  --cursor: #ec943a;
+  --selection: rgba(236, 148, 58, 0.3);
+  --glow-color: transparent;
+  --scanline-opacity: 0;
+  
+  /* LCARS color palette - screen-accurate */
+  --lcars-orange: #ec943a;
+  --lcars-mauve: #c082a9;
+  --lcars-lavender: #8b72aa;
+  --lcars-yellow: #faa41b;
+  --lcars-salmon: #d29a7f;
+  --lcars-deep-mauve: #9c698a;
+  --lcars-light-lavender: #b6a5d1;
+  --lcars-blue: #76c7f0;
+  
+  --font-family: 'LCARSGTJ3', 'Antonio', 'Helvetica', sans-serif;
+  --font-size: 14px;
+  
+  background: var(--bg);
+  color: var(--fg);
+  font-family: var(--font-family);
+}
+
+/* Panel layout */
+[data-theme="lcars"] .lcars-panel {
+  background: var(--bg);
+  position: relative;
+}
+
+/* Rounded LCARS elements */
+[data-theme="lcars"] .lcars-elbow {
+  border-radius: 30px;
+  background: var(--lcars-orange);
+  padding: 10px 20px;
+}
+
+/* Top bar */
+[data-theme="lcars"] .lcars-top-bar {
+  display: flex;
+  gap: 10px;
+  padding: 20px;
+  background: var(--bg);
+}
+
+[data-theme="lcars"] .lcars-bar {
+  height: 40px;
+  border-radius: 20px;
+  flex: 1;
+}
+
+[data-theme="lcars"] .lcars-bar-orange { background: var(--lcars-orange); }
+[data-theme="lcars"] .lcars-bar-mauve { background: var(--lcars-mauve); }
+[data-theme="lcars"] .lcars-bar-lavender { background: var(--lcars-lavender); }
+[data-theme="lcars"] .lcars-bar-yellow { background: var(--lcars-yellow); }
+
+/* Side panel */
+[data-theme="lcars"] .lcars-side-panel {
+  position: fixed;
+  left: 0;
+  top: 0;
+  width: 150px;
+  height: 100%;
+  background: var(--bg);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 20px 10px;
+  z-index: 10;
+}
+
+[data-theme="lcars"] .lcars-button {
+  background: var(--lcars-orange);
+  border-radius: 20px;
+  padding: 15px 20px;
+  text-align: center;
+  font-size: 12px;
+  font-weight: bold;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+[data-theme="lcars"] .lcars-button:hover {
+  filter: brightness(1.2);
+}
+
+/* Terminal container offset for side panel */
+[data-theme="lcars"] .terminal-container {
+  margin-left: 170px;
+  padding: 20px;
+}
+
+/* LCARS text styling */
+[data-theme="lcars"] .terminal-text,
+[data-theme="lcars"] .xterm-rows {
+  color: var(--fg);
+  letter-spacing: 1px;
+}
+
+/* No CRT effects for LCARS */
+[data-theme="lcars"] .crt-overlay {
+  display: none;
+}
+
+/* Status indicator */
+[data-theme="lcars"] .lcars-status {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  background: var(--lcars-yellow);
+  border-radius: 20px;
+  padding: 10px 25px;
+  font-size: 11px;
+  font-weight: bold;
+  text-transform: uppercase;
+  color: #000;
+}
+
+/* Footer bar */
+[data-theme="lcars"] .lcars-footer {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 40px;
+  background: var(--lcars-orange);
+  border-radius: 20px 20px 0 0;
+  display: flex;
+  align-items: center;
+  padding: 0 30px;
+  font-size: 11px;
+  font-weight: bold;
+  text-transform: uppercase;
+  color: #000;
+  z-index: 10;
+}

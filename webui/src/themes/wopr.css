@@ -1,0 +1,120 @@
+/* W.O.P.R. Theme - WarGames computer */
+
+[data-theme="wopr"] {
+  --fg: #7cb4fc;
+  --bg: #162030;
+  --cursor: #7cb4fc;
+  --selection: rgba(124, 180, 252, 0.25);
+  --glow-color: rgba(137, 211, 253, 0.4);
+  --scanline-opacity: 0.08;
+  
+  --font-family: 'VT323', 'Courier New', monospace;
+  --font-size: 20px;
+  
+  background: var(--bg);
+  color: var(--fg);
+  font-family: var(--font-family);
+}
+
+/* Fullscreen military terminal */
+[data-theme="wopr"] {
+  position: relative;
+  overflow: hidden;
+}
+
+/* Blue phosphor glow */
+[data-theme="wopr"] .terminal-text,
+[data-theme="wopr"] .xterm-rows {
+  color: var(--fg);
+  text-shadow: 
+    0 0 6px var(--glow-color),
+    0 0 12px var(--glow-color);
+  letter-spacing: 0.5px;
+}
+
+/* Scanlines */
+[data-theme="wopr"] .crt-overlay::before {
+  background: repeating-linear-gradient(
+    0deg,
+    rgba(0, 0, 0, 0.08) 0px,
+    transparent 1px,
+    transparent 2px,
+    rgba(0, 0, 0, 0.08) 3px
+  );
+}
+
+/* NORAD header */
+[data-theme="wopr"] .wopr-header {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  padding: 20px 30px;
+  background: rgba(22, 32, 48, 0.95);
+  border-bottom: 3px solid var(--fg);
+  font-size: 16px;
+  font-weight: bold;
+  letter-spacing: 4px;
+  z-index: 10;
+  text-align: center;
+}
+
+[data-theme="wopr"] .wopr-header::before {
+  content: 'W.O.P.R. — DEFENSE SYSTEM';
+  color: var(--fg);
+  text-shadow: 0 0 10px var(--glow-color);
+}
+
+/* Security classification banner */
+[data-theme="wopr"] .wopr-classification {
+  position: fixed;
+  top: 60px;
+  left: 0;
+  right: 0;
+  padding: 8px;
+  background: rgba(255, 0, 0, 0.2);
+  border-top: 1px solid #ff6b6b;
+  border-bottom: 1px solid #ff6b6b;
+  font-size: 12px;
+  font-weight: bold;
+  letter-spacing: 3px;
+  text-align: center;
+  color: #ff6b6b;
+  z-index: 10;
+}
+
+[data-theme="wopr"] .wopr-classification::before {
+  content: '⚠ TOP SECRET — AUTHORIZED PERSONNEL ONLY ⚠';
+}
+
+/* Terminal container with offset */
+[data-theme="wopr"] .terminal-container {
+  margin-top: 100px;
+  padding: 20px;
+}
+
+/* Glowing cursor */
+[data-theme="wopr"] .xterm-cursor {
+  background-color: var(--cursor);
+  box-shadow: 0 0 10px var(--glow-color);
+}
+
+/* Prompt styling */
+[data-theme="wopr"] .terminal-prompt::before {
+  content: 'LOGON: ';
+  color: #a8d4ff;
+  font-weight: bold;
+}
+
+/* Grid background */
+[data-theme="wopr"]::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image: 
+    linear-gradient(rgba(124, 180, 252, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(124, 180, 252, 0.03) 1px, transparent 1px);
+  background-size: 40px 40px;
+  pointer-events: none;
+  z-index: 0;
+}

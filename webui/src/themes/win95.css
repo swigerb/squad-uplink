@@ -1,0 +1,183 @@
+/* Windows 95 Theme - Retro desktop */
+
+[data-theme="win95"] {
+  --fg: #c0c0c0;
+  --bg: #008080;
+  --cursor: #ffffff;
+  --selection: rgba(0, 0, 128, 0.5);
+  --glow-color: transparent;
+  --scanline-opacity: 0;
+  --border-color: #c0c0c0;
+  
+  --win95-gray: #c0c0c0;
+  --win95-dark-gray: #808080;
+  --win95-light-gray: #dfdfdf;
+  --win95-blue: #000080;
+  --win95-teal: #008080;
+  
+  --font-family: 'W95FA', 'Fixedsys', 'Courier New', monospace;
+  --font-size: 14px;
+  
+  background: var(--bg);
+  color: var(--fg);
+  font-family: var(--font-family);
+}
+
+/* Desktop background (teal) */
+[data-theme="win95"] {
+  background: var(--win95-teal);
+}
+
+/* Window chrome */
+[data-theme="win95"] .win95-window {
+  background: var(--win95-gray);
+  border: 2px solid;
+  border-color: var(--win95-light-gray) var(--win95-dark-gray) var(--win95-dark-gray) var(--win95-light-gray);
+  box-shadow: 2px 2px 0 rgba(0, 0, 0, 0.5);
+  position: relative;
+  max-width: 800px;
+  margin: 50px auto;
+}
+
+/* Title bar */
+[data-theme="win95"] .win95-titlebar {
+  background: linear-gradient(to right, #000080, #1084d0);
+  padding: 3px 5px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  color: #ffffff;
+  font-family: 'MS Sans Serif', 'Arial', sans-serif;
+  font-size: 11px;
+  font-weight: bold;
+}
+
+[data-theme="win95"] .win95-title {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+/* Window buttons */
+[data-theme="win95"] .win95-buttons {
+  display: flex;
+  gap: 2px;
+}
+
+[data-theme="win95"] .win95-button {
+  width: 16px;
+  height: 14px;
+  background: var(--win95-gray);
+  border: 1px solid;
+  border-color: var(--win95-light-gray) var(--win95-dark-gray) var(--win95-dark-gray) var(--win95-light-gray);
+  font-size: 10px;
+  font-weight: bold;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  padding: 0;
+}
+
+[data-theme="win95"] .win95-button:active {
+  border-color: var(--win95-dark-gray) var(--win95-light-gray) var(--win95-light-gray) var(--win95-dark-gray);
+}
+
+/* Menu bar */
+[data-theme="win95"] .win95-menubar {
+  background: var(--win95-gray);
+  border-bottom: 2px solid;
+  border-color: var(--win95-light-gray) var(--win95-dark-gray);
+  padding: 2px 5px;
+  font-size: 11px;
+  font-family: 'MS Sans Serif', 'Arial', sans-serif;
+}
+
+/* Terminal content */
+[data-theme="win95"] .win95-content {
+  background: var(--win95-blue);
+  color: var(--fg);
+  padding: 10px;
+  min-height: 400px;
+  font-family: var(--font-family);
+  border: 2px solid;
+  border-color: var(--win95-dark-gray) var(--win95-light-gray) var(--win95-light-gray) var(--win95-dark-gray);
+  margin: 2px;
+}
+
+/* Taskbar */
+[data-theme="win95"] .win95-taskbar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 28px;
+  background: var(--win95-gray);
+  border-top: 2px solid var(--win95-light-gray);
+  display: flex;
+  align-items: center;
+  padding: 2px;
+  z-index: 100;
+  box-shadow: 0 -2px 4px rgba(0, 0, 0, 0.2);
+}
+
+/* Start button */
+[data-theme="win95"] .win95-start-button {
+  background: var(--win95-gray);
+  border: 2px solid;
+  border-color: var(--win95-light-gray) var(--win95-dark-gray) var(--win95-dark-gray) var(--win95-light-gray);
+  padding: 2px 8px;
+  font-family: 'MS Sans Serif', 'Arial', sans-serif;
+  font-size: 11px;
+  font-weight: bold;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  cursor: pointer;
+  height: 22px;
+}
+
+[data-theme="win95"] .win95-start-button:active {
+  border-color: var(--win95-dark-gray) var(--win95-light-gray) var(--win95-light-gray) var(--win95-dark-gray);
+}
+
+/* System tray */
+[data-theme="win95"] .win95-tray {
+  margin-left: auto;
+  border: 1px solid;
+  border-color: var(--win95-dark-gray) var(--win95-light-gray) var(--win95-light-gray) var(--win95-dark-gray);
+  padding: 2px 8px;
+  font-size: 11px;
+  font-family: 'MS Sans Serif', 'Arial', sans-serif;
+  height: 18px;
+  display: flex;
+  align-items: center;
+}
+
+/* No CRT effects for Win95 */
+[data-theme="win95"] .crt-overlay {
+  display: none;
+}
+
+/* Terminal scrollbar (Win95 style) */
+[data-theme="win95"] ::-webkit-scrollbar {
+  width: 16px;
+}
+
+[data-theme="win95"] ::-webkit-scrollbar-track {
+  background: var(--win95-gray);
+  border: 1px solid var(--win95-dark-gray);
+}
+
+[data-theme="win95"] ::-webkit-scrollbar-thumb {
+  background: var(--win95-gray);
+  border: 2px solid;
+  border-color: var(--win95-light-gray) var(--win95-dark-gray) var(--win95-dark-gray) var(--win95-light-gray);
+}
+
+[data-theme="win95"] ::-webkit-scrollbar-button {
+  background: var(--win95-gray);
+  border: 2px solid;
+  border-color: var(--win95-light-gray) var(--win95-dark-gray) var(--win95-dark-gray) var(--win95-light-gray);
+  height: 16px;
+}

@@ -1,0 +1,100 @@
+/* MU-TH-UR 6000 Theme - Alien's Mother computer */
+
+[data-theme="muthur"] {
+  --fg: #7af042;
+  --bg: #000000;
+  --cursor: #7af042;
+  --selection: rgba(122, 240, 66, 0.2);
+  --glow-color: rgba(122, 240, 66, 0.5);
+  --scanline-opacity: 0.04;
+  
+  --font-family: 'Share Tech Mono', 'Courier New', monospace;
+  --font-size: 18px;
+  
+  background: var(--bg);
+  color: var(--fg);
+  font-family: var(--font-family);
+}
+
+/* Fullscreen terminal */
+[data-theme="muthur"] {
+  position: relative;
+  overflow: hidden;
+}
+
+/* Bright green phosphor glow */
+[data-theme="muthur"] .terminal-text,
+[data-theme="muthur"] .xterm-rows {
+  color: var(--fg);
+  text-shadow: 
+    0 0 8px var(--glow-color),
+    0 0 15px var(--glow-color),
+    0 0 20px rgba(122, 240, 66, 0.3);
+  letter-spacing: 1px;
+}
+
+/* Subtle scanlines */
+[data-theme="muthur"] .crt-overlay::before {
+  background: repeating-linear-gradient(
+    0deg,
+    rgba(0, 0, 0, 0.04) 0px,
+    transparent 1px,
+    transparent 2px,
+    rgba(0, 0, 0, 0.04) 3px
+  );
+}
+
+/* Header with MU-TH-UR branding */
+[data-theme="muthur"] .muthur-header {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  padding: 15px 30px;
+  background: rgba(0, 0, 0, 0.8);
+  border-bottom: 2px solid var(--fg);
+  font-size: 14px;
+  font-weight: bold;
+  letter-spacing: 3px;
+  z-index: 10;
+}
+
+[data-theme="muthur"] .muthur-header::before {
+  content: 'MU-TH-UR 6000';
+  color: var(--fg);
+  text-shadow: 0 0 10px var(--glow-color);
+}
+
+/* Terminal container with top offset */
+[data-theme="muthur"] .terminal-container {
+  margin-top: 60px;
+  padding: 20px;
+}
+
+/* Glowing cursor */
+[data-theme="muthur"] .xterm-cursor {
+  background-color: var(--cursor);
+  box-shadow: 
+    0 0 10px var(--glow-color),
+    0 0 20px rgba(122, 240, 66, 0.3);
+}
+
+/* System message styling */
+[data-theme="muthur"] .system-message {
+  color: var(--fg);
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  animation: muthur-blink 1.5s infinite;
+}
+
+@keyframes muthur-blink {
+  0%, 49% { opacity: 1; }
+  50%, 100% { opacity: 0.6; }
+}
+
+/* Amber alert color for errors */
+[data-theme="muthur"] .error,
+[data-theme="muthur"] .xterm-fg-1 {
+  color: #ffaa00;
+  text-shadow: 0 0 10px rgba(255, 170, 0, 0.5);
+}

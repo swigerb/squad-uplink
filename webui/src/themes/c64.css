@@ -1,0 +1,95 @@
+/* Commodore 64 Theme - PETSCII aesthetic */
+
+[data-theme="c64"] {
+  --fg: #706ce4;
+  --bg: #3528be;
+  --cursor: #706ce4;
+  --selection: rgba(112, 108, 228, 0.3);
+  --glow-color: rgba(112, 108, 228, 0.4);
+  --scanline-opacity: 0.08;
+  --border-color: #3528be;
+  
+  --font-family: 'C64 Pro Mono', 'PetMe', 'Courier New', monospace;
+  --font-size: 16px;
+  
+  background: var(--bg);
+  color: var(--fg);
+  font-family: var(--font-family);
+}
+
+/* Monitor housing */
+[data-theme="c64"] .c64-monitor {
+  position: relative;
+  background: linear-gradient(145deg, #d4c5a0 0%, #b8a888 50%, #8b7a5a 100%);
+  padding: 50px 48px 60px;
+  border-radius: 12px;
+  box-shadow: 
+    inset 0 0 30px rgba(0,0,0,0.2),
+    0 15px 40px rgba(0,0,0,0.6);
+}
+
+[data-theme="c64"] .c64-screen {
+  background: var(--bg);
+  padding: 48px;
+  border-radius: 6px;
+  position: relative;
+  box-shadow: 
+    inset 0 0 50px rgba(112, 108, 228, 0.15),
+    0 0 15px rgba(0,0,0,0.9);
+}
+
+/* Blue phosphor glow */
+[data-theme="c64"] .terminal-text,
+[data-theme="c64"] .xterm-rows {
+  color: var(--fg);
+  text-shadow: 
+    0 0 5px var(--glow-color),
+    0 0 8px var(--glow-color);
+}
+
+/* Scanlines */
+[data-theme="c64"] .crt-overlay::before {
+  background: repeating-linear-gradient(
+    0deg,
+    rgba(0, 0, 0, 0.08) 0px,
+    transparent 1px,
+    transparent 2px,
+    rgba(0, 0, 0, 0.08) 3px
+  );
+}
+
+/* Commodore logo */
+[data-theme="c64"] .c64-logo {
+  position: absolute;
+  top: 15px;
+  right: 30px;
+  font-family: 'Impact', sans-serif;
+  font-size: 16px;
+  font-weight: bold;
+  color: #e5d5b5;
+  text-shadow: 0 2px 4px rgba(0,0,0,0.4);
+}
+
+/* Border decoration */
+[data-theme="c64"] .c64-bezel {
+  position: absolute;
+  inset: 45px;
+  border: 3px solid #9b8b6b;
+  border-radius: 8px;
+  pointer-events: none;
+  box-shadow: 
+    inset 0 0 10px rgba(0,0,0,0.3),
+    0 0 5px rgba(0,0,0,0.2);
+}
+
+/* PETSCII character set styling */
+[data-theme="c64"] .xterm-char {
+  font-weight: normal;
+  letter-spacing: 0;
+}
+
+/* Wide border for authentic C64 look */
+[data-theme="c64"] .terminal-container {
+  border: 48px solid var(--border-color);
+  border-radius: 8px;
+}
