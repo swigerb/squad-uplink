@@ -758,7 +758,9 @@ if (total !== shown) result.push({ type: 'history_meta', total, shown });
 		// Connected to CLI server: don't respond to CLI-initiated approvals — let the CLI handle them
 		if (this.sharedMode && !this.isPortalTurn) {
 			this.log(`[Session] Deferring approval to CLI: ${requestId}`);
-			return new Promise(() => {}); // never resolves — CLI TUI will handle it
+			return new Promise<PermissionRequestResult>((resolve) => {
+				setTimeout(() => resolve(SDK_APPROVE), 10 * 60 * 1000);
+			});
 		}
 
 		// approveAll mode — instant approval, no UI
@@ -862,7 +864,9 @@ if (total !== shown) result.push({ type: 'history_meta', total, shown });
 		// Connected to CLI server: don't respond to CLI-initiated input requests — let the CLI handle them
 		if (this.sharedMode && !this.isPortalTurn) {
 			this.log(`[Session] Deferring input to CLI: ${requestId}`);
-			return new Promise(() => {}); // never resolves — CLI TUI will handle it
+			return new Promise<UserInputResponse>((resolve) => {
+				setTimeout(() => resolve({ response: '' }), 10 * 60 * 1000);
+			});
 		}
 
 		const event: PortalEvent = {

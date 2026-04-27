@@ -16,6 +16,14 @@ import type { PortalEvent, PortalInfo } from './session.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
+function isPathAllowed(targetPath: string): boolean {
+	const resolved = path.resolve(targetPath);
+	const home = os.homedir();
+	const cwd = process.cwd();
+	return resolved.startsWith(home + path.sep) || resolved === home
+		|| resolved.startsWith(cwd + path.sep) || resolved === cwd;
+}
+
 export class PortalServer {
 	private httpServer: http.Server;
 	private wss: WebSocketServer;
@@ -35,6 +43,12 @@ export class PortalServer {
 	private squadContext = true; // auto-inject squad context into first message per session
 	private squadContextInjected = new Set<string>(); // track sessions that already got context
 	private failedAuth = new Map<string, { count: number; resetTime: number }>();
+	private failedAuthCleanup = setInterval(() => {
+		const now = Date.now();
+		for (const [ip, entry] of this.failedAuth) {
+			if (now > entry.resetTime) this.failedAuth.delete(ip);
+		}
+	}, 5 * 60 * 1000);
 
 	constructor(private port: number, dataDir?: string, opts?: { newToken?: boolean; cliUrl?: string }) {
 		this.webuiPath = path.join(__dirname, '..', 'dist', 'webui');
@@ -64,6 +78,7 @@ export class PortalServer {
 
 		this.wss = new WebSocketServer({
 			server: this.httpServer,
+			maxPayload: 1 * 1024 * 1024,
 			perMessageDeflate: false,
 			verifyClient: ({ req }, callback) => {
 				const ip = req.socket.remoteAddress ?? 'unknown';
@@ -621,6 +636,10 @@ export class PortalServer {
 					return;
 				}
 				const resolved = path.resolve(workingDirectory);
+				if (!isPathAllowed(resolved)) {
+					this.sendJson(res, 403, { error: 'Path not allowed' });
+					return;
+				}
 				if (!fs.existsSync(resolved) || !fs.statSync(resolved).isDirectory()) {
 					this.sendJson(res, 400, { error: 'Path is not a valid directory' });
 					return;
@@ -712,6 +731,10 @@ export class PortalServer {
 		if (url.pathname === '/api/browse' && method === 'GET') {
 			const rawPath = url.searchParams.get('path') || '';
 			try {
+				if (rawPath && !isPathAllowed(rawPath)) {
+					this.sendJson(res, 403, { error: 'Path not allowed' });
+					return;
+				}
 				// No path on Windows: list drive letters
 				if (!rawPath && os.platform() === 'win32') {
 					const drives: Array<{ name: string; path: string }> = [];
@@ -1292,6 +1315,10 @@ export class PortalServer {
 				chunks.push(c);
 			});
 			req.on('end', () => resolve(Buffer.concat(chunks).toString()));
+			req.on('error', (err) => reject(err));
+			req.on('close', () => {
+				if (!req.complete) reject(new Error('Client disconnected'));
+			});
 		});
 	}
 

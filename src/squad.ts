@@ -29,6 +29,7 @@ const ALLOWED_PATTERNS: Array<{ dir: string; suffix: string }> = [
  * All paths must be normalized, forward-slash–safe, and free of traversal.
  */
 function isAllowedPath(relative: string): boolean {
+	if (relative.includes('\0')) return false;
 	// Normalize to OS separators and resolve any . segments
 	const norm = path.normalize(relative);
 
