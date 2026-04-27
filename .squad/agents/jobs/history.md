@@ -43,3 +43,21 @@ Lead agent for squad-uplink. Responsible for architecture, code review, scope de
 - **Alternative paths evaluated:** Option 2 (reverse-engineer GitHub's streaming endpoint) rejected—undocumented, fragile, policy risk. Option 3 (wait for public API) rejected—product becomes dead in water for 3–6 months.
 - **Decision inbox entry:** `.squad/decisions/inbox/jobs-copilot-cli-remote-pivot.md` captures full analysis, options with pros/cons, recommendation, execution plan.
 - **Action items:** (1) Delete obsolete remote-control code. (2) Implement LocalProcessManager for `copilot` CLI spawning. (3) Add dashboard panel for session launching/monitoring. (4) Update marketing positioning. (5) Confirm with Brady: Remote Control policy enabled in GitHub org?
+
+
+## 2026-04-27: Feature Parity Audit - v0.5.7 to v0.5.13 Sync
+
+**Summary:** Completed upstream feature parity audit. Identified 5 gaps, fixed all 7 bugs, verified with E2E testing.
+
+**Status:** Complete - All fixes verified, no regressions.
+
+**Key Gaps Fixed:**
+- F1 (CRITICAL): server.ts url ReferenceError
+- F2 (MODERATE): tool_complete content not propagated  
+- F3 (MODERATE): ask_user timeout 5min to 30min
+- F4 (MODERATE): reconnectWithCwd missing titleChangedCallback
+- F5 (MODERATE): reconnectWithCwd doesn't restore agent/model
+- F6 (MODERATE): agent source detection missing .github/agents
+- F7 (MINOR): dynamic agent placeholder
+
+**Testing:** E2E 52/53 passed, verification complete, 523 tests passing.
