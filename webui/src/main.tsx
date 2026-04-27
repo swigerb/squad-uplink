@@ -10,6 +10,7 @@ import '../src/themes/muthur.css';
 import '../src/themes/wopr.css';
 import '../src/themes/win95.css';
 import { ThemeProvider } from './hooks/useTheme';
+import { ErrorBoundary } from './components/ErrorBoundary';
 import App from './App';
 
 // Register service worker for PWA installability
@@ -18,7 +19,9 @@ if ('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js');
 createRoot(document.getElementById('root')!).render(
 	<StrictMode>
 		<ThemeProvider>
-			<App />
+			<ErrorBoundary>
+				<App />
+			</ErrorBoundary>
 		</ThemeProvider>
 	</StrictMode>,
 );

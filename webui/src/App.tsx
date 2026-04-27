@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { QRCodeSVG } from 'qrcode.react';
 import Markdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -12,6 +12,7 @@ import { MatrixRain } from './components/MatrixRain';
 import { SquadPanel } from './components/SquadPanel';
 import type { SquadFileChange } from './components/SquadPanel';
 import { SquadButton } from './components/SquadButton';
+import { copyToClipboard } from './utils/clipboard';
 
 // pre and table need React wrappers for the .code-scroll div — CSS alone can't inject a parent element.
 // p, th, and a need inline styles to unconditionally beat Tailwind Typography's generated rules.
@@ -131,7 +132,7 @@ function FolderBrowser({ value, onChange }: { value: string; onChange: (path: st
 			}).catch(() => { setLoading(false); setError('Failed to browse'); });
 	}, [onChange]);
 
-	useEffect(() => { fetchFolders(value || ''); }, []);
+	useEffect(() => { fetchFolders(value || ''); }, [fetchFolders]);
 
 	const segments = browsePath.split(/[\\/]/).filter(Boolean);
 	const sep = browsePath.includes('\\') ? '\\' : '/';
@@ -344,16 +345,13 @@ function getToken(): string | null {
 	const urlToken = new URLSearchParams(window.location.search).get('token');
 	if (urlToken) {
 		localStorage.setItem('portal_token', urlToken);
+		// Remove token from URL bar after capturing it
+		const params = new URLSearchParams(window.location.search);
+		params.delete('token');
+		window.history.replaceState(null, '', params.toString() ? `?${params.toString()}` : window.location.pathname);
 		return urlToken;
 	}
-	const stored = localStorage.getItem('portal_token');
-	if (stored) {
-		// Ensure token is in the URL bar so iOS "Add to Home Screen" captures it
-		const params = new URLSearchParams(window.location.search);
-		params.set('token', stored);
-		window.history.replaceState(null, '', `?${params.toString()}`);
-	}
-	return stored;
+	return localStorage.getItem('portal_token');
 }
 
 function timeAgo(iso: string): string {
@@ -370,21 +368,7 @@ function CopyButton({ text }: { text: string }) {
 	const [copied, setCopied] = useState(false);
 	const copy = () => {
 		const done = () => { setCopied(true); setTimeout(() => setCopied(false), 1500); };
-		if (navigator.clipboard) {
-			navigator.clipboard.writeText(text).then(done).catch(() => fallback());
-		} else {
-			fallback();
-		}
-		function fallback() {
-			const el = document.createElement('textarea');
-			el.value = text;
-			el.style.cssText = 'position:fixed;top:-9999px;left:-9999px;opacity:0';
-			document.body.appendChild(el);
-			el.select();
-			document.execCommand('copy');
-			document.body.removeChild(el);
-			done();
-		}
+		copyToClipboard(text).then(done);
 	};
 	return (
 		<button
@@ -512,7 +496,7 @@ function ToolEventBox({ tc }: { tc: ToolEvent }) {
 				{!isComplete && <button type="button" title="Copy debug info" style={{ fontSize: '10px', opacity: 0.5, background: 'none', border: 'none', cursor: 'pointer', padding: '0 2px', color: 'inherit' }} onClick={(e) => {
 					e.stopPropagation();
 					const info = [`tool: ${label}`, elapsed > 0 ? `elapsed: ${elapsed}s` : null, tc.displayLabel ? `label: ${tc.displayLabel}` : null, tc.content ? `args: ${tc.content}` : null].filter(Boolean).join('\n');
-					navigator.clipboard.writeText(info).catch(() => {});
+					copyToClipboard(info);
 				}}>📋</button>}
 				{hasDetail && <span style={{ fontSize: '10px', opacity: 0.6 }}>{expanded ? '▾' : '▸'}</span>}
 			</div>
@@ -582,7 +566,7 @@ function SessionDrawer({
 				if (chat) setQuota({ unlimited: false, used: chat.usedRequests, total: chat.entitlementRequests, remaining: chat.remainingPercentage, resetDate: chat.resetDate });
 			}).catch(() => {});
 		}
-	}, [open]);
+	}, [open, onFetchQuota, quota]);
 
 	return (
 		<div style={{ borderBottom: '1px solid var(--border)', background: 'var(--surface)' }}>
@@ -843,9 +827,9 @@ export default function App() {
 	const [rules, setRules] = useState<ApprovalRule[]>([]);
 	const [approveAll, setApproveAll] = useState(false);
 	const [showRules, setShowRules] = useState(false);
-	const [showGuides, setshowGuides] = useState(false);
-	const [confirmDeleteGuide, setconfirmDeleteGuide] = useState<string | null>(null);
-	const [viewingGuide, setviewingGuide] = useState<{ id: string; guideContent?: string; promptsContent?: string; guideFilePath?: string; promptsFilePath?: string; filePath?: string; activeTab?: 'guide' | 'prompts' } | null>(null);
+	const [showGuides, setShowGuides] = useState(false);
+	const [confirmDeleteGuide, setConfirmDeleteGuide] = useState<string | null>(null);
+	const [viewingGuide, setViewingGuide] = useState<{ id: string; guideContent?: string; promptsContent?: string; guideFilePath?: string; promptsFilePath?: string; filePath?: string; activeTab?: 'guide' | 'prompts' } | null>(null);
 	const [editingGuide, setEditingGuide] = useState<{ id: string; content: string; isPrompts?: boolean } | null>(null);
 	const [editingName, setEditingName] = useState<string | null>(null);
 	const [pendingDiscard, setPendingDiscard] = useState<(() => void) | null>(null);
@@ -2052,6 +2036,29 @@ export default function App() {
 		if (showPromptsTray) chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
 	}, [showPromptsTray]);
 
+	// Memoize consolidated message + tool event items for display
+	const consolidatedItems = useMemo(() => {
+		const visibleMessages = messages.filter(m => m.content.trim() || m.toolSummary?.length);
+		const consolidated: Message[] = [];
+		for (const msg of visibleMessages) {
+			const isToolOnly = !msg.content.trim() && msg.toolSummary?.length;
+			const prev = consolidated[consolidated.length - 1];
+			const prevIsToolOnly = prev && !prev.content.trim() && prev.toolSummary?.length;
+			if (isToolOnly && prevIsToolOnly && prev.toolSummary) {
+				consolidated[consolidated.length - 1] = {
+					...prev,
+					toolSummary: [...prev.toolSummary, ...(msg.toolSummary ?? [])],
+				};
+			} else {
+				consolidated.push(msg);
+			}
+		}
+		return [
+			...consolidated.map(msg => ({ type: 'message' as const, msg, ts: msg.timestamp })),
+			...toolEvents.map(tc => ({ type: 'tool' as const, tc, ts: tc.timestamp })),
+		].sort((a, b) => a.ts - b.ts);
+	}, [messages, toolEvents]);
+
 	if (connectionState === 'no_token') {
 		return (
 			<div className="flex min-h-full flex-col items-center justify-center p-6 text-center">
@@ -2098,7 +2105,7 @@ export default function App() {
 				<div
 					className="fixed inset-0 z-50 flex items-start justify-center px-4 pt-14 pb-4"
 					style={{ background: 'var(--overlay)' }}
-					onClick={() => guardDiscard(() => { setshowGuides(false); setviewingGuide(null); setconfirmDeleteGuide(null); setEditingGuide(null); setEditingName(null); setShowNewGuide(false); setPendingDiscard(null); })}
+					onClick={() => guardDiscard(() => { setShowGuides(false); setViewingGuide(null); setConfirmDeleteGuide(null); setEditingGuide(null); setEditingName(null); setShowNewGuide(false); setPendingDiscard(null); })}
 				>
 					<div
 						className={`w-full rounded-2xl p-4 transition-all duration-200 ${viewingGuide || showNewGuide ? 'max-w-2xl' : 'max-w-md'}`}
@@ -2402,8 +2409,8 @@ export default function App() {
 										{!editingGuide && (
 											<button className="rounded px-2 py-1 text-xs font-medium" style={{ background: 'var(--primary)', color: 'white' }} onClick={async () => {
 												const vi = viewingGuide;
-												setviewingGuide(null);
-												setshowGuides(false);
+												setViewingGuide(null);
+												setShowGuides(false);
 												// Apply guide if it exists
 												if (vi.guideContent) {
 													try {
@@ -2464,7 +2471,7 @@ export default function App() {
 													} else if (tab === 'prompts' && editingGuide.isPrompts) {
 														updated.promptsContent = editingGuide.content;
 													}
-													setviewingGuide(updated);
+													setViewingGuide(updated);
 													setEditingGuide(null);
 													setEditingName(null);
 													apiFetch('/api/guides').then(r => r.json()).then(setGuides).catch(() => {});
@@ -2473,7 +2480,7 @@ export default function App() {
 												}
 											}} type="button">Save</button>
 										)}
-										<button className="rounded px-2 py-1 text-xs" style={{ border: '1px solid var(--border)' }} onClick={() => guardDiscard(() => { setLastViewedGuide(viewingGuide.id); setviewingGuide(null); setEditingGuide(null); setEditingName(null); setPendingDiscard(null); })} type="button">Back</button>
+										<button className="rounded px-2 py-1 text-xs" style={{ border: '1px solid var(--border)' }} onClick={() => guardDiscard(() => { setLastViewedGuide(viewingGuide.id); setViewingGuide(null); setEditingGuide(null); setEditingName(null); setPendingDiscard(null); })} type="button">Back</button>
 									</div>
 								</div>
 								{(() => {
@@ -2511,13 +2518,13 @@ export default function App() {
 										type="button"
 										className="px-3 py-1.5 text-xs font-medium"
 										style={{ color: (viewingGuide.activeTab ?? 'guide') === 'guide' ? 'var(--text)' : 'var(--text-muted)', borderBottom: (viewingGuide.activeTab ?? 'guide') === 'guide' ? '2px solid var(--primary)' : '2px solid transparent', marginBottom: -1, opacity: viewingGuide.guideContent ? 1 : 0.4 }}
-										onClick={() => guardDiscard(() => { setviewingGuide({ ...viewingGuide, activeTab: 'guide' }); setEditingGuide(null); setPendingDiscard(null); })}
+										onClick={() => guardDiscard(() => { setViewingGuide({ ...viewingGuide, activeTab: 'guide' }); setEditingGuide(null); setPendingDiscard(null); })}
 									>Guide</button>
 									<button
 										type="button"
 										className="px-3 py-1.5 text-xs font-medium"
 										style={{ color: viewingGuide.activeTab === 'prompts' ? 'var(--text)' : 'var(--text-muted)', borderBottom: viewingGuide.activeTab === 'prompts' ? '2px solid var(--primary)' : '2px solid transparent', marginBottom: -1, opacity: viewingGuide.promptsContent ? 1 : 0.4 }}
-										onClick={() => guardDiscard(() => { setviewingGuide({ ...viewingGuide, activeTab: 'prompts' }); setEditingGuide(null); setPendingDiscard(null); })}
+										onClick={() => guardDiscard(() => { setViewingGuide({ ...viewingGuide, activeTab: 'prompts' }); setEditingGuide(null); setPendingDiscard(null); })}
 									>Prompts</button>
 								</div>
 								<div className="chat-scroll rounded-lg p-3" style={{ height: editingGuide ? 'calc(100vh - 20rem)' : undefined, maxHeight: 'calc(100vh - 20rem)', overflowY: 'auto', background: 'var(--bg)', border: '1px solid var(--border)', display: editingGuide ? 'flex' : undefined }}>
@@ -2558,7 +2565,7 @@ export default function App() {
 													inst.hasPrompts ? apiFetch(`/api/guides/${encodeURIComponent(inst.id)}/prompts`).then(r => r.json()) : Promise.resolve(null),
 												]);
 												const promptsContent = pRaw?.prompts?.map((p: { label: string; text: string }) => `## ${p.label}\n${p.text}`).join('\n\n') ?? '';
-												setviewingGuide({
+												setViewingGuide({
 													id: inst.id,
 													guideContent: gRes?.content ?? '',
 													promptsContent,
@@ -2581,9 +2588,9 @@ export default function App() {
 													e.stopPropagation();
 													await apiFetch(`/api/guides/${encodeURIComponent(inst.id)}`, { method: 'DELETE' });
 													setGuides(prev => prev.filter(i => i.id !== inst.id));
-													setconfirmDeleteGuide(null);
+													setConfirmDeleteGuide(null);
 												}} type="button">Delete</button>
-												<button className="rounded px-2 py-0.5 text-xs" style={{ border: '1px solid var(--border)' }} onClick={(e) => { e.stopPropagation(); setconfirmDeleteGuide(null); }} type="button">Cancel</button>
+												<button className="rounded px-2 py-0.5 text-xs" style={{ border: '1px solid var(--border)' }} onClick={(e) => { e.stopPropagation(); setConfirmDeleteGuide(null); }} type="button">Cancel</button>
 											</span>
 										) : (
 											<span className="flex gap-0.5 shrink-0" style={{ minHeight: '1.75rem' }} onClick={e => e.stopPropagation()}>
@@ -2599,7 +2606,7 @@ export default function App() {
 														<path d="M8 9h8M8 13h5" />
 													</svg>
 												</span>
-												<button className="rounded p-1.5" style={{ opacity: 0.7 }} onClick={(e) => { e.stopPropagation(); setconfirmDeleteGuide(inst.id); }} type="button" title="Delete">
+												<button className="rounded p-1.5" style={{ opacity: 0.7 }} onClick={(e) => { e.stopPropagation(); setConfirmDeleteGuide(inst.id); }} type="button" title="Delete">
 													<svg className="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
 														<path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6" strokeLinecap="round" strokeLinejoin="round" />
 													</svg>
@@ -2773,7 +2780,7 @@ export default function App() {
 											</div>
 											<div className="mt-0.5 text-xs" style={{ color: 'var(--text-muted)' }}>
 												{s.modifiedTime ? timeAgo(s.modifiedTime) : ''}
-												{' · '}<button type="button" onClick={(e) => { e.stopPropagation(); e.preventDefault(); if (navigator.clipboard) { navigator.clipboard.writeText(s.sessionId); } else { const ta = document.createElement('textarea'); ta.value = s.sessionId; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta); } }} title="Copy full session ID" className="font-mono cursor-pointer hover:underline border-none bg-transparent p-0 text-xs" style={{ color: 'inherit' }}>{s.sessionId.slice(0, 8)}</button>
+												{' · '}<button type="button" onClick={(e) => { e.stopPropagation(); e.preventDefault(); copyToClipboard(s.sessionId); }} title="Copy full session ID" className="font-mono cursor-pointer hover:underline border-none bg-transparent p-0 text-xs" style={{ color: 'inherit' }}>{s.sessionId.slice(0, 8)}</button>
 											</div>
 										</button>
 
@@ -2899,7 +2906,7 @@ export default function App() {
 							style={{ background: 'var(--bg)', border: '1px solid var(--border)' }}
 							onClick={() => {
 								const opening = !showGuides;
-								setshowGuides(opening);
+								setShowGuides(opening);
 								if (opening) apiFetch('/api/guides').then(r => r.json()).then(setGuides).catch(() => {});
 							}}
 							type="button"
@@ -3107,30 +3114,7 @@ export default function App() {
 						);
 					})()}
 					{/* Interleave messages and tool events by timestamp */}
-					{(() => {
-						// Consolidate consecutive tool-only messages (no text, just toolSummary)
-						const visibleMessages = messages.filter(m => m.content.trim() || m.toolSummary?.length);
-						const consolidated: Message[] = [];
-						for (const msg of visibleMessages) {
-							const isToolOnly = !msg.content.trim() && msg.toolSummary?.length;
-							const prev = consolidated[consolidated.length - 1];
-							const prevIsToolOnly = prev && !prev.content.trim() && prev.toolSummary?.length;
-							if (isToolOnly && prevIsToolOnly && prev.toolSummary) {
-								// Merge into previous tool-only message
-								consolidated[consolidated.length - 1] = {
-									...prev,
-									toolSummary: [...prev.toolSummary, ...(msg.toolSummary ?? [])],
-								};
-							} else {
-								consolidated.push(msg);
-							}
-						}
-						const items: Array<{ type: 'message'; msg: Message } | { type: 'tool'; tc: ToolEvent }> = [
-							...consolidated.map(msg => ({ type: 'message' as const, msg, ts: msg.timestamp })),
-							...toolEvents.map(tc => ({ type: 'tool' as const, tc, ts: tc.timestamp })),
-						].sort((a, b) => a.ts - b.ts);
-
-						return items.map((item) => {
+					{consolidatedItems.map((item) => {
 							if (item.type === 'tool') {
 								return <ToolEventBox key={item.tc.id} tc={item.tc} />;
 							}
@@ -3245,8 +3229,7 @@ export default function App() {
 						</div>
 						</div>
 						);
-					});
-					})()}
+					})}
 
 					{isThinking && (
 						<div className="mb-2 flex items-center gap-2 py-1 text-sm" style={{ color: 'var(--text-muted)' }}>
