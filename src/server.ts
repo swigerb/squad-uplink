@@ -28,6 +28,7 @@ export class PortalServer {
 	private portalInfo: PortalInfo | null = null;
 	private shields: Record<string, boolean> = {};
 	private sessionPrompts: Record<string, Array<{ label: string; text: string }>> = {};
+	private sessionAgents: Record<string, string> = {}; // sessionId -> agentName
 	private updater: UpdateChecker;
 	private squadReader: SquadReader;
 	private squadContext = true; // auto-inject squad context into first message per session
@@ -394,6 +395,20 @@ export class PortalServer {
 		} catch {}
 	}
 
+	private loadSessionAgents(): void {
+		try {
+			const f = path.join(this.dataDir, 'session-agents.json');
+			if (fs.existsSync(f)) this.sessionAgents = JSON.parse(fs.readFileSync(f, 'utf8'));
+		} catch {}
+	}
+
+	private saveSessionAgents(): void {
+		try {
+			fs.mkdirSync(this.dataDir, { recursive: true });
+			fs.writeFileSync(path.join(this.dataDir, 'session-agents.json'), JSON.stringify(this.sessionAgents, null, 2));
+		} catch {}
+	}
+
 
 	private log(msg: string) {
 		const ts = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
@@ -497,6 +512,8 @@ export class PortalServer {
 				// Clean up persisted data for this session
 				delete this.sessionPrompts[sessionId];
 				this.saveSessionPrompts();
+				delete this.sessionAgents[sessionId];
+				this.saveSessionAgents();
 				this.sendJson(res, 200, { ok: true });
 				this.log(`[API] Deleted session: ${sessionId.slice(0, 8)}`);
 			} catch (e) {
@@ -518,17 +535,102 @@ export class PortalServer {
 			return;
 		}
 
+		// --- Agent picker endpoints ---
+
+		const agentsMatch = url.pathname.match(/^\/api\/sessions\/([^/]+)\/agents$/);
+		if (agentsMatch && method === 'GET') {
+			const sessionId = agentsMatch[1];
+			try {
+				const handle = await this.pool.connect(sessionId);
+				const [agents, current] = await Promise.all([handle.listAgents(), handle.getCurrentAgent()]);
+				// Detect agent source
+				const userAgentsDir = path.join(os.homedir(), '.copilot', 'agents');
+				const enriched = agents.map(a => {
+					let source: 'user' | 'repository' | 'unknown' = 'unknown';
+					try {
+						if (fs.existsSync(path.join(userAgentsDir, `${a.name}.agent.md`))) {
+							source = 'user';
+						}
+					} catch {}
+					return { ...a, source };
+				});
+				this.sendJson(res, 200, { agents: enriched, current });
+			} catch (e) {
+				this.sendJson(res, 500, { error: String(e) });
+			}
+			return;
+		}
+
+		const agentSelectMatch = url.pathname.match(/^\/api\/sessions\/([^/]+)\/agents\/select$/);
+		if (agentSelectMatch && method === 'POST') {
+			const sessionId = agentSelectMatch[1];
+			try {
+				const body = await this.readBody(req);
+				const { name } = JSON.parse(body || '{}') as { name: string };
+				const handle = await this.pool.connect(sessionId);
+				const agent = await handle.selectAgent(name);
+				this.sessionAgents[sessionId] = name;
+				this.saveSessionAgents();
+				this.sendJson(res, 200, { agent });
+				this.log(`[API] Session ${sessionId.slice(0, 8)} selected agent: ${name}`);
+			} catch (e) {
+				this.sendJson(res, 500, { error: String(e) });
+			}
+			return;
+		}
+
+		const agentDeselectMatch = url.pathname.match(/^\/api\/sessions\/([^/]+)\/agents\/deselect$/);
+		if (agentDeselectMatch && method === 'POST') {
+			const sessionId = agentDeselectMatch[1];
+			try {
+				const handle = await this.pool.connect(sessionId);
+				await handle.deselectAgent();
+				delete this.sessionAgents[sessionId];
+				this.saveSessionAgents();
+				this.sendJson(res, 200, { ok: true });
+				this.log(`[API] Session ${sessionId.slice(0, 8)} deselected agent`);
+			} catch (e) {
+				this.sendJson(res, 500, { error: String(e) });
+			}
+			return;
+		}
+
+		const cwdMatch = url.pathname.match(/^\/api\/sessions\/([^/]+)\/cwd$/);
+		if (cwdMatch && method === 'POST') {
+			const sessionId = cwdMatch[1];
+			try {
+				const body = await this.readBody(req);
+				const { workingDirectory } = JSON.parse(body || '{}') as { workingDirectory?: string };
+				if (!workingDirectory) {
+					this.sendJson(res, 400, { error: 'workingDirectory is required' });
+					return;
+				}
+				const resolved = path.resolve(workingDirectory);
+				if (!fs.existsSync(resolved) || !fs.statSync(resolved).isDirectory()) {
+					this.sendJson(res, 400, { error: 'Path is not a valid directory' });
+					return;
+				}
+				await this.pool.reconnectWithCwd(sessionId, resolved);
+				this.broadcastAll({ type: 'session_context_updated', sessionId, context: { cwd: resolved } });
+				this.sendJson(res, 200, { ok: true });
+				this.log(`[API] Session ${sessionId.slice(0, 8)} CWD changed to: ${resolved}`);
+			} catch (e) {
+				this.sendJson(res, 500, { error: String(e) });
+			}
+			return;
+		}
+
 
 		if (url.pathname === '/api/sessions' && method === 'POST') {
 			const body = await this.readBody(req);
-			const { sessionId } = JSON.parse(body || '{}') as { sessionId?: string };
+			const { sessionId, model, workingDirectory } = JSON.parse(body || '{}') as { sessionId?: string; model?: string; workingDirectory?: string };
 			try {
 				if (sessionId) {
 					// Pre-warm: connect to the session so it's ready when client navigates
 					await this.pool.connect(sessionId);
 					this.sendJson(res, 200, { sessionId });
 				} else {
-					const handle = await this.pool.create();
+					const handle = await this.pool.create(workingDirectory ? { workingDirectory } : undefined);
 					const newId = handle.sessionId;
 					// Broadcast so other clients' pickers update
 					const sessions = await this.pool.listSessions().catch(() => []);
@@ -584,6 +686,70 @@ export class PortalServer {
 			try {
 				const quota = await this.pool.getQuota();
 				this.sendJson(res, 200, quota);
+			} catch (e) {
+				this.sendJson(res, 500, { error: String(e) });
+			}
+			return;
+		}
+
+		// --- Browse / CWD endpoints ---
+
+		if (url.pathname === '/api/browse' && method === 'GET') {
+			const rawPath = url.searchParams.get('path') || '';
+			try {
+				// No path on Windows: list drive letters
+				if (!rawPath && os.platform() === 'win32') {
+					const drives: Array<{ name: string; path: string }> = [];
+					for (let c = 65; c <= 90; c++) {
+						const letter = String.fromCharCode(c);
+						const driveRoot = letter + ':\\';
+						try { fs.accessSync(driveRoot); drives.push({ name: driveRoot, path: driveRoot }); } catch {}
+					}
+					this.sendJson(res, 200, { path: '', exists: true, isDir: true, folders: drives, isDriveList: true });
+					return;
+				}
+				// No path on non-Windows: use home directory
+				const resolved = rawPath ? path.resolve(rawPath) : os.homedir();
+				let stat: fs.Stats;
+				try { stat = fs.statSync(resolved); } catch (e: unknown) {
+					const code = (e as NodeJS.ErrnoException).code;
+					if (code === 'ENOENT') { this.sendJson(res, 200, { path: resolved, exists: false, isDir: false, folders: [] }); return; }
+					if (code === 'EPERM' || code === 'EACCES') { this.sendJson(res, 200, { path: resolved, exists: true, isDir: true, folders: [], error: 'Permission denied' }); return; }
+					throw e;
+				}
+				if (!stat.isDirectory()) {
+					this.sendJson(res, 200, { path: resolved, exists: true, isDir: false, folders: [] });
+					return;
+				}
+				const entries = fs.readdirSync(resolved, { withFileTypes: true });
+				const folders = entries
+					.filter(e => e.isDirectory() && !e.isSymbolicLink() && !e.name.startsWith('.') && e.name !== 'node_modules')
+					.map(e => ({ name: e.name, path: path.join(resolved, e.name) }))
+					.sort((a, b) => a.name.toLowerCase().localeCompare(b.name.toLowerCase()));
+				this.sendJson(res, 200, { path: resolved, exists: true, isDir: true, folders });
+			} catch (e) {
+				this.sendJson(res, 500, { error: String(e) });
+			}
+			return;
+		}
+
+		if (url.pathname === '/api/browse' && method === 'POST') {
+			try {
+				const body = await this.readBody(req);
+				const { parentPath, name } = JSON.parse(body || '{}') as { parentPath?: string; name?: string };
+				if (!parentPath || !name) {
+					this.sendJson(res, 400, { error: 'parentPath and name are required' });
+					return;
+				}
+				// Validate folder name
+				if (name === '.' || name === '..' || /[<>:"|?*\\/]/.test(name)) {
+					this.sendJson(res, 400, { error: 'Invalid folder name' });
+					return;
+				}
+				const fullPath = path.join(path.resolve(parentPath), name);
+				fs.mkdirSync(fullPath, { recursive: true });
+				this.log(`[API] Created folder: ${fullPath}`);
+				this.sendJson(res, 201, { path: fullPath, ok: true });
 			} catch (e) {
 				this.sendJson(res, 500, { error: String(e) });
 			}
@@ -1203,6 +1369,7 @@ export class PortalServer {
 	async start(): Promise<void> {
 		this.loadShields();
 		this.loadSessionPrompts();
+		this.loadSessionAgents();
 		await this.pool.start();
 		// Cache portal info (version, user, models) once at startup
 		try {

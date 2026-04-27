@@ -16,6 +16,65 @@ import { SquadButton } from './components/SquadButton';
 // pre and table need React wrappers for the .code-scroll div — CSS alone can't inject a parent element.
 // p, th, and a need inline styles to unconditionally beat Tailwind Typography's generated rules.
 // Everything else (ul, ol, blockquote, headings, etc.) is handled by styles.css .prose rules.
+
+function CopyableTable({ children }: { children: React.ReactNode }) {
+	const [copied, setCopied] = useState(false);
+	const tableRef = useRef<HTMLTableElement>(null);
+	const copy = async () => {
+		const done = () => { setCopied(true); setTimeout(() => setCopied(false), 1500); };
+		const table = tableRef.current;
+		if (!table) { done(); return; }
+		try {
+			const cleanHtml = table.outerHTML
+				.replace(/\sstyle="[^"]*"/g, '')
+				.replace(/\sclass="[^"]*"/g, '');
+			if (navigator.clipboard?.write) {
+				try {
+					const items: Record<string, Blob> = { 'text/html': new Blob([cleanHtml], { type: 'text/html' }) };
+					if (table.innerText) items['text/plain'] = new Blob([table.innerText], { type: 'text/plain' });
+					await navigator.clipboard.write([new ClipboardItem(items)]);
+					done();
+					return;
+				} catch { /* fall through to execCommand */ }
+			}
+			const el = document.createElement('div');
+			el.contentEditable = 'true';
+			el.style.cssText = 'position:fixed;top:-9999px;left:-9999px;opacity:0;pointer-events:none;color:#000;background:#fff';
+			el.innerHTML = cleanHtml;
+			document.body.appendChild(el);
+			const range = document.createRange();
+			range.selectNodeContents(el);
+			const sel = window.getSelection();
+			sel?.removeAllRanges();
+			sel?.addRange(range);
+			document.execCommand('copy');
+			sel?.removeAllRanges();
+			document.body.removeChild(el);
+			done();
+		} catch {
+			done();
+		}
+	};
+	return (
+		<div className="code-scroll" style={{ margin: '0.5em 0', position: 'relative' }}>
+			<table ref={tableRef} style={{ borderCollapse: 'collapse', minWidth: '100%' }}>{children}</table>
+			<button
+				type="button"
+				data-copy-button
+				onClick={copy}
+				className="rounded p-0.5 transition-opacity"
+				style={{ position: 'absolute', top: 2, right: 4, opacity: copied ? 0.8 : 0.3, color: 'inherit', lineHeight: 1, padding: '2px' }}
+				title="Copy table"
+			>
+				{copied
+					? <svg className="size-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M20 6L9 17l-5-5" strokeLinecap="round" strokeLinejoin="round" /></svg>
+					: <svg className="size-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="9" y="9" width="13" height="13" rx="2" /><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1" /></svg>
+				}
+			</button>
+		</div>
+	);
+}
+
 const mdComponents: ComponentProps<typeof Markdown>['components'] = {
 	p: ({ children }) => (
 		<p style={{ marginTop: '0.6em', marginBottom: '0.6em' }}>{children}</p>
@@ -25,11 +84,7 @@ const mdComponents: ComponentProps<typeof Markdown>['components'] = {
 			<pre style={{ margin: 0 }}>{children}</pre>
 		</div>
 	),
-	table: ({ children }) => (
-		<div className="code-scroll" style={{ margin: '0.5em 0' }}>
-			<table style={{ borderCollapse: 'collapse', minWidth: '100%' }}>{children}</table>
-		</div>
-	),
+	table: ({ children }) => <CopyableTable>{children}</CopyableTable>,
 	th: ({ children }) => (
 		<th style={{ textAlign: 'left', background: 'var(--subtle-bg)', fontWeight: 600 }}>{children}</th>
 	),
@@ -49,6 +104,124 @@ const AssistantMarkdown = ({ content }: { content: string }) => (
 		{content}
 	</Markdown>
 );
+
+function FolderBrowser({ value, onChange }: { value: string; onChange: (path: string) => void }) {
+	const [browsePath, setBrowsePath] = useState(value || '');
+	const [folders, setFolders] = useState<Array<{ name: string; path: string }>>([]);
+	const [loading, setLoading] = useState(false);
+	const [error, setError] = useState<string | null>(null);
+	const [isValid, setIsValid] = useState(true);
+	const [isDriveList, setIsDriveList] = useState(false);
+	const [creatingFolder, setCreatingFolder] = useState(false);
+	const [newFolderName, setNewFolderName] = useState('');
+
+	const fetchFolders = useCallback((p: string) => {
+		setLoading(true);
+		setError(null);
+		setCreatingFolder(false);
+		apiFetch(`/api/browse?path=${encodeURIComponent(p)}`).then(r => r.json())
+			.then((data: { path: string; exists: boolean; isDir: boolean; folders: Array<{ name: string; path: string }>; error?: string; isDriveList?: boolean }) => {
+				setBrowsePath(data.path);
+				setFolders(data.folders);
+				setIsDriveList(!!data.isDriveList);
+				setIsValid(data.exists && data.isDir);
+				setError(data.error ?? (!data.exists ? 'Path does not exist' : !data.isDir ? 'Not a directory' : null));
+				if (data.exists && data.isDir && !data.isDriveList) onChange(data.path);
+				setLoading(false);
+			}).catch(() => { setLoading(false); setError('Failed to browse'); });
+	}, [onChange]);
+
+	useEffect(() => { fetchFolders(value || ''); }, []);
+
+	const segments = browsePath.split(/[\\/]/).filter(Boolean);
+	const sep = browsePath.includes('\\') ? '\\' : '/';
+	const breadcrumbs: { label: string; path: string }[] = [];
+	for (let i = 0; i < segments.length; i++) {
+		const p = segments.slice(0, i + 1).join(sep);
+		breadcrumbs.push({ label: segments[i], path: i === 0 && sep === '\\' ? p + sep : p });
+	}
+
+	const createFolder = () => {
+		if (!newFolderName.trim()) return;
+		apiFetch('/api/browse', {
+			method: 'POST',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify({ parentPath: browsePath, name: newFolderName.trim() })
+		}).then(r => r.json()).then((data: { path?: string; ok?: boolean; error?: string }) => {
+			if (data.ok && data.path) {
+				setNewFolderName('');
+				setCreatingFolder(false);
+				fetchFolders(data.path);
+			} else {
+				setError(data.error ?? 'Failed to create folder');
+			}
+		}).catch(() => setError('Failed to create folder'));
+	};
+
+	return (
+		<div className="rounded-lg text-xs" style={{ border: '1px solid var(--border)', background: 'var(--bg)' }}>
+			{/* Breadcrumbs */}
+			<div className="flex flex-wrap items-center gap-0.5 px-2 py-1.5" style={{ borderBottom: '1px solid var(--border)' }}>
+				<button type="button" onClick={() => fetchFolders('')} className="px-1 py-0.5 rounded hover:opacity-80" style={{ color: 'var(--accent)' }} title="Root">
+					<svg className="size-3" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" /></svg>
+				</button>
+				{breadcrumbs.map((b, i) => (
+					<span key={i} className="flex items-center gap-0.5">
+						<span style={{ color: 'var(--text-muted)' }}>/</span>
+						<button type="button" onClick={() => fetchFolders(b.path)} className="px-1 py-0.5 rounded hover:underline" style={{ color: i === breadcrumbs.length - 1 ? 'var(--text)' : 'var(--accent)' }}>
+							{b.label}
+						</button>
+					</span>
+				))}
+				{loading && <span style={{ color: 'var(--text-muted)' }}>…</span>}
+			</div>
+			{/* Error */}
+			{error && <div className="px-2 py-1 text-xs" style={{ color: 'var(--error)' }}>{error}</div>}
+			{/* Folder list */}
+			<div className="chat-scroll max-h-40 overflow-y-auto">
+				{folders.map(f => (
+					<button
+						key={f.path}
+						type="button"
+						className="flex w-full items-center gap-1.5 px-2 py-1 text-left hover:opacity-80"
+						style={{ background: 'transparent', color: 'var(--text)' }}
+						onClick={() => fetchFolders(f.path)}
+					>
+						<svg className="size-3 shrink-0" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+							<path d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
+						</svg>
+						<span className="font-mono">{f.name}</span>
+					</button>
+				))}
+				{!loading && folders.length === 0 && isValid && <div className="px-2 py-2" style={{ color: 'var(--text-muted)' }}>No subdirectories</div>}
+			</div>
+			{/* New folder */}
+			{isValid && !isDriveList && (
+				<div className="flex items-center gap-1 px-2 py-1.5" style={{ borderTop: '1px solid var(--border)' }}>
+					{creatingFolder ? (
+						<>
+							<input
+								className="flex-1 rounded border px-1.5 py-0.5 text-xs font-mono"
+								style={{ background: 'var(--bg)', borderColor: 'var(--border)', color: 'var(--text)' }}
+								placeholder="Folder name"
+								value={newFolderName}
+								onChange={e => setNewFolderName(e.target.value)}
+								onKeyDown={e => { if (e.key === 'Enter') createFolder(); if (e.key === 'Escape') { setCreatingFolder(false); setNewFolderName(''); } }}
+								autoFocus
+							/>
+							<button type="button" onClick={createFolder} className="rounded px-1.5 py-0.5" style={{ background: 'var(--primary)', color: 'white' }}>Create</button>
+							<button type="button" onClick={() => { setCreatingFolder(false); setNewFolderName(''); }} className="rounded px-1.5 py-0.5" style={{ color: 'var(--text-muted)' }}>✕</button>
+						</>
+					) : (
+						<button type="button" onClick={() => setCreatingFolder(true)} className="flex items-center gap-1 rounded px-1.5 py-0.5 hover:opacity-80" style={{ color: 'var(--accent)' }}>
+							<span>+</span> New folder
+						</button>
+					)}
+				</div>
+			)}
+		</div>
+	);
+}
 
 interface ToolSummaryItem {
 	toolName: string;
@@ -345,7 +518,7 @@ function ToolEventBox({ tc }: { tc: ToolEvent }) {
 		</div>
 	);
 	const isComplete = tc.type === 'tool_complete';
-	const isFailed = isComplete && tc.content === 'failed';
+	const isFailed = isComplete && tc.content !== 'success';
 	const label = tc.mcpServerName ? `${tc.mcpServerName} › ${tc.toolName}` : (tc.toolName ?? 'tool');
 	const borderColor = isFailed ? 'var(--error)' : isComplete ? 'var(--success)' : 'var(--tool-call)';
 	const bgColor = isFailed ? 'var(--error-tint)' : isComplete ? 'var(--success-tint)' : 'var(--tool-call-tint)';
@@ -420,6 +593,11 @@ function SessionDrawer({
 	const [showModelPicker, setShowModelPicker] = useState(false);
 	const [liveModels, setLiveModels] = useState<Array<{ id: string; name: string }> | null>(null);
 	const [quota, setQuota] = useState<{ unlimited: boolean; used: number; total: number; remaining: number; resetDate?: string } | null>(null);
+	const [showCwdEdit, setShowCwdEdit] = useState(false);
+	const [browsedCwd, setBrowsedCwd] = useState('');
+	const [showAgentPicker, setShowAgentPicker] = useState(false);
+	const [agents, setAgents] = useState<Array<{ name: string; displayName: string; description: string; source: string }>>([]);
+	const [currentAgent, setCurrentAgent] = useState<{ name: string; displayName: string; description: string } | null>(null);
 	const models = liveModels ?? info?.models ?? [];
 	const currentModelId = activeModel ?? models[0]?.id ?? null;
 	const currentModelName = models.find(m => m.id === currentModelId)?.name ?? currentModelId ?? '…';
@@ -491,23 +669,47 @@ function SessionDrawer({
 					</div>
 
 					{/* cwd / branch */}
-					<div className="code-scroll mb-3 flex items-center gap-2 rounded-lg px-3 py-1.5 text-xs" style={{ background: 'var(--bg)', border: '1px solid var(--border)' }}>
-						<svg className="size-3.5 shrink-0" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-							<path d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
-						</svg>
-						{cwd ? (
-							<span className="whitespace-nowrap font-mono" style={{ color: 'var(--text-muted)' }}>{cwd}</span>
-						) : (
-							<span className="whitespace-nowrap font-mono italic" style={{ color: 'var(--text-muted)', opacity: 0.5 }}>Loading…</span>
-						)}
-						{branch && (
-							<>
-								<span style={{ color: 'var(--border)' }}>·</span>
-								<svg className="size-3.5 shrink-0" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-									<path d="M6 3v12M18 9a3 3 0 100-6 3 3 0 000 6zM6 21a3 3 0 100-6 3 3 0 000 6zM18 9a9 9 0 01-9 9" />
-								</svg>
-								<span className="font-mono" style={{ color: 'var(--text-muted)' }}>{branch}</span>
-							</>
+					<div className="mb-3">
+						<div className="code-scroll flex items-center gap-2 rounded-lg px-3 py-1.5 text-xs" style={{ background: 'var(--bg)', border: '1px solid var(--border)' }}>
+							<svg className="size-3.5 shrink-0" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+								<path d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
+							</svg>
+							{cwd ? (
+								<span className="whitespace-nowrap font-mono flex-1" style={{ color: 'var(--text-muted)' }}>{cwd}</span>
+							) : (
+								<span className="whitespace-nowrap font-mono italic flex-1" style={{ color: 'var(--text-muted)', opacity: 0.5 }}>Loading…</span>
+							)}
+							{activeSessionId && (
+								<button type="button" onClick={() => { setShowCwdEdit(!showCwdEdit); if (!showCwdEdit) setBrowsedCwd(cwd ?? ''); }} className="shrink-0 rounded px-1 hover:opacity-80" style={{ color: 'var(--accent)' }} title="Change working directory">
+									<svg className="size-3" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
+								</button>
+							)}
+							{branch && (
+								<>
+									<span style={{ color: 'var(--border)' }}>·</span>
+									<svg className="size-3.5 shrink-0" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+										<path d="M6 3v12M18 9a3 3 0 100-6 3 3 0 000 6zM6 21a3 3 0 100-6 3 3 0 000 6zM18 9a9 9 0 01-9 9" />
+									</svg>
+									<span className="font-mono" style={{ color: 'var(--text-muted)' }}>{branch}</span>
+								</>
+							)}
+						</div>
+						{showCwdEdit && (
+							<div className="mt-2">
+								<FolderBrowser value={cwd ?? ''} onChange={setBrowsedCwd} />
+								<div className="mt-1.5 flex justify-end gap-2">
+									<button type="button" onClick={() => setShowCwdEdit(false)} className="rounded px-2 py-1 text-xs" style={{ color: 'var(--text-muted)' }}>Cancel</button>
+									<button type="button" onClick={() => {
+										if (activeSessionId && browsedCwd) {
+											apiFetch(`/api/sessions/${encodeURIComponent(activeSessionId)}/cwd`, {
+												method: 'POST',
+												headers: { 'Content-Type': 'application/json' },
+												body: JSON.stringify({ workingDirectory: browsedCwd })
+											}).then(() => setShowCwdEdit(false)).catch(() => {});
+										}
+									}} className="rounded px-2 py-1 text-xs" style={{ background: 'var(--primary)', color: 'white' }}>Apply</button>
+								</div>
+							</div>
 						)}
 					</div>
 
@@ -566,6 +768,65 @@ function SessionDrawer({
 							</div>
 						)}
 					</div>
+					{/* Agent selector */}
+					{activeSessionId && (
+						<div className="relative mt-3">
+							<button
+								type="button"
+								className="flex w-full items-center justify-between rounded-lg px-3 py-2 text-sm"
+								style={{ background: 'var(--bg)', border: '1px solid var(--border)' }}
+								onClick={() => {
+									const opening = !showAgentPicker;
+									setShowAgentPicker(opening);
+									if (opening && activeSessionId) {
+										apiFetch(`/api/sessions/${encodeURIComponent(activeSessionId)}/agents`)
+											.then(r => r.json())
+											.then((data: { agents: typeof agents; current: typeof currentAgent }) => {
+												setAgents(data.agents);
+												setCurrentAgent(data.current);
+											}).catch(() => {});
+									}
+								}}
+							>
+								<div className="flex items-center gap-2">
+									<svg className="size-4 shrink-0" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+										<path d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+									</svg>
+									<span>{currentAgent?.displayName ?? currentAgent?.name ?? 'Default Agent'}</span>
+								</div>
+								<span style={{ color: 'var(--text-muted)' }}>{showAgentPicker ? '\u25b4' : '\u25be'}</span>
+							</button>
+							{showAgentPicker && (
+								<div className="chat-scroll absolute inset-x-0 top-full z-10 mt-1 max-h-56 overflow-y-auto rounded-lg py-1" style={{ background: 'var(--surface)', border: '1px solid var(--border)', boxShadow: '0 8px 24px rgba(0,0,0,0.4)' }}>
+									{/* Default option */}
+									<button type="button" className="flex w-full items-center gap-2 px-3 py-2 text-sm" style={{ background: !currentAgent ? 'var(--primary-tint)' : 'transparent' }}
+										onClick={() => {
+											if (activeSessionId) apiFetch(`/api/sessions/${encodeURIComponent(activeSessionId)}/agents/deselect`, { method: 'POST' }).catch(() => {});
+											setCurrentAgent(null);
+											setShowAgentPicker(false);
+										}}>
+										<span className="w-4 text-xs shrink-0" style={{ color: 'var(--primary)' }}>{!currentAgent ? '✓' : ''}</span>
+										<span>Default</span>
+									</button>
+									{agents.map(a => (
+										<button key={a.name} type="button" className="flex w-full items-center gap-2 px-3 py-2 text-sm text-left" style={{ background: currentAgent?.name === a.name ? 'var(--primary-tint)' : 'transparent' }}
+											onClick={() => {
+												if (activeSessionId) apiFetch(`/api/sessions/${encodeURIComponent(activeSessionId)}/agents/select`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: a.name }) }).catch(() => {});
+												setCurrentAgent(a);
+												setShowAgentPicker(false);
+											}}>
+											<span className="w-4 text-xs shrink-0" style={{ color: 'var(--primary)' }}>{currentAgent?.name === a.name ? '✓' : ''}</span>
+											<div>
+												<div>{a.displayName || a.name}</div>
+												{a.description && <div className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>{a.description}</div>}
+												<span className="text-[10px] px-1 rounded" style={{ background: 'var(--border)', color: 'var(--text-muted)' }}>{a.source}</span>
+											</div>
+										</button>
+									))}
+								</div>
+							)}
+						</div>
+					)}
 				</div>
 			)}
 		</div>
@@ -656,6 +917,7 @@ export default function App() {
 	const [lastSquadChange, setLastSquadChange] = useState<SquadFileChange | null>(null);
 	const [noSession, setNoSession] = useState(!hasSessionInUrl);
 	const noSessionRef = useRef(!hasSessionInUrl);
+	const [draftSession, setDraftSession] = useState<{ cwd: string } | null>(null);
 	const [updateStatus, setUpdateStatus] = useState<UpdateStatus | null>(null);
 	const [updateDismissed, setUpdateDismissed] = useState(false);
 	const [pwaDismissed, setPwaDismissed] = useState(() => localStorage.getItem('portal_pwa_dismissed') === '1');
@@ -1497,17 +1759,28 @@ export default function App() {
 
 	const newSession = useCallback(async () => {
 		setShowPicker(false);
-		try {
-			const res = await apiFetch('/api/sessions', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' });
-			const { sessionId } = await res.json() as { sessionId: string };
-			noSessionRef.current = false;
-			setNoSession(false);
-			const params = new URLSearchParams(window.location.search);
-			params.set('session', sessionId);
-			window.location.search = params.toString();
-		} catch {
-			setError('Could not create session');
-		}
+		noSessionRef.current = false;
+		setNoSession(false);
+		setDraftSession({ cwd: '' });
+		// Clear existing session state for a clean slate
+		setMessages([]);
+		setStreamingContent('');
+		setIsStreaming(false);
+		setIsThinking(false);
+		setPendingApproval(null);
+		setCliApprovalInfo(null);
+		setCliInputInfo(null);
+		setActiveModel(null);
+		setSessionContext(null);
+		setActiveSessionSummary(null);
+		setSessionUsage(null);
+		setSessionQuota(null);
+		setActiveSessionId(null);
+		activeSessionIdRef.current = null;
+		// Close existing WS
+		const ws = wsRef.current;
+		if (ws) { ws.onopen = null; ws.onmessage = null; ws.onerror = null; ws.onclose = null; ws.close(); }
+		wsRef.current = null;
 	}, []);
 
 	const changeModel = useCallback((modelId: string) => {
@@ -1719,9 +1992,46 @@ export default function App() {
 		} catch { /* prompts are optional */ }
 	};
 
-	const sendPrompt = () => {
+	const sendPrompt = async () => {
 		const prompt = input.trim();
-		if (!prompt || connectionState !== 'connected') return;
+		if (!prompt) return;
+
+		if (draftSession) {
+			// Create session then send prompt
+			const body: Record<string, string> = {};
+			if (draftSession.cwd.trim()) body.workingDirectory = draftSession.cwd.trim();
+			try {
+				const r = await apiFetch('/api/sessions', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+				const { sessionId } = await r.json() as { sessionId: string };
+				setDraftSession(null);
+				setActiveSessionId(sessionId);
+				activeSessionIdRef.current = sessionId;
+				const params = new URLSearchParams(window.location.search);
+				params.set('session', sessionId);
+				window.history.replaceState(null, '', `?${params.toString()}`);
+				setMessages([{ id: `msg-${Date.now()}`, role: 'user', content: prompt, timestamp: Date.now() }]);
+				setInput('');
+				setIsThinking(true);
+				setThinkingText('');
+				setReasoningText('');
+				reasoningRef.current = '';
+				// Connect WS and send prompt after connection
+				const token = getToken();
+				const wsUrl = `${window.location.protocol === 'https:' ? 'wss' : 'ws'}://${window.location.host}?session=${sessionId}${token ? `&token=${token}` : ''}`;
+				const ws = new WebSocket(wsUrl);
+				ws.onopen = () => {
+					ws.send(JSON.stringify({ type: 'prompt', content: prompt }));
+				};
+				wsRef.current = ws;
+				// Re-attach normal message handling by triggering a reconnect
+				connect();
+			} catch {
+				setError('Could not create session');
+			}
+			return;
+		}
+
+		if (connectionState !== 'connected') return;
 		setMessages((prev) => [
 			...prev,
 			{ id: `msg-${Date.now()}`, role: 'user', content: prompt, timestamp: Date.now() },
@@ -3123,14 +3433,22 @@ export default function App() {
 								)}
 								{(pendingInput.allowFreeform !== false || !pendingInput.choices?.length) && (
 									<div className="flex gap-2">
-										<input
-											className="flex-1 rounded-lg border px-3 py-2 text-sm"
-											style={{ background: 'var(--bg)', borderColor: 'var(--border)', color: 'var(--text)' }}
+										<textarea
+											className="chat-scroll flex-1 rounded-lg border px-3 py-2 text-sm resize-none"
+											style={{ background: 'var(--bg)', borderColor: 'var(--border)', color: 'var(--text)', minHeight: 44, maxHeight: 200, overflow: 'auto' }}
 											placeholder="Type your answer…"
 											value={freeformAnswer}
 											onChange={(e) => setFreeformAnswer(e.target.value)}
-											onKeyDown={(e) => { if (e.key === 'Enter') respondInput(freeformAnswer, true); }}
+											onKeyDown={(e) => {
+												const isTouch = window.matchMedia('(hover: none)').matches;
+												if (e.key === 'Enter' && !e.shiftKey && !isTouch) {
+													e.preventDefault();
+													respondInput(freeformAnswer, true);
+												}
+											}}
+											onInput={(e) => { const t = e.currentTarget; t.style.height = 'auto'; t.style.height = Math.min(t.scrollHeight, 200) + 'px'; }}
 											autoFocus
+											rows={1}
 										/>
 										<button className="rounded-lg px-4 py-2 text-sm font-medium" style={{ background: 'var(--primary)', color: 'white' }} onClick={() => respondInput(freeformAnswer, true)} type="button">Send</button>
 									</div>
@@ -3141,7 +3459,19 @@ export default function App() {
 				)}
 
 				{/* Input */}
-				{!noSession && !pendingInput && <>
+				{(!noSession || draftSession) && !pendingInput && <>
+				{/* Draft session CWD picker */}
+				{draftSession && (
+					<div className="border-t px-4 py-3" style={{ background: 'var(--surface)', borderColor: 'var(--border)' }}>
+						<div className="mb-2 text-xs font-medium" style={{ color: 'var(--text-muted)' }}>New session — choose working directory (optional):</div>
+						<FolderBrowser value={draftSession.cwd} onChange={(p) => setDraftSession({ cwd: p })} />
+						{draftSession.cwd && (
+							<div className="mt-1 text-xs font-mono" style={{ color: 'var(--text-muted)' }}>
+								Selected: {draftSession.cwd}
+							</div>
+						)}
+					</div>
+				)}
 				<form
 					className="border-t px-4 py-3"
 					style={{

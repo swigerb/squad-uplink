@@ -1,4 +1,4 @@
-import { CopilotClient } from '@github/copilot-sdk';
+import { CopilotClient, approveAll } from '@github/copilot-sdk';
 import type { CopilotSession } from '@github/copilot-sdk';
 import type {
 	SessionMetadata,
@@ -15,6 +15,13 @@ import * as crypto from 'node:crypto';
 import * as net from 'node:net';
 import { RulesStore } from './rules.js';
 import type { ApprovalRule } from './rules.js';
+
+// Derive the correct approval/deny response format from the SDK's own approveAll handler.
+// This stays compatible across SDK versions (0.2.x='approved', 0.3.x='approve-once').
+const SDK_APPROVE = approveAll({ kind: 'shell' } as PermissionRequest, { sessionId: '' }) as PermissionRequestResult;
+const SDK_DENY = ((SDK_APPROVE as { kind: string }).kind === 'approve-once'
+	? { kind: 'reject' }
+	: { kind: 'denied-interactively-by-user' }) as PermissionRequestResult;
 
 export type { SessionMetadata };
 export type { ApprovalRule };
@@ -88,6 +95,8 @@ export class SessionHandle {
 	private reconnectFn: ((id: string, model?: string) => Promise<CopilotSession>) | null = null;
 	/** The model currently in use by the CLI session — passed to resumeSession on reconnect so portal sends use the same model. */
 	currentModel: string | null = null;
+	/** Currently selected agent — persisted across reconnects. */
+	currentAgent: string | null = null;
 	private getModTimeFn: (() => Promise<Date | null>) | null = null;
 	private lastKnownModTime: Date | null = null;
 	private rulesStore: RulesStore | null = null;
@@ -204,6 +213,39 @@ export class SessionHandle {
 
 	get listenerCount(): number { return this.listeners.size; }
 	get turnActive(): boolean { return this.isTurnActive; }
+
+	// --- Agent picker methods ---
+
+	async listAgents(): Promise<Array<{ name: string; displayName: string; description: string }>> {
+		try {
+			const result = await this.session.rpc.agent.list();
+			return result.agents ?? [];
+		} catch { return []; }
+	}
+
+	async getCurrentAgent(): Promise<{ name: string; displayName: string; description: string } | null> {
+		try {
+			const result = await this.session.rpc.agent.getCurrent();
+			return result.agent ?? null;
+		} catch { return null; }
+	}
+
+	async selectAgent(name: string): Promise<{ name: string; displayName: string; description: string }> {
+		const result = await this.session.rpc.agent.select({ name });
+		this.currentAgent = name;
+		return result.agent;
+	}
+
+	async deselectAgent(): Promise<void> {
+		await this.session.rpc.agent.deselect();
+		this.currentAgent = null;
+	}
+
+	private restoreAgent(): void {
+		if (this.currentAgent) {
+			this.session.rpc.agent.select({ name: this.currentAgent }).catch(() => {});
+		}
+	}
 
 	/** Events to send to a newly joining client to catch up on an in-progress PORTAL turn. */
 	getActiveTurnEvents(): PortalEvent[] {
@@ -552,6 +594,8 @@ if (total !== shown) result.push({ type: 'history_meta', total, shown });
 				const t = await this.getModTimeFn().catch(() => null);
 				if (t) this.lastKnownModTime = t;
 			}
+			// Restore agent selection after reconnect
+			this.restoreAgent();
 		} catch (e) {
 			this.log(`[Sync] CLI reconnect error: ${e}`);
 		} finally {
@@ -663,7 +707,7 @@ if (total !== shown) result.push({ type: 'history_meta', total, shown });
 			this.log(`[Session] Auto-denying approval ${id}`);
 			clearTimeout(p.timeout);
 			this.pendingApprovals.delete(id);
-			p.resolve({ kind: 'denied-interactively-by-user' });
+			p.resolve(SDK_DENY);
 		}
 		for (const [id, p] of this.pendingInputs) {
 			this.log(`[Session] Auto-cancelling input ${id}`);
@@ -679,7 +723,7 @@ if (total !== shown) result.push({ type: 'history_meta', total, shown });
 		clearTimeout(p.timeout);
 		this.pendingApprovals.delete(requestId);
 		if (this.activeApprovalId === requestId) this.activeApprovalId = null;
-		p.resolve(approved ? { kind: 'approved' } : { kind: 'denied-interactively-by-user' });
+		p.resolve(approved ? SDK_APPROVE : SDK_DENY);
 		this.log(`[Session] Approval ${approved ? 'granted' : 'denied'}: ${requestId}`);
 		this.pendingCompletionCount++; // expect one permission.completed for this resolved approval
 		this.broadcast({ type: 'approval_resolved', requestId });
@@ -720,7 +764,7 @@ if (total !== shown) result.push({ type: 'history_meta', total, shown });
 		// approveAll mode — instant approval, no UI
 		if (this.getApproveAll()) {
 			this.log(`[Session] Auto-approved (approveAll): ${requestId}`);
-			return Promise.resolve({ kind: 'approved' });
+			return Promise.resolve(SDK_APPROVE);
 		}
 		const r = req as PermissionRequest & { fullCommandText?: string; path?: string; filePath?: string; file?: string; fileName?: string; resource?: string; target?: string; url?: string; toolName?: string; subject?: string; intention?: string; warning?: string };
 		const summary = r.fullCommandText ?? r.path ?? r.filePath ?? r.file ?? r.fileName ?? r.resource ?? r.target ?? r.url ?? r.intention ?? r.subject ?? r.toolName ?? r.kind;
@@ -732,7 +776,7 @@ if (total !== shown) result.push({ type: 'history_meta', total, shown });
 		const matchingRule = this.rulesStore?.matchesRequest(this.sessionId, req) ?? null;
 		if (matchingRule) {
 			this.log(`[Session] Auto-approved by rule "${matchingRule.pattern}": ${requestId}`);
-			return Promise.resolve({ kind: 'approved' });
+			return Promise.resolve(SDK_APPROVE);
 		}
 
 		const event: PortalEvent = {
@@ -745,7 +789,7 @@ if (total !== shown) result.push({ type: 'history_meta', total, shown });
 				if (this.pendingApprovals.has(requestId)) {
 					this.pendingApprovals.delete(requestId);
 					if (this.activeApprovalId === requestId) this.activeApprovalId = null;
-					resolve({ kind: 'denied-interactively-by-user', feedback: 'Timed out' });
+					resolve(SDK_DENY);
 					this.pendingCompletionCount++; // expect one permission.completed for this timed-out approval
 					this.broadcastNextApproval();
 				}
@@ -767,7 +811,7 @@ if (total !== shown) result.push({ type: 'history_meta', total, shown });
 				clearTimeout(p.timeout);
 				this.pendingApprovals.delete(id);
 				if (this.activeApprovalId === id) this.activeApprovalId = null;
-				p.resolve({ kind: 'approved' });
+				p.resolve(SDK_APPROVE);
 				this.broadcast({ type: 'approval_resolved', requestId: id });
 			}
 		}
@@ -804,7 +848,7 @@ if (total !== shown) result.push({ type: 'history_meta', total, shown });
 				clearTimeout(p.timeout);
 				this.pendingApprovals.delete(id);
 				if (this.activeApprovalId === id) this.activeApprovalId = null;
-				p.resolve({ kind: 'approved' });
+				p.resolve(SDK_APPROVE);
 				this.broadcast({ type: 'approval_resolved', requestId: id });
 			}
 			this.broadcastNextApproval();
@@ -987,9 +1031,13 @@ if (total !== shown) result.push({ type: 'history_meta', total, shown });
 
 	private onToolExecutionComplete(data: unknown): void {
 		this.toolsInFlight = Math.max(0, this.toolsInFlight - 1);
-		const d = data as { toolCallId?: string; success?: boolean };
+		const d = data as { toolCallId?: string; success?: boolean; error?: { message?: string } };
+		if (d.success === false && d.error?.message) {
+			this.log(`[Session] ⚠ Tool failed: ${d.error.message}`);
+		}
+		const errorMsg = d.success === false ? (d.error?.message ?? 'failed') : undefined;
 		this.log(`[Session] Tool complete (${this.toolsInFlight} remaining): ${d.toolCallId}`);
-		this.broadcast({ type: 'tool_complete', toolCallId: d.toolCallId, content: d.success ? 'success' : 'failed' });
+		this.broadcast({ type: 'tool_complete', toolCallId: d.toolCallId, content: errorMsg ?? 'success' });
 		// Clear CLI input pending when any tool completes (ask_user resolved)
 		if (this.cliInputPending) {
 			this.cliInputPending = null;
@@ -1726,11 +1774,11 @@ export class SessionPool {
 	}
 
 	/** Creates a new session and adds it to the pool. */
-	async create(): Promise<SessionHandle> {
+	async create(opts?: { workingDirectory?: string }): Promise<SessionHandle> {
 		this.log('[Pool] Creating new session...');
 		let handle!: SessionHandle;
 		const session = await this.client.createSession({
-			workingDirectory: this.workspacePath,
+			workingDirectory: opts?.workingDirectory ?? this.workspacePath,
 			onPermissionRequest: (req) => handle.handlePermissionRequest(req),
 			onUserInputRequest: (req) => handle.handleUserInputRequest(req),
 		});
@@ -1762,6 +1810,38 @@ export class SessionPool {
 			await handle.disconnect();
 			this.pool.delete(sessionId);
 		}
+	}
+
+	/** Disconnect a session and reconnect with a new working directory. */
+	async reconnectWithCwd(sessionId: string, workingDirectory: string): Promise<SessionHandle> {
+		this.log(`[Pool] Reconnecting ${sessionId.slice(0, 8)} with cwd: ${workingDirectory}`);
+		await this.evict(sessionId);
+		// Reconnect — resumeSession accepts workingDirectory
+		let handle!: SessionHandle;
+		const session = await this.client.resumeSession(sessionId, {
+			workingDirectory,
+			onPermissionRequest: (req) => handle.handlePermissionRequest(req),
+			onUserInputRequest: (req) => handle.handleUserInputRequest(req),
+		});
+		handle = new SessionHandle(
+			session,
+			this.log,
+			(id, model) => this.client.resumeSession(id, {
+				model: model ?? handle.currentModel ?? undefined,
+				onPermissionRequest: (req) => handle.handlePermissionRequest(req),
+				onUserInputRequest: (req) => handle.handleUserInputRequest(req),
+			}),
+			async () => {
+				const sessions = await this.client.listSessions();
+				const meta = sessions.find(s => s.sessionId === sessionId);
+				return meta ? new Date(meta.modifiedTime) : null;
+			},
+			this.rulesStore,
+		);
+		handle.sharedMode = this.shared;
+		this.pool.set(sessionId, handle);
+		this.log(`[Pool] Reconnected ${sessionId.slice(0, 8)} with cwd: ${workingDirectory}`);
+		return handle;
 	}
 
 	async deleteSession(sessionId: string): Promise<void> {
