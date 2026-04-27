@@ -174,6 +174,9 @@ export function SquadPanel({ open, onClose, lastChange }: { open: boolean; onClo
 			className="fixed inset-0 z-50 flex items-start justify-end px-4 pt-14 pb-4"
 			onClick={onClose}
 			style={{ background: 'rgba(0, 0, 0, 0.5)' }}
+			role="dialog"
+			aria-modal="true"
+			aria-labelledby="squad-panel-title"
 		>
 			<div
 				className="relative max-w-2xl w-full max-h-full overflow-hidden rounded-xl shadow-2xl"
@@ -183,7 +186,7 @@ export function SquadPanel({ open, onClose, lastChange }: { open: boolean; onClo
 				{/* Header */}
 				<div className="flex items-center justify-between px-4 py-3" style={{ borderBottom: '1px solid var(--border)' }}>
 					<div className="flex items-center gap-2">
-						<h2 className="text-lg font-semibold" style={{ color: 'var(--text)' }}>Squad Info</h2>
+						<h2 id="squad-panel-title" className="text-lg font-semibold" style={{ color: 'var(--text)' }}>Squad Info</h2>
 						{updatedIndicator && (
 							<span
 								className="text-xs px-2 py-0.5 rounded-full"

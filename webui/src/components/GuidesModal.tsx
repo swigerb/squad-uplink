@@ -137,6 +137,9 @@ export function GuidesModal({
 			className="fixed inset-0 z-50 flex items-start justify-center px-4 pt-14 pb-4"
 			style={{ background: 'var(--overlay)' }}
 			onClick={closeAll}
+			role="dialog"
+			aria-modal="true"
+			aria-labelledby="guides-modal-title"
 		>
 			<div
 				className={`w-full rounded-2xl p-4 transition-all duration-200 ${viewingGuide || showNewGuide ? 'max-w-2xl' : 'max-w-md'}`}
@@ -144,7 +147,7 @@ export function GuidesModal({
 				onClick={(e) => e.stopPropagation()}
 			>
 				<div className="mb-3 flex items-center justify-between">
-					<h2 className="font-semibold">Guides and Prompts</h2>
+					<h2 id="guides-modal-title" className="font-semibold">Guides and Prompts</h2>
 					{!viewingGuide && !showNewGuide && (
 						<button
 							type="button"

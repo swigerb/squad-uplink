@@ -13,6 +13,21 @@ import { SquadPanel } from './components/SquadPanel';
 import type { SquadFileChange } from './components/SquadPanel';
 import { SquadButton } from './components/SquadButton';
 import { copyToClipboard } from './utils/clipboard';
+import { ConfirmDialog } from './components/ConfirmDialog';
+import {
+	CheckIcon, CopyIcon, CopyRichIcon, TrashIcon, EditIcon, SendIcon, StopIcon,
+	HomeIcon, FolderIcon, BranchIcon, ShieldIcon, GearIcon, PersonIcon,
+	SessionsIcon, GuidesIcon, RulesListIcon, EyeIcon, ChatBubbleIcon,
+	GuideScrollIcon, RecallIcon, ClearIcon, CopilotIcon, QRCodeIcon,
+	InfoCircleIcon, RefreshIcon,
+} from './components/Icons';
+import {
+	COPY_FEEDBACK_MS, TOOL_COLLAPSE_DELAY_MS, STOP_CLEAR_DEBOUNCE_MS,
+	NOTIFICATION_DISMISS_MS, NOTIFICATION_DISMISS_SHORT_MS, RECENTLY_ADDED_HIGHLIGHT_MS,
+	WS_RECONNECT_DELAY_MS, HEARTBEAT_INTERVAL_MS, HEARTBEAT_TIMEOUT_MS,
+	UPDATE_POLL_DELAY_MS, UPDATE_POLL_INTERVAL_MS, RETRY_INTERVAL_MS,
+	FAST_FAIL_THRESHOLD_MS, VISIBILITY_CHECK_GUARD_MS, TICK_INTERVAL_MS,
+} from './constants';
 
 // pre and table need React wrappers for the .code-scroll div — CSS alone can't inject a parent element.
 // p, th, and a need inline styles to unconditionally beat Tailwind Typography's generated rules.
@@ -22,7 +37,7 @@ function CopyableTable({ children }: { children: React.ReactNode }) {
 	const [copied, setCopied] = useState(false);
 	const tableRef = useRef<HTMLTableElement>(null);
 	const copy = async () => {
-		const done = () => { setCopied(true); setTimeout(() => setCopied(false), 1500); };
+		const done = () => { setCopied(true); setTimeout(() => setCopied(false), COPY_FEEDBACK_MS); };
 		const table = tableRef.current;
 		if (!table) { done(); return; }
 		try {
@@ -68,8 +83,8 @@ function CopyableTable({ children }: { children: React.ReactNode }) {
 				title="Copy table"
 			>
 				{copied
-					? <svg className="size-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M20 6L9 17l-5-5" strokeLinecap="round" strokeLinejoin="round" /></svg>
-					: <svg className="size-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="9" y="9" width="13" height="13" rx="2" /><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1" /></svg>
+					? <CheckIcon size="size-3.5" />
+					: <CopyIcon size="size-3.5" />
 				}
 			</button>
 		</div>
@@ -164,7 +179,7 @@ function FolderBrowser({ value, onChange }: { value: string; onChange: (path: st
 			{/* Breadcrumbs */}
 			<div className="flex flex-wrap items-center gap-0.5 px-2 py-1.5" style={{ borderBottom: '1px solid var(--border)' }}>
 				<button type="button" onClick={() => fetchFolders('')} className="px-1 py-0.5 rounded hover:opacity-80" style={{ color: 'var(--accent)' }} title="Root">
-					<svg className="size-3" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" /></svg>
+					<HomeIcon size="size-3" />
 				</button>
 				{breadcrumbs.map((b, i) => (
 					<span key={i} className="flex items-center gap-0.5">
@@ -188,9 +203,7 @@ function FolderBrowser({ value, onChange }: { value: string; onChange: (path: st
 						style={{ background: 'transparent', color: 'var(--text)' }}
 						onClick={() => fetchFolders(f.path)}
 					>
-						<svg className="size-3 shrink-0" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-							<path d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
-						</svg>
+						<FolderIcon size="size-3 shrink-0" />
 						<span className="font-mono">{f.name}</span>
 					</button>
 				))}
@@ -367,7 +380,7 @@ function timeAgo(iso: string): string {
 function CopyButton({ text }: { text: string }) {
 	const [copied, setCopied] = useState(false);
 	const copy = () => {
-		const done = () => { setCopied(true); setTimeout(() => setCopied(false), 1500); };
+		const done = () => { setCopied(true); setTimeout(() => setCopied(false), COPY_FEEDBACK_MS); };
 		copyToClipboard(text).then(done);
 	};
 	return (
@@ -379,8 +392,8 @@ function CopyButton({ text }: { text: string }) {
 			style={{ color: 'inherit' }}
 		>
 			{copied
-				? <svg className="size-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M20 6L9 17l-5-5" strokeLinecap="round" strokeLinejoin="round" /></svg>
-				: <svg className="size-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="9" y="9" width="13" height="13" rx="2" /><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1" /></svg>
+				? <CheckIcon size="size-3.5" />
+				: <CopyIcon size="size-3.5" />
 			}
 		</button>
 	);
@@ -391,7 +404,7 @@ function CopyRichButton({ htmlRef }: { htmlRef: React.RefObject<HTMLDivElement |
 	const copy = () => {
 		const html = htmlRef.current?.innerHTML;
 		if (!html) return;
-		const done = () => { setCopied(true); setTimeout(() => setCopied(false), 1500); };
+		const done = () => { setCopied(true); setTimeout(() => setCopied(false), COPY_FEEDBACK_MS); };
 		// Mirror what the browser does on manual select+copy: put rendered HTML into
 		// an offscreen contenteditable element, select it, then execCommand('copy').
 		const el = document.createElement('div');
@@ -418,12 +431,8 @@ function CopyRichButton({ htmlRef }: { htmlRef: React.RefObject<HTMLDivElement |
 			style={{ color: 'inherit' }}
 		>
 			{copied
-				? <svg className="size-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M20 6L9 17l-5-5" strokeLinecap="round" strokeLinejoin="round" /></svg>
-				: <svg className="size-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-					<rect x="9" y="9" width="13" height="13" rx="2" />
-					<path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1" />
-					<path d="M12 13h5M12 16h3" strokeLinecap="round" />
-				  </svg>
+				? <CheckIcon size="size-3.5" />
+				: <CopyRichIcon size="size-3.5" />
 			}
 		</button>
 	);
@@ -457,7 +466,7 @@ function ToolEventBox({ tc }: { tc: ToolEvent }) {
 	useEffect(() => {
 		if (tc.type !== 'tool_start') return;
 		setElapsed(Math.floor((Date.now() - tc.timestamp) / 1000));
-		const timer = setInterval(() => setElapsed(Math.floor((Date.now() - tc.timestamp) / 1000)), 1000);
+		const timer = setInterval(() => setElapsed(Math.floor((Date.now() - tc.timestamp) / 1000)), TICK_INTERVAL_MS);
 		return () => clearInterval(timer);
 	}, [tc.type, tc.timestamp]);
 	if (tc.type === 'tool_output') return (
@@ -624,9 +633,7 @@ function SessionDrawer({
 					{/* cwd / branch */}
 					<div className="mb-3">
 						<div className="code-scroll flex items-center gap-2 rounded-lg px-3 py-1.5 text-xs" style={{ background: 'var(--bg)', border: '1px solid var(--border)' }}>
-							<svg className="size-3.5 shrink-0" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-								<path d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
-							</svg>
+							<FolderIcon size="size-3.5 shrink-0" />
 							{cwd ? (
 								<span className="whitespace-nowrap font-mono flex-1" style={{ color: 'var(--text-muted)' }}>{cwd}</span>
 							) : (
@@ -634,15 +641,13 @@ function SessionDrawer({
 							)}
 							{activeSessionId && (
 								<button type="button" onClick={() => { setShowCwdEdit(!showCwdEdit); if (!showCwdEdit) setBrowsedCwd(cwd ?? ''); }} className="shrink-0 rounded px-1 hover:opacity-80" style={{ color: 'var(--accent)' }} title="Change working directory">
-									<svg className="size-3" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
+									<EditIcon size="size-3" />
 								</button>
 							)}
 							{branch && (
 								<>
 									<span style={{ color: 'var(--border)' }}>·</span>
-									<svg className="size-3.5 shrink-0" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-										<path d="M6 3v12M18 9a3 3 0 100-6 3 3 0 000 6zM6 21a3 3 0 100-6 3 3 0 000 6zM18 9a9 9 0 01-9 9" />
-									</svg>
+									<BranchIcon size="size-3.5 shrink-0" />
 									<span className="font-mono" style={{ color: 'var(--text-muted)' }}>{branch}</span>
 								</>
 							)}
@@ -692,9 +697,7 @@ function SessionDrawer({
 							}}
 						>
 							<div className="flex items-center gap-2">
-								<svg className="size-4 shrink-0" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-									<circle cx="12" cy="12" r="3" /><path d="M12 2v3M12 19v3M4.22 4.22l2.12 2.12M17.66 17.66l2.12 2.12M2 12h3M19 12h3M4.22 19.78l2.12-2.12M17.66 6.34l2.12-2.12" />
-								</svg>
+								<GearIcon size="size-4 shrink-0" />
 								<span>{currentModelName}</span>
 							</div>
 							<span style={{ color: 'var(--text-muted)' }}>{showModelPicker ? '\u25b4' : '\u25be'}</span>
@@ -742,9 +745,7 @@ function SessionDrawer({
 								}}
 							>
 								<div className="flex items-center gap-2">
-									<svg className="size-4 shrink-0" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-										<path d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-									</svg>
+									<PersonIcon size="size-4 shrink-0" />
 									<span>{currentAgent?.displayName ?? currentAgent?.name ?? 'Default Agent'}</span>
 								</div>
 								<span style={{ color: 'var(--text-muted)' }}>{showAgentPicker ? '\u25b4' : '\u25be'}</span>
@@ -919,7 +920,7 @@ export default function App() {
 			if (!s.packages.some(p => p.hasUpdate)) setUpdateDismissed(false);
 		}).catch(() => {});
 		poll();
-		const timer = setInterval(poll, 5 * 60 * 1000);
+		const timer = setInterval(poll, UPDATE_POLL_INTERVAL_MS);
 		return () => clearInterval(timer);
 	}, []);
 
@@ -1042,7 +1043,7 @@ export default function App() {
 				if (!s.packages.some(p => p.hasUpdate) && !s.restartNeeded) setUpdateDismissed(false);
 			}).catch(() => {});
 			pollUpdates();
-			setTimeout(pollUpdates, 15000);
+			setTimeout(pollUpdates, UPDATE_POLL_DELAY_MS);
 			// Start application-level heartbeat (browser WS API doesn't expose protocol pings)
 			if (heartbeatRef.current) { clearInterval(heartbeatRef.current.interval); if (heartbeatRef.current.timeout) clearTimeout(heartbeatRef.current.timeout); }
 			const hb = { interval: setInterval(() => {
@@ -1051,9 +1052,9 @@ export default function App() {
 					hb.timeout = setTimeout(() => {
 						// No pong received — connection is stale
 						ws.close();
-					}, 5000);
+					}, HEARTBEAT_TIMEOUT_MS);
 				}
-			}, 30_000), timeout: null as ReturnType<typeof setTimeout> | null };
+			}, HEARTBEAT_INTERVAL_MS), timeout: null as ReturnType<typeof setTimeout> | null };
 			heartbeatRef.current = hb;
 		};
 
@@ -1287,7 +1288,7 @@ export default function App() {
 					if (isStoppingRef.current) {
 						// Debounce: reschedule the stop-clear, events are still arriving
 						if (stopClearTimerRef.current) clearTimeout(stopClearTimerRef.current);
-						stopClearTimerRef.current = setTimeout(() => { isStoppingRef.current = false; setIsStopping(false); stopClearTimerRef.current = null; }, 800);
+						stopClearTimerRef.current = setTimeout(() => { isStoppingRef.current = false; setIsStopping(false); stopClearTimerRef.current = null; }, STOP_CLEAR_DEBOUNCE_MS);
 					} else {
 						setCliApprovalInfo(null);
 						setIsStreaming(true);
@@ -1295,7 +1296,7 @@ export default function App() {
 				} else if (event.type === 'thinking') {
 					if (isStoppingRef.current) {
 						if (stopClearTimerRef.current) clearTimeout(stopClearTimerRef.current);
-						stopClearTimerRef.current = setTimeout(() => { isStoppingRef.current = false; setIsStopping(false); stopClearTimerRef.current = null; }, 800);
+						stopClearTimerRef.current = setTimeout(() => { isStoppingRef.current = false; setIsStopping(false); stopClearTimerRef.current = null; }, STOP_CLEAR_DEBOUNCE_MS);
 					} else {
 						setIsThinking(true);
 						if (event.content) setThinkingText(event.content);
@@ -1423,7 +1424,7 @@ export default function App() {
 									setToolEvents(prev3 => prev3.filter(te => !toolCallIds.includes(te.toolCallId ?? '')));
 									return { ...m, toolSummary: summary.length ? summary : undefined, toolCallIds: undefined };
 								}));
-							}, 2000);
+							}, TOOL_COLLAPSE_DELAY_MS);
 						}
 						return prev; // don't modify messages yet
 					});
@@ -1488,7 +1489,7 @@ export default function App() {
 							isStoppingRef.current = false;
 							setIsStopping(false);
 							stopClearTimerRef.current = null;
-						}, 800);
+						}, STOP_CLEAR_DEBOUNCE_MS);
 					}
 				} else if (event.type === 'cli_approval_pending') {
 					setCliApprovalInfo(event.content ?? 'Tool approval needed — respond in your terminal');
@@ -1531,7 +1532,7 @@ export default function App() {
 				} else if (event.type === 'warning' || event.type === 'info') {
 					setNotification({ type: event.type, message: event.content ?? '' });
 					if (!(event as { action?: unknown }).action) {
-						setTimeout(() => setNotification(null), 8000);
+						setTimeout(() => setNotification(null), NOTIFICATION_DISMISS_MS);
 					}
 				} else if (event.type === 'approval_request' && event.approval) {
 					setPendingApproval(event.approval);
@@ -1564,7 +1565,7 @@ export default function App() {
 			setIsThinking(false);
 			if (e.code === 4404) return; // session not found — handled above, don't retry
 			// Detect auth failure: fast close with no messages received suggests a bad token.
-			if (!hadMsg && Date.now() - lastConnectTime.current < 5000) {
+			if (!hadMsg && Date.now() - lastConnectTime.current < FAST_FAIL_THRESHOLD_MS) {
 				fastFailCount.current += 1;
 				if (fastFailCount.current >= 3) {
 					localStorage.removeItem('portal_token');
@@ -1576,7 +1577,7 @@ export default function App() {
 				fastFailCount.current = 0; // reset on non-fast failures
 			}
 			if (reconnectTimer.current) clearTimeout(reconnectTimer.current);
-			reconnectTimer.current = setTimeout(() => connect(), 2000);
+			reconnectTimer.current = setTimeout(() => connect(), WS_RECONNECT_DELAY_MS);
 		};
 
 		ws.onerror = () => ws.close();
@@ -1621,7 +1622,7 @@ export default function App() {
 		if (connectionState !== 'connecting') { setConnectingSecs(0); return; }
 		const start = Date.now();
 		setConnectingSecs(1); // start at 1 immediately
-		const t = setInterval(() => setConnectingSecs(Math.floor((Date.now() - start) / 1000) + 1), 1000);
+		const t = setInterval(() => setConnectingSecs(Math.floor((Date.now() - start) / 1000) + 1), TICK_INTERVAL_MS);
 		return () => clearInterval(t);
 	}, [connectionState]);
 
@@ -1629,7 +1630,7 @@ export default function App() {
 	// Also sends a heartbeat ping to detect stale connections that still report OPEN.
 	useEffect(() => {
 		const checkConnection = () => {
-			if (Date.now() - lastConnectTime.current < 1500) return;
+			if (Date.now() - lastConnectTime.current < VISIBILITY_CHECK_GUARD_MS) return;
 			const ws = wsRef.current;
 			if (!ws) return;
 			if (ws.readyState === WebSocket.OPEN) {
@@ -1637,7 +1638,7 @@ export default function App() {
 				ws.send('{"type":"ping"}');
 				if (heartbeatRef.current) {
 					if (heartbeatRef.current.timeout) clearTimeout(heartbeatRef.current.timeout);
-					heartbeatRef.current.timeout = setTimeout(() => ws.close(), 5000);
+					heartbeatRef.current.timeout = setTimeout(() => ws.close(), HEARTBEAT_TIMEOUT_MS);
 				}
 				return;
 			}
@@ -1654,7 +1655,7 @@ export default function App() {
 		const retryInterval = setInterval(() => {
 			const state = wsRef.current?.readyState;
 			if (state !== WebSocket.OPEN && state !== WebSocket.CONNECTING) connect();
-		}, 2000);
+		}, RETRY_INTERVAL_MS);
 		return () => {
 			document.removeEventListener('visibilitychange', onVisibility);
 			window.removeEventListener('focus', checkConnection);
@@ -1905,7 +1906,7 @@ export default function App() {
 			setShowNewGuide(false);
 			setConfirmOverwrite(false);
 			setRecentlyAdded(new Set([newGuideName]));
-			setTimeout(() => setRecentlyAdded(new Set()), 3000);
+			setTimeout(() => setRecentlyAdded(new Set()), RECENTLY_ADDED_HIGHLIGHT_MS);
 			apiFetch('/api/guides').then(r => r.json()).then(setGuides).catch(() => {});
 		} catch (e) {
 			setError(`Failed to create: ${e}`);
@@ -1937,7 +1938,7 @@ export default function App() {
 						: `Loaded ${newPrompts.length} prompt${newPrompts.length !== 1 ? 's' : ''}`;
 					setTimeout(() => {
 						setNotification({ type: 'info', message: msg });
-						setTimeout(() => setNotification(null), 4000);
+						setTimeout(() => setNotification(null), NOTIFICATION_DISMISS_SHORT_MS);
 					}, 0);
 					return merged;
 				});
@@ -2011,6 +2012,22 @@ export default function App() {
 		if (stopClearTimerRef.current) { clearTimeout(stopClearTimerRef.current); stopClearTimerRef.current = null; }
 	};
 
+	// Escape key: stop generation (only when no modal is open and agent is active)
+	useEffect(() => {
+		const handler = (e: KeyboardEvent) => {
+			if (e.key !== 'Escape') return;
+			// Modals get priority — let their own handlers close them
+			if (showPicker || showQR || showRules || showGuides || squadPanelOpen) return;
+			// Only trigger stop when agent is active and not already stopping
+			if ((isStreaming || isThinking || toolEvents.some(te => te.type === 'tool_start')) && !isStopping) {
+				e.preventDefault();
+				stopAgent();
+			}
+		};
+		document.addEventListener('keydown', handler);
+		return () => document.removeEventListener('keydown', handler);
+	}, [showPicker, showQR, showRules, showGuides, squadPanelOpen, isStreaming, isThinking, toolEvents, isStopping]);
+
 	// Auto-resize textarea to fit content (up to maxHeight)
 	useEffect(() => {
 		const ta = textareaRef.current;
@@ -2080,20 +2097,21 @@ export default function App() {
 			{/* QR Code Modal */}
 			{showQR && (
 				<div
-					className="fixed inset-0 z-[60] flex items-start justify-center px-4 pt-14 pb-4"
-					style={{ background: 'var(--overlay)' }}
+					className="fixed inset-0 z-[60] flex items-start justify-center px-4 pt-14 pb-4 modal-overlay"
 					onClick={() => setShowQR(false)}
+					role="dialog"
+					aria-modal="true"
+					aria-labelledby="qr-modal-title"
 				>
 					<div
-						className="flex flex-col items-center gap-4 rounded-2xl p-6"
-						style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}
+						className="flex flex-col items-center gap-4 rounded-2xl p-6 surface-panel"
 						onClick={(e) => e.stopPropagation()}
 					>
-						<h2 className="font-semibold">Open on another device</h2>
+						<h2 id="qr-modal-title" className="font-semibold">Open on another device</h2>
 						<div className="rounded-xl p-3" style={{ background: 'white' }}>
 							<QRCodeSVG value={window.location.href} size={220} />
 						</div>
-						<p className="max-w-xs text-center text-xs" style={{ color: 'var(--text-muted)' }}>
+						<p className="max-w-xs text-center text-xs text-themed-muted">
 							Scan to open this session on your phone or tablet
 						</p>
 					</div>
@@ -2103,9 +2121,11 @@ export default function App() {
 			{/* Guides Picker */}
 			{showGuides && (
 				<div
-					className="fixed inset-0 z-50 flex items-start justify-center px-4 pt-14 pb-4"
-					style={{ background: 'var(--overlay)' }}
+					className="fixed inset-0 z-50 flex items-start justify-center px-4 pt-14 pb-4 modal-overlay"
 					onClick={() => guardDiscard(() => { setShowGuides(false); setViewingGuide(null); setConfirmDeleteGuide(null); setEditingGuide(null); setEditingName(null); setShowNewGuide(false); setPendingDiscard(null); })}
+					role="dialog"
+					aria-modal="true"
+					aria-labelledby="guides-title"
 				>
 					<div
 						className={`w-full rounded-2xl p-4 transition-all duration-200 ${viewingGuide || showNewGuide ? 'max-w-2xl' : 'max-w-md'}`}
@@ -2113,12 +2133,11 @@ export default function App() {
 						onClick={(e) => e.stopPropagation()}
 					>
 						<div className="mb-3 flex items-center justify-between">
-							<h2 className="font-semibold">Guides and Prompts</h2>
+							<h2 id="guides-title" className="font-semibold">Guides and Prompts</h2>
 							{!viewingGuide && !showNewGuide && (
 								<button
 									type="button"
-									className="rounded-lg px-3 py-1.5 text-sm font-medium"
-									style={{ background: 'var(--primary)', color: 'white' }}
+									className="rounded-lg px-3 py-1.5 text-sm font-medium btn-primary"
 									onClick={() => {
 										setShowNewGuide(true);
 										setSelectedExample('');
@@ -2291,7 +2310,7 @@ export default function App() {
 															});
 															setShowNewGuide(false);
 															setRecentlyAdded(new Set(selected.map(it => it.name)));
-															setTimeout(() => setRecentlyAdded(new Set()), 3000);
+															setTimeout(() => setRecentlyAdded(new Set()), RECENTLY_ADDED_HIGHLIGHT_MS);
 															apiFetch('/api/guides').then(r => r.json()).then(setGuides).catch(() => {});
 														} catch (e) {
 															setImportError(`Import failed: ${e}`);
@@ -2595,21 +2614,13 @@ export default function App() {
 										) : (
 											<span className="flex gap-0.5 shrink-0" style={{ minHeight: '1.75rem' }} onClick={e => e.stopPropagation()}>
 												<span className="rounded p-1.5" style={{ opacity: inst.hasGuide ? 0.7 : 0.2 }} title={inst.hasGuide ? 'Has guide' : 'No guide'}>
-													<svg className="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-														<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
-														<circle cx="12" cy="12" r="3" />
-													</svg>
+													<EyeIcon />
 												</span>
 												<span className="rounded p-1.5" style={{ opacity: inst.hasPrompts ? 0.7 : 0.2 }} title={inst.hasPrompts ? 'Has prompts' : 'No prompts'}>
-													<svg className="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-														<path d="M3 15a2 2 0 0 0 2 2h12l4 4V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2z" />
-														<path d="M8 9h8M8 13h5" />
-													</svg>
+													<ChatBubbleIcon />
 												</span>
 												<button className="rounded p-1.5" style={{ opacity: 0.7 }} onClick={(e) => { e.stopPropagation(); setConfirmDeleteGuide(inst.id); }} type="button" title="Delete">
-													<svg className="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-														<path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6" strokeLinecap="round" strokeLinejoin="round" />
-													</svg>
+													<TrashIcon />
 												</button>
 											</span>
 										)}
@@ -2624,21 +2635,21 @@ export default function App() {
 			{/* Rules Drawer */}
 			{showRules && (
 				<div
-					className="fixed inset-0 z-50 flex items-start justify-center px-4 pt-14 pb-4"
-					style={{ background: 'var(--overlay)' }}
+					className="fixed inset-0 z-50 flex items-start justify-center px-4 pt-14 pb-4 modal-overlay"
 					onClick={() => setShowRules(false)}
+					role="dialog"
+					aria-modal="true"
+					aria-labelledby="rules-modal-title"
 				>
 					<div
-						className="w-full max-w-md rounded-2xl p-4"
-						style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}
+						className="w-full max-w-md rounded-2xl p-4 surface-panel"
 						onClick={(e) => e.stopPropagation()}
 					>
 						<div className="mb-3 flex items-center justify-between">
-							<h2 className="font-semibold">Always-Allow Rules</h2>
+							<h2 id="rules-modal-title" className="font-semibold">Always-Allow Rules</h2>
 							{rules.length > 0 && (
 								<button
-									className="rounded-lg px-3 py-1.5 text-xs font-medium"
-									style={{ background: 'var(--error)', color: 'white' }}
+									className="rounded-lg px-3 py-1.5 text-xs font-medium btn-error"
 									onClick={clearAllRules}
 									type="button"
 								>
@@ -2692,9 +2703,7 @@ export default function App() {
 											title="Remove rule"
 											type="button"
 										>
-											<svg className="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-												<path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6" strokeLinecap="round" strokeLinejoin="round" />
-											</svg>
+											<TrashIcon />
 										</button>
 									</div>
 								))}
@@ -2707,48 +2716,29 @@ export default function App() {
 			{/* Session Picker Modal */}
 			{showPicker && (
 				<div
-					className="fixed inset-0 z-50 flex items-start justify-center px-4 pt-14 pb-4"
-					style={{ background: 'var(--overlay)' }}
+					className="fixed inset-0 z-50 flex items-start justify-center px-4 pt-14 pb-4 modal-overlay"
 					onClick={() => { if (!noSession) setShowPicker(false); }}
+					role="dialog"
+					aria-modal="true"
+					aria-labelledby="session-picker-title"
 				>
 					<div
-						className="w-full max-w-md rounded-2xl p-4"
-						style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}
+						className="w-full max-w-md rounded-2xl p-4 surface-panel"
 						onClick={(e) => e.stopPropagation()}
 					>
 						<div className="mb-3 flex items-center justify-between">
-							<h2 className="font-semibold">Sessions</h2>
+							<h2 id="session-picker-title" className="font-semibold">Sessions</h2>
 							<div className="flex items-center gap-2">
 								<button
-									className="inline-flex items-center justify-center rounded-lg px-3 py-1.5"
-									style={{ background: 'var(--bg)', border: '1px solid var(--border)' }}
+									className="inline-flex items-center justify-center rounded-lg px-3 py-1.5 btn-ghost"
 									onClick={() => setShowQR(v => !v)}
 									type="button"
 									title="Show QR code"
 								>
-									<svg className="size-5" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-										{/* Top-left finder */}
-										<path fillRule="evenodd" d="M2 2h9v9H2V2zm2 2v5h5V4H4z" />
-										<rect x="5.5" y="5.5" width="2" height="2" />
-										{/* Top-right finder */}
-										<path fillRule="evenodd" d="M13 2h9v9h-9V2zm2 2v5h5V4h-5z" />
-										<rect x="16.5" y="5.5" width="2" height="2" />
-										{/* Bottom-left finder */}
-										<path fillRule="evenodd" d="M2 13h9v9H2v-9zm2 2v5h5v-5H4z" />
-										<rect x="5.5" y="16.5" width="2" height="2" />
-										{/* Data modules */}
-										<rect x="13" y="13" width="2.5" height="2.5" />
-										<rect x="17" y="13" width="2.5" height="2.5" />
-										<rect x="15" y="15.5" width="2.5" height="2.5" />
-										<rect x="13" y="18" width="2.5" height="2.5" />
-										<rect x="17" y="18" width="2.5" height="2.5" />
-										<rect x="19.5" y="15.5" width="2.5" height="2.5" />
-										<rect x="13" y="20.5" width="2.5" height="2.5" />
-									</svg>
+									<QRCodeIcon size="size-5" aria-hidden="true" />
 								</button>
 								<button
-									className="rounded-lg px-3 py-1.5 text-sm font-medium"
-									style={{ background: 'var(--primary)', color: 'white' }}
+									className="rounded-lg px-3 py-1.5 text-sm font-medium btn-primary"
 									onClick={newSession}
 									type="button"
 								>
@@ -2756,7 +2746,7 @@ export default function App() {
 								</button>
 							</div>
 						</div>
-						<div className="chat-scroll" style={{ maxHeight: "calc(100vh - 12rem)", overflowY: "auto" }}>
+						<div className="chat-scroll" role="listbox" aria-label="Session list" style={{ maxHeight: "calc(100vh - 12rem)", overflowY: "auto" }}>
 							{sessions.map((s) => {
 								const isActive = s.sessionId === activeSessionId;
 								const isConfirming = confirmDeleteId === s.sessionId;
@@ -2810,9 +2800,7 @@ export default function App() {
 													title={s.shielded ? 'Remove shield' : 'Shield session'}
 													type="button"
 												>
-													<svg className="size-4" viewBox="0 0 24 24" fill={s.shielded ? 'var(--shield)' : 'none'} stroke={s.shielded ? 'var(--shield)' : 'currentColor'} strokeWidth="2">
-														<path d="M12 2L4 5v6c0 5.25 3.75 10.15 8 11 4.25-.85 8-5.75 8-11V5L12 2z" />
-													</svg>
+													<ShieldIcon fill={s.shielded ? 'var(--shield)' : 'none'} stroke={s.shielded ? 'var(--shield)' : 'currentColor'} />
 												</button>
 												{/* Delete — disabled only if shielded */}
 												<button
@@ -2823,9 +2811,7 @@ export default function App() {
 													disabled={s.shielded}
 													type="button"
 												>
-													<svg className="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-														<path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6" strokeLinecap="round" strokeLinejoin="round" />
-													</svg>
+													<TrashIcon />
 												</button>
 											</div>
 										)}
@@ -2880,30 +2866,24 @@ export default function App() {
 								disabled={isStopping}
 								type="button"
 								title={isStopping ? 'Stopping…' : 'Stop'}
+								aria-label={isStopping ? 'Stopping generation' : 'Stop generation'}
 							>
-								<svg className="size-4" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-									<rect x="5" y="5" width="14" height="14" rx="2"/>
-								</svg>
+								<StopIcon aria-hidden="true" />
 							</button>
 						)}
 						<ThemeToggle />
 						<SquadButton onClick={() => setSquadPanelOpen(true)} />
 						<button
-							className="inline-flex items-center justify-center h-8 px-2 rounded-lg"
-							style={{ background: 'var(--bg)', border: '1px solid var(--border)' }}
+							className="inline-flex items-center justify-center h-8 px-2 rounded-lg btn-ghost"
 							onClick={openPicker}
 							type="button"
 							title="Sessions"
 						>
 							{/* stacked windows = sessions */}
-							<svg className="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-								<rect x="3" y="7" width="14" height="11" rx="2" />
-								<path d="M7 5h12a2 2 0 012 2v10" opacity="0.55" />
-							</svg>
+							<SessionsIcon aria-hidden="true" />
 						</button>
 						<button
-							className="inline-flex items-center justify-center h-8 px-2 rounded-lg"
-							style={{ background: 'var(--bg)', border: '1px solid var(--border)' }}
+							className="inline-flex items-center justify-center h-8 px-2 rounded-lg btn-ghost"
 							onClick={() => {
 								const opening = !showGuides;
 								setShowGuides(opening);
@@ -2912,11 +2892,7 @@ export default function App() {
 							type="button"
 							title="Guides and Prompts"
 						>
-							<svg className="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-								<path d="M2 6l7-2 6 2 7-2v16l-7 2-6-2-7 2V6z" />
-								<line x1="9" y1="4" x2="9" y2="20" />
-								<line x1="15" y1="6" x2="15" y2="22" />
-							</svg>
+							<GuidesIcon aria-hidden="true" />
 						</button>
 						<button
 							className="inline-flex items-center justify-center h-8 px-2 rounded-lg"
@@ -2927,25 +2903,11 @@ export default function App() {
 						>
 							{rules.length > 0 ? (
 								<span className="flex items-center gap-1">
-									<svg className="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
-										<circle cx="5" cy="7" r="1.5" fill="currentColor" stroke="none"/>
-										<line x1="9" y1="7" x2="20" y2="7"/>
-										<circle cx="5" cy="12" r="1.5" fill="currentColor" stroke="none"/>
-										<line x1="9" y1="12" x2="20" y2="12"/>
-										<circle cx="5" cy="17" r="1.5" fill="currentColor" stroke="none"/>
-										<line x1="9" y1="17" x2="20" y2="17"/>
-									</svg>
+									<RulesListIcon aria-hidden="true" />
 									<span className="text-xs font-medium leading-none">{rules.length}</span>
 								</span>
 							) : (
-								<svg className="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
-									<circle cx="5" cy="7" r="1.5" fill="currentColor" stroke="none"/>
-									<line x1="9" y1="7" x2="20" y2="7"/>
-									<circle cx="5" cy="12" r="1.5" fill="currentColor" stroke="none"/>
-									<line x1="9" y1="12" x2="20" y2="12"/>
-									<circle cx="5" cy="17" r="1.5" fill="currentColor" stroke="none"/>
-									<line x1="9" y1="17" x2="20" y2="17"/>
-								</svg>
+								<RulesListIcon aria-hidden="true" />
 							)}
 						</button>
 						<div
@@ -2959,6 +2921,9 @@ export default function App() {
 											: 'var(--error)',
 							}}
 							title={connectionState}
+							role="status"
+							aria-live="assertive"
+							aria-label={`Connection: ${connectionState}`}
 						/>
 					</div>
 					</div>
@@ -3087,7 +3052,7 @@ export default function App() {
 					</div>
 				)}
 
-				<div className="chat-scroll flex-1 overflow-y-auto p-4 space-y-4">
+				<div className="chat-scroll flex-1 overflow-y-auto p-4 space-y-4" role="log" aria-live="polite" aria-label="Chat messages">
 					{historyTruncated && (() => {
 						const { shown, total } = historyTruncated;
 						const makeUrl = (n: number | 'all') => {
@@ -3473,9 +3438,7 @@ export default function App() {
 													onClick={() => setConfirmDeletePrompt(p.label)}
 													title="Remove prompt"
 												>
-													<svg className="size-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-														<path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6" />
-													</svg>
+													<TrashIcon size="size-3.5" />
 												</button>
 											)}
 										</div>
@@ -3491,6 +3454,7 @@ export default function App() {
 									ref={textareaRef}
 									id="message-input"
 									name="message"
+									aria-label="Message input"
 									className="chat-scroll w-full resize-none bg-transparent pl-4 pr-16 py-3 text-sm outline-none"
 									style={{ color: 'var(--text)', minHeight: 44, maxHeight: 200, overflow: 'auto' }}
 									placeholder={connectionState === 'connected' ? (currentAgent ? `Ask ${currentAgent.displayName || currentAgent.name}…` : 'Ask Copilot…') : `Connecting… ${connectingSecs}s`}
@@ -3517,10 +3481,7 @@ export default function App() {
 										className="absolute top-1/2 right-2 flex size-6 -translate-y-1/2 items-center justify-center rounded opacity-40 hover:opacity-80"
 										style={{ color: showPromptsTray ? 'var(--primary)' : 'var(--text-muted)' }}
 									>
-										<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="size-4">
-											<path d="M3 15a2 2 0 0 0 2 2h12l4 4V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2z" />
-											<path d="M8 9h8M8 13h5" />
-										</svg>
+										<ChatBubbleIcon />
 									</button>
 								)}
 								{!input && messages.filter(m => m.role === 'user').length > 0 && (
@@ -3531,10 +3492,7 @@ export default function App() {
 										className="absolute top-1/2 flex size-6 -translate-y-1/2 items-center justify-center rounded opacity-40 hover:opacity-80"
 										style={{ color: 'var(--text-muted)', right: sessionPrompts.length > 0 ? 28 : 8 }}
 									>
-										<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="size-4">
-											<polyline points="9 10 4 15 9 20"/>
-											<path d="M20 4v7a4 4 0 0 1-4 4H4"/>
-										</svg>
+										<RecallIcon />
 									</button>
 								)}
 								{input && (
@@ -3545,9 +3503,7 @@ export default function App() {
 										className="absolute top-1/2 flex size-6 -translate-y-1/2 items-center justify-center rounded opacity-40 hover:opacity-80"
 										style={{ color: 'var(--text-muted)', right: sessionPrompts.length > 0 ? 28 : 8 }}
 									>
-										<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="size-4">
-											<path d="M18 6L6 18M6 6l12 12"/>
-										</svg>
+										<ClearIcon />
 									</button>
 								)}
 							</div>
@@ -3568,9 +3524,7 @@ export default function App() {
 											type="button"
 											title="Remove all prompts"
 										>
-											<svg className="size-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-												<path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6" />
-											</svg>
+											<TrashIcon size="size-3.5" />
 										</button>
 									)}
 								</div>
@@ -3586,10 +3540,9 @@ export default function App() {
 									disabled={!input.trim() || connectionState !== 'connected'}
 									type="submit"
 									title="Send"
+									aria-label="Send message"
 								>
-									<svg className="size-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-										<path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z" />
-									</svg>
+									<SendIcon size="size-5" />
 								</button>
 							</div>
 						</div>

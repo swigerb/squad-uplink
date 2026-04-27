@@ -42,7 +42,7 @@ export function ApprovalCard({
 	if (!pendingApproval && !pendingInput && !cliApprovalInfo && !cliInputInfo) return null;
 
 	return (
-		<div className="border-t px-4 pt-3 pb-1" style={{ borderColor: 'var(--border)', background: 'var(--surface)' }}>
+		<div className="border-t px-4 pt-3 pb-1" style={{ borderColor: 'var(--border)', background: 'var(--surface)' }} aria-live="assertive" role="status">
 			{cliApprovalInfo && (
 				<div className="mb-2 rounded-xl border p-3" style={{ borderColor: 'var(--text-muted)', background: 'var(--muted-tint)' }}>
 					<div className="mb-1 flex items-center gap-1.5 text-sm font-semibold" style={{ color: 'var(--text-muted)' }}>

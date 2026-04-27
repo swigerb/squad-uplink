@@ -145,6 +145,7 @@ export function InputBar({
 								ref={textareaRef}
 								id="message-input"
 								name="message"
+								aria-label="Message input"
 								className="chat-scroll w-full resize-none bg-transparent pl-4 pr-16 py-3 text-sm outline-none"
 								style={{ color: 'var(--text)', minHeight: 44, maxHeight: 200, overflow: 'auto' }}
 								placeholder={connectionState === 'connected' ? (currentAgent ? `Ask ${currentAgent.displayName || currentAgent.name}…` : 'Ask Copilot…') : `Connecting… ${connectingSecs}s`}
@@ -238,6 +239,7 @@ export function InputBar({
 								disabled={!input.trim() || (connectionState !== 'connected' && !draftSession)}
 								type="submit"
 								title="Send"
+								aria-label="Send message"
 							>
 								<svg className="size-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
 									<path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z" />

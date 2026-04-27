@@ -182,6 +182,31 @@ export function useWebSocket(config: UseWebSocketConfig) {
 		setConnectionState('disconnected');
 	}, []);
 
+	// StrictMode guard: clean up all connections on unmount so double-mounts
+	// don't leave orphaned WebSocket connections, timers, or intervals.
+	useEffect(() => {
+		return () => {
+			const ws = wsRef.current;
+			if (ws) {
+				ws.onopen = null;
+				ws.onmessage = null;
+				ws.onerror = null;
+				ws.onclose = null;
+				ws.close();
+				wsRef.current = null;
+			}
+			const mgmt = mgmtWsRef.current;
+			if (mgmt) {
+				mgmt.onmessage = null;
+				mgmt.onerror = null;
+				mgmt.close();
+				mgmtWsRef.current = null;
+			}
+			if (reconnectTimer.current) { clearTimeout(reconnectTimer.current); reconnectTimer.current = null; }
+			stopHeartbeat();
+		};
+	}, []);
+
 	// Count seconds since entering 'connecting' state
 	useEffect(() => {
 		if (connectionState !== 'connecting') { setConnectingSecs(0); return; }

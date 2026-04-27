@@ -42,6 +42,9 @@ export function SessionPicker({
 			className="fixed inset-0 z-50 flex items-start justify-center px-4 pt-14 pb-4"
 			style={{ background: 'var(--overlay)' }}
 			onClick={() => { if (!noSession) onClose(); }}
+			role="dialog"
+			aria-modal="true"
+			aria-labelledby="session-picker-title"
 		>
 			<div
 				className="w-full max-w-md rounded-2xl p-4"
@@ -49,7 +52,7 @@ export function SessionPicker({
 				onClick={(e) => e.stopPropagation()}
 			>
 				<div className="mb-3 flex items-center justify-between">
-					<h2 className="font-semibold">Sessions</h2>
+					<h2 id="session-picker-title" className="font-semibold">Sessions</h2>
 					<div className="flex items-center gap-2">
 						<button
 							className="inline-flex items-center justify-center rounded-lg px-3 py-1.5"
@@ -84,7 +87,7 @@ export function SessionPicker({
 						</button>
 					</div>
 				</div>
-				<div className="chat-scroll" style={{ maxHeight: "calc(100vh - 12rem)", overflowY: "auto" }}>
+				<div className="chat-scroll" role="listbox" aria-label="Session list" style={{ maxHeight: "calc(100vh - 12rem)", overflowY: "auto" }}>
 					{sessions.map((s) => {
 						const isActive = s.sessionId === activeSessionId;
 						const isConfirming = confirmDeleteId === s.sessionId;

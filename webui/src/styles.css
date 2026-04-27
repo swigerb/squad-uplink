@@ -209,3 +209,45 @@ body,
 	vertical-align: top;
 	text-align: left;
 }
+
+/* ─── Utility classes — migrated from repeated inline styles ─────────────── */
+
+/* Surface panels (modals, cards, drawers) */
+.surface-panel {
+	background: var(--surface);
+	border: 1px solid var(--border);
+}
+
+/* Overlay backdrop for modals */
+.modal-overlay {
+	background: var(--overlay);
+}
+
+/* Primary action button (filled) */
+.btn-primary {
+	background: var(--primary);
+	color: white;
+}
+
+/* Error/danger action button */
+.btn-error {
+	background: var(--error);
+	color: white;
+}
+
+/* Muted/ghost button */
+.btn-ghost {
+	background: var(--bg);
+	border: 1px solid var(--border);
+}
+
+/* Text colors */
+.text-themed       { color: var(--text); }
+.text-themed-muted { color: var(--text-muted); }
+
+/* Common form field styling */
+.input-field {
+	background: var(--bg);
+	border-color: var(--border);
+	color: var(--text);
+}

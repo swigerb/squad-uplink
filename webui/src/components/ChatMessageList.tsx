@@ -315,7 +315,7 @@ export function ChatMessageList({
 	onDismissNotification,
 }: ChatMessageListProps) {
 	return (
-		<div className="chat-scroll flex-1 overflow-y-auto p-4 space-y-4">
+		<div className="chat-scroll flex-1 overflow-y-auto p-4 space-y-4" role="log" aria-live="polite" aria-label="Chat messages">
 			{historyTruncated && (() => {
 				const { shown, total } = historyTruncated;
 				const makeUrl = (n: number | 'all') => {
