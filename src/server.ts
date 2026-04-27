@@ -296,8 +296,7 @@ export class PortalServer {
 			if (msg.type === 'prompt' && msg.content) {
 				// Auto-inject squad context on first message per session
 				let prompt = msg.content;
-				const squadCtxParam = url.searchParams.get('squadContext');
-				const squadEnabled = squadCtxParam !== null ? squadCtxParam !== '0' && squadCtxParam !== 'false' : this.squadContext;
+				const squadEnabled = this.squadContext;
 				if (squadEnabled && !this.squadContextInjected.has(sessionId)) {
 					const guide = this.squadReader.generateGuide();
 					if (guide) {
@@ -550,6 +549,21 @@ export class PortalServer {
 					try {
 						if (fs.existsSync(path.join(userAgentsDir, `${a.name}.agent.md`))) {
 							source = 'user';
+						} else {
+							// Check .github/agents/ relative to CWD and git root
+							const cwdRepoAgents = path.join(process.cwd(), '.github', 'agents');
+							if (fs.existsSync(path.join(cwdRepoAgents, `${a.name}.agent.md`))) {
+								source = 'repository';
+							} else {
+								try {
+									const { execSync } = require('node:child_process');
+									const gitRoot = execSync('git rev-parse --show-toplevel', { encoding: 'utf8' }).trim();
+									const gitRepoAgents = path.join(gitRoot, '.github', 'agents');
+									if (fs.existsSync(path.join(gitRepoAgents, `${a.name}.agent.md`))) {
+										source = 'repository';
+									}
+								} catch {}
+							}
 						}
 					} catch {}
 					return { ...a, source };

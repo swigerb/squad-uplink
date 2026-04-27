@@ -1444,7 +1444,7 @@ export default function App() {
 						setToolEvents((prev) => [...prev, { id: `ts-${event.toolCallId ?? Date.now()}`, type: 'tool_start', toolCallId: event.toolCallId, toolName: event.toolName, mcpServerName: event.mcpServerName, displayLabel: event.displayLabel, intentionSummary: intention, content: event.content, timestamp: Date.now() }]);
 					}
 				} else if (event.type === 'tool_complete') {
-					setToolEvents((prev) => prev.map(te => te.toolCallId === event.toolCallId ? { ...te, type: 'tool_complete' as const } : te));
+					setToolEvents((prev) => prev.map(te => te.toolCallId === event.toolCallId ? { ...te, type: 'tool_complete' as const, content: event.content } : te));
 					const completedId = event.toolCallId;
 					// Check if all tools for any message are now complete → delay then collapse
 					setMessages(prev => {
@@ -3541,7 +3541,7 @@ export default function App() {
 									name="message"
 									className="chat-scroll w-full resize-none bg-transparent pl-4 pr-16 py-3 text-sm outline-none"
 									style={{ color: 'var(--text)', minHeight: 44, maxHeight: 200, overflow: 'auto' }}
-									placeholder={connectionState === 'connected' ? 'Ask Copilot…' : `Connecting… ${connectingSecs}s`}
+									placeholder={connectionState === 'connected' ? (currentAgent ? `Ask ${currentAgent.displayName || currentAgent.name}…` : 'Ask Copilot…') : `Connecting… ${connectingSecs}s`}
 									disabled={connectionState !== 'connected'}
 									rows={1}
 									value={input}

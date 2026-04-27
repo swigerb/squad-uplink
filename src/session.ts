@@ -877,7 +877,7 @@ if (total !== shown) result.push({ type: 'history_meta', total, shown });
 					this.pendingInputs.delete(requestId);
 					reject(new Error('Input timed out'));
 				}
-			}, 5 * 60 * 1000);
+			}, 30 * 60 * 1000);
 			this.pendingInputs.set(requestId, { resolve, reject, event, timeout });
 		});
 	}
@@ -1815,6 +1815,10 @@ export class SessionPool {
 	/** Disconnect a session and reconnect with a new working directory. */
 	async reconnectWithCwd(sessionId: string, workingDirectory: string): Promise<SessionHandle> {
 		this.log(`[Pool] Reconnecting ${sessionId.slice(0, 8)} with cwd: ${workingDirectory}`);
+		// Capture state from the old handle before evicting
+		const oldHandle = this.pool.get(sessionId);
+		const previousAgent = oldHandle?.currentAgent ?? null;
+		const previousModel = oldHandle?.currentModel ?? null;
 		await this.evict(sessionId);
 		// Reconnect — resumeSession accepts workingDirectory
 		let handle!: SessionHandle;
@@ -1828,6 +1832,7 @@ export class SessionPool {
 			this.log,
 			(id, model) => this.client.resumeSession(id, {
 				model: model ?? handle.currentModel ?? undefined,
+				workingDirectory,
 				onPermissionRequest: (req) => handle.handlePermissionRequest(req),
 				onUserInputRequest: (req) => handle.handleUserInputRequest(req),
 			}),
@@ -1840,6 +1845,39 @@ export class SessionPool {
 		);
 		handle.sharedMode = this.shared;
 		this.pool.set(sessionId, handle);
+		// Seed model so reconnects preserve the session's model
+		session.rpc.model.getCurrent().then(r => {
+			if (r.modelId) {
+				handle.currentModel = r.modelId;
+				this.log(`[Pool] Session ${sessionId.slice(0, 8)} model: ${r.modelId}`);
+			}
+		}).catch(() => {
+			// Fall back to the model from the previous handle
+			if (previousModel) handle.currentModel = previousModel;
+		});
+		// Restore agent if one was selected before CWD change
+		if (previousAgent) {
+			handle.currentAgent = previousAgent;
+			session.rpc.agent.select({ name: previousAgent }).catch(() => {});
+		}
+		// Wire up title-change callback (same as _doConnect)
+		handle.titleChangedCallback = async (title) => {
+			if (title) {
+				this.log(`[TitleChanged] session=${sessionId.slice(0,8)} summary=${title}`);
+				handle.lastKnownSummary = title;
+				this.onTitleChanged?.(sessionId, title);
+			} else {
+				try {
+					const sessions = await this.client.listSessions();
+					const meta = sessions.find(s => s.sessionId === sessionId);
+					if (meta?.summary && meta.summary !== handle.lastKnownSummary) {
+						handle.lastKnownSummary = meta.summary;
+						this.log(`[TitleChanged] session=${sessionId.slice(0,8)} summary=${meta.summary} (fetched)`);
+						this.onTitleChanged?.(sessionId, meta.summary);
+					}
+				} catch {}
+			}
+		};
 		this.log(`[Pool] Reconnected ${sessionId.slice(0, 8)} with cwd: ${workingDirectory}`);
 		return handle;
 	}
