@@ -3,7 +3,16 @@ import { TunnelManager } from './tunnel.js';
 import qrcode from 'qrcode-terminal';
 import { exec, spawnSync } from 'node:child_process';
 
-const args = process.argv.slice(2);
+/** Kill the CLI server process listening on port 3848 (Windows only) */
+function killCliServer(): void {
+	if (process.platform === 'win32') {
+		spawnSync('pwsh', ['-NoProfile', '-Command',
+			`Get-NetTCPConnection -LocalPort 3848 -ErrorAction SilentlyContinue | ForEach-Object { Stop-Process -Id $_.OwningProcess -Force -ErrorAction SilentlyContinue }`
+		], { stdio: 'ignore', windowsHide: true });
+	}
+}
+
+const args= process.argv.slice(2);
 
 if (args.includes('--help') || args.includes('-h')) {
 	console.log(`Usage: node dist/server.js [options]
@@ -39,22 +48,14 @@ process.on('SIGINT', async () => {
 	console.log('\nShutting down...');
 	tunnel.stop();
 	await server.stop().catch(() => {});
-	if (process.platform === 'win32') {
-		spawnSync('pwsh', ['-NoProfile', '-Command',
-			`Get-NetTCPConnection -LocalPort 3848 -ErrorAction SilentlyContinue | ForEach-Object { Stop-Process -Id $_.OwningProcess -Force -ErrorAction SilentlyContinue }`
-		], { stdio: 'ignore', windowsHide: true });
-	}
+	killCliServer();
 	process.exit(0);
 });
 
 process.on('SIGTERM', async () => {
 	tunnel.stop();
 	await server.stop().catch(() => {});
-	if (process.platform === 'win32') {
-		spawnSync('pwsh', ['-NoProfile', '-Command',
-			`Get-NetTCPConnection -LocalPort 3848 -ErrorAction SilentlyContinue | ForEach-Object { Stop-Process -Id $_.OwningProcess -Force -ErrorAction SilentlyContinue }`
-		], { stdio: 'ignore', windowsHide: true });
-	}
+	killCliServer();
 	process.exit(0);
 });
 
@@ -168,11 +169,7 @@ if (process.stdin.isTTY) {
 			// Notify portal clients that the CLI server is switching
 			server.broadcastAll({ type: 'info', content: 'Switching CLI Server to TUI mode - reloading...' });
 			// Kill the process on port 3848
-			if (process.platform === 'win32') {
-				spawnSync('pwsh', ['-NoProfile', '-Command',
-					`Get-NetTCPConnection -LocalPort 3848 -ErrorAction SilentlyContinue | ForEach-Object { Stop-Process -Id $_.OwningProcess -Force -ErrorAction SilentlyContinue }`
-				], { stdio: 'ignore', windowsHide: true });
-			}
+			killCliServer();
 
 			// Wait a moment for port to free, then launch TUI server
 			setTimeout(() => {
@@ -287,15 +284,7 @@ if (process.stdin.isTTY) {
 		console.log('    [2] Authenticated — visitors must sign in with Microsoft/GitHub\n');
 	};
 
-	const killCliServer = () => {
-		if (process.platform === 'win32') {
-			spawnSync('pwsh', ['-NoProfile', '-Command',
-				`Get-NetTCPConnection -LocalPort 3848 -ErrorAction SilentlyContinue | ForEach-Object { Stop-Process -Id $_.OwningProcess -Force -ErrorAction SilentlyContinue }`
-			], { stdio: 'ignore', windowsHide: true });
-		}
-	};
-
-	const shutdown = async () => {
+	const shutdown= async () => {
 		console.log('\nShutting down...');
 		tunnel.stop();
 		await server.stop().catch(() => {}); // disconnect SDK first

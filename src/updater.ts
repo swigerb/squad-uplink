@@ -6,7 +6,8 @@ import * as https from 'node:https';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { exec, execSync } from 'node:child_process';
+import { exec } from 'node:child_process';
+import { getGitHubToken } from './github-token.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PROJECT_ROOT = path.join(__dirname, '..');
@@ -318,18 +319,7 @@ function runCommand(cmd: string, cwd: string): Promise<string> {
 	});
 }
 
-/** Get a GitHub token from environment or gh CLI */
-function getGitHubToken(): string | null {
-	// Check environment first
-	if (process.env.GITHUB_TOKEN) return process.env.GITHUB_TOKEN;
-	if (process.env.GH_TOKEN) return process.env.GH_TOKEN;
-	// Try gh CLI's cached token
-	try {
-		return execSync('gh auth token', { stdio: ['pipe', 'pipe', 'pipe'], timeout: 5000 }).toString().trim() || null;
-	} catch { return null; }
-}
-
-/** Fetch the latest release from GitHub Releases API (tries unauthenticated first, falls back to auth for private repos) */
+/** Fetch the latest releasefrom GitHub Releases API (tries unauthenticated first, falls back to auth for private repos) */
 function fetchLatestRelease(owner: string, repo: string, log?: (msg: string) => void): Promise<{ tag: string; zipUrl: string } | null> {
 	const doFetch = (token?: string): Promise<{ tag: string; zipUrl: string } | null> => new Promise((resolve) => {
 		const url = `/repos/${owner}/${repo}/releases/latest`;

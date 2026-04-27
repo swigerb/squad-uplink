@@ -6,6 +6,7 @@ import * as os from 'node:os';
 import * as crypto from 'node:crypto';
 import { execSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
+import { getGitHubToken } from './github-token.js';
 import { WebSocketServer, WebSocket } from 'ws';
 import { SessionPool } from './session.js';
 import { RulesStore } from './rules.js';
@@ -648,7 +649,7 @@ export class PortalServer {
 					const newId = handle.sessionId;
 					// Broadcast so other clients' pickers update
 					const sessions = await this.pool.listSessions().catch(() => []);
-					const shields = this.loadShields();
+					this.loadShields();
 					const newSession = sessions.find(s => s.sessionId === newId);
 					if (newSession) {
 						this.broadcastAll({ type: 'session_created', session: { ...newSession, shielded: this.shields[newId] ?? false } });
@@ -1153,41 +1154,6 @@ export class PortalServer {
 			return;
 		}
 
-		// List context templates
-		if (url.pathname === '/api/context-templates' && method === 'GET') {
-			try {
-				const templatesDir = path.join(__dirname, '..', 'context-templates');
-				if (!fs.existsSync(templatesDir)) { this.sendJson(res, 200, []); return; }
-				const files = fs.readdirSync(templatesDir).filter(f => f.endsWith('.md'));
-				const templates = files.map(f => ({
-					id: f.replace(/\.md$/, ''),
-					name: f.replace(/\.md$/, '').replace(/[-_]/g, ' '),
-					file: f,
-				}));
-				this.sendJson(res, 200, templates);
-			} catch (e) {
-				this.sendJson(res, 500, { error: String(e) });
-			}
-			return;
-		}
-
-		// Read a specific context template
-		const templateMatch = url.pathname.match(/^\/api\/context-templates\/(.+)$/);
-		if (templateMatch && method === 'GET') {
-			try {
-				const templatesDir = path.resolve(path.join(__dirname, '..', 'context-templates'));
-				const templateFile = path.join(templatesDir, decodeURIComponent(templateMatch[1]) + '.md');
-				const resolved = path.resolve(templateFile);
-				if (!resolved.startsWith(templatesDir + path.sep)) { this.sendJson(res, 403, { error: 'Forbidden' }); return; }
-				if (!fs.existsSync(resolved)) { this.sendJson(res, 404, { error: 'Template not found' }); return; }
-				const content = fs.readFileSync(resolved, 'utf8');
-				this.sendJson(res, 200, { content });
-			} catch (e) {
-				this.sendJson(res, 500, { error: String(e) });
-			}
-			return;
-		}
-
 		// --- Squad file API ---
 
 		if (url.pathname === '/api/squad/files' && method === 'GET') {
@@ -1440,7 +1406,7 @@ export class PortalServer {
 						try { resolve(JSON.parse(data)); } catch { resolve(null); }
 					} else if (res.statusCode === 404 && !token) {
 						// Try with auth for private gists
-						const ghToken = this.getGitHubToken();
+						const ghToken = getGitHubToken();
 						if (ghToken) doFetch(ghToken).then(resolve);
 						else resolve(null);
 					} else { resolve(null); }
@@ -1452,15 +1418,7 @@ export class PortalServer {
 		return doFetch();
 	}
 
-	private getGitHubToken(): string | null {
-		if (process.env.GITHUB_TOKEN) return process.env.GITHUB_TOKEN;
-		if (process.env.GH_TOKEN) return process.env.GH_TOKEN;
-		try {
-			return execSync('gh auth token', { stdio: ['pipe', 'pipe', 'pipe'], timeout: 5000 }).toString().trim() || null;
-		} catch { return null; }
-	}
-
-	/** Parse gist files into guide/prompt pairs using the name_guide.md / name_prompts.md convention */
+	/** Parse gist filesinto guide/prompt pairs using the name_guide.md / name_prompts.md convention */
 	private parseGistFiles(files: Record<string, { content: string }>): Array<{ name: string; hasGuide: boolean; hasPrompts: boolean; guideContent: string; promptsContent: string }> {
 		const items = new Map<string, { guide?: string; prompts?: string }>();
 		for (const [filename, file] of Object.entries(files)) {

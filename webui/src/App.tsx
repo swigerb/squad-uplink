@@ -466,37 +466,6 @@ function AssistantMessageBlock({ content, timestamp, bytes }: { content: string;
 	);
 }
 
-function ThoughtBubble({ reasoning, defaultExpanded = false }: { reasoning: string; defaultExpanded?: boolean }) {
-	const [expanded, setExpanded] = useState(defaultExpanded);
-	return (
-		<div className="mb-1 max-w-[85%]">
-			<button
-				type="button"
-				className="flex items-center gap-1.5 rounded-full px-3 py-1 text-xs"
-				style={{ background: 'var(--muted-tint)', color: 'var(--text-muted)', border: '1px solid var(--border)' }}
-				onClick={() => setExpanded(e => !e)}
-			>
-				<span style={{ fontSize: '10px' }}>{expanded ? '▾' : '▸'}</span>
-				<span className="italic">Thought{expanded ? '' : '…'}</span>
-			</button>
-			{expanded && (
-				<div
-					className="mt-1 rounded-xl px-3 py-2 text-xs"
-					style={{
-						background: 'var(--muted-tint)',
-						border: '1px solid var(--border)',
-						color: 'var(--text-muted)',
-						whiteSpace: 'pre-wrap',
-						wordBreak: 'break-words',
-					}}
-				>
-					{reasoning}
-				</div>
-			)}
-		</div>
-	);
-}
-
 function ToolEventBox({ tc }: { tc: ToolEvent }) {
 	const [expanded, setExpanded] = useState(false);
 	const [elapsed, setElapsed] = useState(0);
