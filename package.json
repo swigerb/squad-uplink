@@ -33,7 +33,9 @@
 		"start": "node dist/launcher.js",
 		"dev": "node esbuild.cjs --watch",
 		"watch:ui": "cd webui && npm run dev",
-		"test": "node tools/test-client.mjs",
+		"test": "vitest run",
+		"test:watch": "vitest",
+		"test:e2e": "node tools/test-client.mjs",
 		"package": "node package.mjs",
 		"postinstall": "node patch.mjs"
 	},
@@ -41,7 +43,8 @@
 		"@types/node": "^22.0.0",
 		"@types/ws": "^8.5.14",
 		"esbuild": "^0.25.0",
-		"typescript": "^5.0.0"
+		"typescript": "^5.0.0",
+		"vitest": "^4.1.5"
 	},
 	"dependencies": {
 		"@github/copilot": "^1.0.36",
