@@ -12,6 +12,7 @@ import { SessionPool } from './session.js';
 import { RulesStore } from './rules.js';
 import { UpdateChecker } from './updater.js';
 import { SquadReader } from './squad.js';
+import { DEFAULT_CLI_PORT, atomicWriteFileSync } from './config.js';
 import type { PortalEvent, PortalInfo } from './session.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -121,6 +122,7 @@ export class PortalServer {
 
 			// Management connections: no session, just here to receive broadcasts
 			if (isManagement) {
+				(ws as WebSocket & { isManagement?: boolean }).isManagement = true;
 				const pingInterval = setInterval(() => {
 					if (ws.readyState === WebSocket.OPEN) ws.ping();
 				}, 30_000);
@@ -392,7 +394,7 @@ export class PortalServer {
 	private saveShields(): void {
 		try {
 			fs.mkdirSync(this.dataDir, { recursive: true });
-			fs.writeFileSync(path.join(this.dataDir, 'session-shields.json'), JSON.stringify(this.shields, null, 2));
+			atomicWriteFileSync(path.join(this.dataDir, 'session-shields.json'), JSON.stringify(this.shields, null, 2));
 		} catch {}
 	}
 
@@ -406,7 +408,7 @@ export class PortalServer {
 	private saveSessionPrompts(): void {
 		try {
 			fs.mkdirSync(this.dataDir, { recursive: true });
-			fs.writeFileSync(path.join(this.dataDir, 'session-prompts.json'), JSON.stringify(this.sessionPrompts, null, 2));
+			atomicWriteFileSync(path.join(this.dataDir, 'session-prompts.json'), JSON.stringify(this.sessionPrompts, null, 2));
 		} catch {}
 	}
 
@@ -420,7 +422,7 @@ export class PortalServer {
 	private saveSessionAgents(): void {
 		try {
 			fs.mkdirSync(this.dataDir, { recursive: true });
-			fs.writeFileSync(path.join(this.dataDir, 'session-agents.json'), JSON.stringify(this.sessionAgents, null, 2));
+			atomicWriteFileSync(path.join(this.dataDir, 'session-agents.json'), JSON.stringify(this.sessionAgents, null, 2));
 		} catch {}
 	}
 
@@ -1132,6 +1134,11 @@ export class PortalServer {
 					items: Array<{ name: string; guideContent?: string; promptsContent?: string }>;
 				};
 				if (!items?.length) { this.sendJson(res, 400, { error: 'No items to import' }); return; }
+				// SSRF guard: validate gist URL and ID
+				if (gistUrl && !/^https:\/\/gist\.github(usercontent)?\.com\//.test(gistUrl)) {
+					this.sendJson(res, 400, { error: 'Invalid gist URL' }); return;
+				}
+				if (!/^[a-f0-9]+$/.test(gistId)) { this.sendJson(res, 400, { error: 'Invalid gist ID' }); return; }
 				const imported: string[] = [];
 				for (const item of items) {
 					if (!/^[a-zA-Z0-9_-]+$/.test(item.name)) continue;
@@ -1148,7 +1155,7 @@ export class PortalServer {
 				let imports: Record<string, unknown> = {};
 				try { if (fs.existsSync(importsFile)) imports = JSON.parse(fs.readFileSync(importsFile, 'utf8')); } catch {}
 				imports[gistId] = { url: gistUrl, importedAt: new Date().toISOString(), items: imported };
-				fs.writeFileSync(importsFile, JSON.stringify(imports, null, 2) + '\n');
+				atomicWriteFileSync(importsFile, JSON.stringify(imports, null, 2) + '\n');
 				this.log(`[Import] Imported ${imported.length} items from gist ${gistId}: ${imported.join(', ')}`);
 				this.sendJson(res, 200, { imported });
 			} catch (e) {
@@ -1404,7 +1411,7 @@ export class PortalServer {
 			this.httpServer.listen(this.port, '0.0.0.0', () => {
 				this.initDebugFiles();
 				this.log(`[Build] v${__VERSION__} build ${__BUILD__}`);
-				this.log(`[Mode] ${this.pool.shared ? 'Connected (--server on port 3848)' : 'Standalone (own CLI subprocess)'}`);
+				this.log(`[Mode] ${this.pool.shared ? `Connected (--server on port ${DEFAULT_CLI_PORT})` : 'Standalone (own CLI subprocess)'}`);
 				this.log(`Server started on port ${this.port}`);
 				this.log(`Open: ${this.getURL()}`);
 				resolve();
@@ -1423,6 +1430,8 @@ export class PortalServer {
 
 	/** Fetch a GitHub Gist by ID (unauthenticated first, then with gh auth token) */
 	private fetchGist(gistId: string): Promise<{ description: string; files: Record<string, { content: string }> } | null> {
+		// SSRF guard: gistId must be a hex string (no path traversal or injection)
+		if (!/^[a-f0-9]+$/.test(gistId)) return Promise.resolve(null);
 		const doFetch = (token?: string): Promise<{ description: string; files: Record<string, { content: string }> } | null> => new Promise((resolve) => {
 			const headers: Record<string, string> = { 'User-Agent': 'copilot-portal', Accept: 'application/vnd.github+json' };
 			if (token) headers['Authorization'] = `Bearer ${token}`;
@@ -1474,7 +1483,7 @@ export class PortalServer {
 	broadcastAll(msg: object): void {
 		const data = JSON.stringify(msg);
 		for (const client of this.wss.clients) {
-			if (client.readyState === WebSocket.OPEN) client.send(data);
+			if (client.readyState === WebSocket.OPEN && !(client as WebSocket & { isManagement?: boolean }).isManagement) client.send(data);
 		}
 	}
 

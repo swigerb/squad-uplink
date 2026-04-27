@@ -1,4 +1,5 @@
 import { CopilotClient, approveAll } from '@github/copilot-sdk';
+import { DEFAULT_CLI_PORT } from './config.js';
 import type { CopilotSession } from '@github/copilot-sdk';
 import type {
 	SessionMetadata,
@@ -1629,8 +1630,8 @@ export class SessionPool {
 					await this.client.stop().catch(() => {});
 					// If in shared mode, wait for the CLI server port before reconnecting
 					if (this.shared) {
-						this.log(`[Pool] Waiting for CLI server on port 3848...`);
-						const ready = await this.waitForPort(3848, 15000);
+						this.log(`[Pool] Waiting for CLI server on port ${DEFAULT_CLI_PORT}...`);
+						const ready = await this.waitForPort(DEFAULT_CLI_PORT, 15000);
 						if (!ready) throw new Error('CLI server not available after 15s');
 						this.log(`[Pool] CLI server detected — reconnecting SDK...`);
 					}

@@ -1,6 +1,7 @@
 import { spawn, execSync, type ChildProcess } from 'node:child_process';
 import { randomBytes } from 'node:crypto';
-import { readFileSync, writeFileSync, existsSync, unlinkSync } from 'node:fs';
+import { readFileSync, existsSync, unlinkSync } from 'node:fs';
+import { atomicWriteFileSync } from './config.js';
 import { join } from 'node:path';
 
 export interface TunnelConfig {
@@ -38,7 +39,7 @@ export class TunnelManager {
 
 	private saveConfig(config: TunnelConfig): void {
 		this.config = config;
-		writeFileSync(this.configPath, JSON.stringify(config, null, 2) + '\n');
+		atomicWriteFileSync(this.configPath, JSON.stringify(config, null, 2) + '\n');
 	}
 
 	/** Check if devtunnel CLI is available */

@@ -39,8 +39,8 @@ export interface UpdateStatus {
 /** Packages to monitor for updates */
 const TRACKED_PACKAGES = ['@github/copilot-sdk'] as const;
 
-/** How often to auto-check (ms) — 4 hours */
-const CHECK_INTERVAL_MS = 4 * 60 * 60 * 1000;
+/** How often to auto-check (ms) — default 4 hours, configurable via SQUAD_UPDATE_INTERVAL */
+const CHECK_INTERVAL_MS = parseInt(process.env.SQUAD_UPDATE_INTERVAL || String(4 * 60 * 60 * 1000), 10);
 
 export class UpdateChecker {
 	private packages: PackageUpdate[] = [];

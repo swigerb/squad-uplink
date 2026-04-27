@@ -17,13 +17,14 @@ import { spawn, spawnSync, exec } from 'node:child_process';
 import * as net from 'node:net';
 import * as path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { DEFAULT_CLI_PORT } from './config.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const serverScript = path.join(__dirname, 'server.js');
 const args = process.argv.slice(2);
 
 const RESTART_CODE = 75;
-const CLI_PORT = 3848;
+const CLI_PORT = DEFAULT_CLI_PORT;
 
 const standalone = args.includes('--standalone');
 // Remove --standalone from args passed to server (it doesn't know about it)

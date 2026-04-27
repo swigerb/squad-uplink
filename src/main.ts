@@ -1,13 +1,14 @@
 import { PortalServer } from './server.js';
 import { TunnelManager } from './tunnel.js';
+import { DEFAULT_CLI_PORT } from './config.js';
 import qrcode from 'qrcode-terminal';
 import { exec, spawnSync } from 'node:child_process';
 
-/** Kill the CLI server process listening on port 3848 (Windows only) */
+/** Kill the CLI server process listening on the CLI port (Windows only) */
 function killCliServer(): void {
 	if (process.platform === 'win32') {
 		spawnSync('pwsh', ['-NoProfile', '-Command',
-			`Get-NetTCPConnection -LocalPort 3848 -ErrorAction SilentlyContinue | ForEach-Object { Stop-Process -Id $_.OwningProcess -Force -ErrorAction SilentlyContinue }`
+			`Get-NetTCPConnection -LocalPort ${DEFAULT_CLI_PORT} -ErrorAction SilentlyContinue | ForEach-Object { Stop-Process -Id $_.OwningProcess -Force -ErrorAction SilentlyContinue }`
 		], { stdio: 'ignore', windowsHide: true });
 	}
 }
@@ -19,7 +20,7 @@ if (args.includes('--help') || args.includes('-h')) {
 
 Options:
   --port <n>       Port to listen on (default: 3847)
-  --cli-url <url>  Connect to a running CLI server (e.g. localhost:3848)
+  --cli-url <url>  Connect to a running CLI server (e.g. localhost:${DEFAULT_CLI_PORT})
   --data <dir>     Data directory for token, rules, and settings
   --new-token      Generate a new access token (invalidates existing URLs)
   --launch         Open the portal URL in your default browser on start
@@ -169,12 +170,12 @@ if (process.stdin.isTTY) {
 			console.log('  Stopping headless CLI server...');
 			// Notify portal clients that the CLI server is switching
 			server.broadcastAll({ type: 'info', content: 'Switching CLI Server to TUI mode - reloading...' });
-			// Kill the process on port 3848
+			// Kill the process on the CLI port
 			killCliServer();
 
 			// Wait a moment for port to free, then launch TUI server
 			setTimeout(() => {
-				const tuiArgs = ['--ui-server', '--port', '3848'];
+				const tuiArgs = ['--ui-server', '--port', String(DEFAULT_CLI_PORT)];
 				if (sessionId) tuiArgs.push('--resume', sessionId);
 				if (process.platform === 'win32') {
 					// Resolve full path to copilot.exe so wt/Start-Process can find it
