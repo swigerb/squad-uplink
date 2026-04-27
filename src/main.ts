@@ -44,19 +44,20 @@ const NEW_TOKEN = args.includes('--new-token');
 
 const server = new PortalServer(PORT, DATA_DIR, { newToken: NEW_TOKEN, cliUrl: CLI_URL });
 
-process.on('SIGINT', async () => {
-	console.log('\nShutting down...');
+async function gracefulShutdown(): Promise<void> {
 	tunnel.stop();
 	await server.stop().catch(() => {});
 	killCliServer();
 	process.exit(0);
+}
+
+process.on('SIGINT', async () => {
+	console.log('\nShutting down...');
+	await gracefulShutdown();
 });
 
 process.on('SIGTERM', async () => {
-	tunnel.stop();
-	await server.stop().catch(() => {});
-	killCliServer();
-	process.exit(0);
+	await gracefulShutdown();
 });
 
 await server.start();

@@ -16,6 +16,73 @@ import * as net from 'node:net';
 import { RulesStore } from './rules.js';
 import type { ApprovalRule } from './rules.js';
 
+/**
+ * Scan a session's events.jsonl for tool.execution_start events that never got a matching
+ * tool.execution_complete. If found, inject a synthetic completion so the API doesn't reject
+ * the conversation history. Also removes orphaned/duplicate completions.
+ * Shared by both SessionHandle and SessionPool.
+ */
+async function repairOrphanedToolEvents(sessionId: string, log: (msg: string) => void): Promise<number> {
+	const eventsPath = path.join(os.homedir(), '.copilot', 'session-state', sessionId, 'events.jsonl');
+	if (!fs.existsSync(eventsPath)) return 0;
+
+	const content = fs.readFileSync(eventsPath, 'utf8');
+	const lines = content.split('\n').filter(l => l.trim());
+
+	// First pass: find all starts and completions
+	const starts = new Map<string, { lineIndex: number; parentId: string; timestamp: string }>();
+	const completions = new Map<string, number[]>(); // toolCallId → line indices
+
+	for (let i = 0; i < lines.length; i++) {
+		try {
+			const event = JSON.parse(lines[i]) as { type: string; data?: { toolCallId?: string }; id?: string; timestamp?: string };
+			const toolCallId = event.data?.toolCallId;
+			if (!toolCallId) continue;
+			if (event.type === 'tool.execution_start') {
+				starts.set(toolCallId, { lineIndex: i, parentId: event.id ?? '', timestamp: event.timestamp ?? new Date().toISOString() });
+			} else if (event.type === 'tool.execution_complete') {
+				if (!completions.has(toolCallId)) completions.set(toolCallId, []);
+				completions.get(toolCallId)!.push(i);
+			}
+		} catch { /* skip */ }
+	}
+
+	// Find problems: orphaned starts, orphaned completions, duplicate completions
+	const orphanedStarts = [...starts.entries()].filter(([id]) => !completions.has(id));
+	const removeLines = new Set<number>();
+	for (const [tcid, indices] of completions) {
+		if (!starts.has(tcid)) indices.forEach(i => removeLines.add(i));
+		if (indices.length > 1) indices.slice(1).forEach(i => removeLines.add(i));
+	}
+
+	if (orphanedStarts.length === 0 && removeLines.size === 0) return 0;
+	log(`[Repair] ${orphanedStarts.length} orphaned start(s), ${removeLines.size} orphaned/duplicate completion(s) in session ${sessionId.slice(0, 8)}`);
+
+	// Build new lines: remove bad completions, inject completions for orphaned starts
+	const insertions = new Map<number, string>();
+	for (const [toolCallId, { lineIndex, parentId, timestamp }] of orphanedStarts) {
+		insertions.set(lineIndex, JSON.stringify({
+			type: 'tool.execution_complete',
+			data: { toolCallId, success: false, result: { content: 'Error: Server was interrupted during execution' } },
+			id: crypto.randomUUID(),
+			timestamp,
+			parentId,
+		}));
+	}
+
+	const newLines: string[] = [];
+	for (let i = 0; i < lines.length; i++) {
+		if (removeLines.has(i)) continue;
+		newLines.push(lines[i]);
+		if (insertions.has(i)) newLines.push(insertions.get(i)!);
+	}
+
+	fs.writeFileSync(eventsPath, newLines.join('\n') + '\n');
+	const totalFixed = orphanedStarts.length + removeLines.size;
+	log(`[Repair] Repaired ${totalFixed} event(s) in session ${sessionId.slice(0, 8)}`);
+	return totalFixed;
+}
+
 // Derive the correct approval/deny response format from the SDK's own approveAll handler.
 // This stays compatible across SDK versions (0.2.x='approved', 0.3.x='approve-once').
 const SDK_APPROVE = approveAll({ kind: 'shell' } as PermissionRequest, { sessionId: '' }) as PermissionRequestResult;
@@ -87,6 +154,7 @@ export class SessionHandle {
 	private pendingInputs = new Map<string, PendingInput>();
 	private counter = 0;
 	private pendingCompletionCount = 0; // # of permission.completed events expected for already-resolved approvals
+	private resolvedApprovals = new Set<string>(); // track already-resolved approval IDs to prevent double-processing
 	private log: (msg: string) => void;
 	private lastSyncedCount = 0;
 	private pollTimer: ReturnType<typeof setInterval> | null = null;
@@ -718,8 +786,10 @@ if (total !== shown) result.push({ type: 'history_meta', total, shown });
 	}
 
 	resolveApproval(requestId: string, approved: boolean): void {
+		if (this.resolvedApprovals.has(requestId)) return; // prevent double-processing
 		const p = this.pendingApprovals.get(requestId);
 		if (!p) return;
+		this.resolvedApprovals.add(requestId);
 		clearTimeout(p.timeout);
 		this.pendingApprovals.delete(requestId);
 		if (this.activeApprovalId === requestId) this.activeApprovalId = null;
@@ -1111,7 +1181,7 @@ if (total !== shown) result.push({ type: 'history_meta', total, shown });
 	/** Repair orphaned tools and reconnect the session so the fix takes effect. */
 	private async repairAndReconnect(): Promise<void> {
 		try {
-			await this.repairOrphanedToolsDirect(this.sessionId);
+			await repairOrphanedToolEvents(this.sessionId, this.log);
 			// Reconnect so the SDK reloads the patched event log
 			if (this.reconnectFn) {
 				this.isReconnecting = true;
@@ -1128,74 +1198,6 @@ if (total !== shown) result.push({ type: 'history_meta', total, shown });
 			this.log(`[Session] Auto-repair failed: ${e}`);
 			this.broadcast({ type: 'error', content: 'Session has corrupted history. Try creating a new session.' });
 		}
-	}
-
-	/** Static repair: scan events.jsonl and fix orphaned tool starts. Usable from both SessionHandle and SessionPool. */
-	private async repairOrphanedToolsDirect(sessionId: string): Promise<number> {
-		const eventsPath = path.join(os.homedir(), '.copilot', 'session-state', sessionId, 'events.jsonl');
-		if (!fs.existsSync(eventsPath)) return 0;
-
-		const content = fs.readFileSync(eventsPath, 'utf8');
-		const lines = content.split('\n').filter(l => l.trim());
-
-		// First pass: find all starts and completions
-		const starts = new Map<string, { lineIndex: number; parentId: string; timestamp: string }>();
-		const completions = new Map<string, number[]>(); // toolCallId → line indices
-
-		for (let i = 0; i < lines.length; i++) {
-			try {
-				const event = JSON.parse(lines[i]) as { type: string; data?: { toolCallId?: string }; id?: string; timestamp?: string };
-				const toolCallId = event.data?.toolCallId;
-				if (!toolCallId) continue;
-				if (event.type === 'tool.execution_start') {
-					starts.set(toolCallId, { lineIndex: i, parentId: event.id ?? '', timestamp: event.timestamp ?? new Date().toISOString() });
-				} else if (event.type === 'tool.execution_complete') {
-					if (!completions.has(toolCallId)) completions.set(toolCallId, []);
-					completions.get(toolCallId)!.push(i);
-				}
-			} catch { /* skip */ }
-		}
-
-		// Find problems:
-		// 1. Orphaned starts (no completion)
-		const orphanedStarts = [...starts.entries()].filter(([id]) => !completions.has(id));
-		// 2. Orphaned completions (no start)
-		const orphanedCompletionLines = new Set<number>();
-		for (const [tcid, indices] of completions) {
-			if (!starts.has(tcid)) indices.forEach(i => orphanedCompletionLines.add(i));
-		}
-		// 3. Duplicate completions (keep first, remove rest)
-		for (const [, indices] of completions) {
-			if (indices.length > 1) indices.slice(1).forEach(i => orphanedCompletionLines.add(i));
-		}
-
-		if (orphanedStarts.length === 0 && orphanedCompletionLines.size === 0) return 0;
-
-		this.log(`[Session] Repairing: ${orphanedStarts.length} orphaned start(s), ${orphanedCompletionLines.size} orphaned/duplicate completion(s)`);
-
-		// Build new lines: remove bad completions, inject completions for orphaned starts
-		const insertions = new Map<number, string>();
-		for (const [toolCallId, { lineIndex, parentId, timestamp }] of orphanedStarts) {
-			insertions.set(lineIndex, JSON.stringify({
-				type: 'tool.execution_complete',
-				data: { toolCallId, success: false, result: { content: 'Error: Server was interrupted during execution' } },
-				id: crypto.randomUUID(),
-				timestamp,
-				parentId,
-			}));
-		}
-
-		const newLines: string[] = [];
-		for (let i = 0; i < lines.length; i++) {
-			if (orphanedCompletionLines.has(i)) continue; // skip bad completions
-			newLines.push(lines[i]);
-			if (insertions.has(i)) newLines.push(insertions.get(i)!);
-		}
-
-		fs.writeFileSync(eventsPath, newLines.join('\n') + '\n');
-		const totalFixed = orphanedStarts.length + orphanedCompletionLines.size;
-		this.log(`[Session] Repaired ${totalFixed} event(s) (inline)`);
-		return totalFixed;
 	}
 
 	private onSessionTruncation(data: unknown): void {
@@ -1480,6 +1482,8 @@ if (total !== shown) result.push({ type: 'history_meta', total, shown });
 		const gen = this.sessionGeneration;
 		this.deltasSent = false;
 		this.toolsInFlight = 0;
+		// Remove old listeners before adding new ones to prevent accumulation on reconnect
+		this.session.removeAllListeners();
 		this.session.on((event) => {
 			if (this.sessionGeneration !== gen) return;
 			// Suppress noisy delta/streaming events from log
@@ -1538,6 +1542,27 @@ export class SessionPool {
 		for (const handle of this.pool.values()) await handle.disconnect();
 		this.pool.clear();
 		await this.client.stop();
+	}
+
+	/** Wire up the standard title-change callback on a SessionHandle. */
+	private wireTitleCallback(handle: SessionHandle, sessionId: string): void {
+		handle.titleChangedCallback = async (title) => {
+			if (title) {
+				this.log(`[TitleChanged] session=${sessionId.slice(0,8)} summary=${title}`);
+				handle.lastKnownSummary = title;
+				this.onTitleChanged?.(sessionId, title);
+			} else {
+				try {
+					const sessions = await this.client.listSessions();
+					const meta = sessions.find(s => s.sessionId === sessionId);
+					if (meta?.summary && meta.summary !== handle.lastKnownSummary) {
+						handle.lastKnownSummary = meta.summary;
+						this.log(`[TitleChanged] session=${sessionId.slice(0,8)} summary=${meta.summary} (fetched)`);
+						this.onTitleChanged?.(sessionId, meta.summary);
+					}
+				} catch {}
+			}
+		};
 	}
 
 	/** Returns session IDs that currently have an active turn (agent is working). */
@@ -1644,77 +1669,10 @@ export class SessionPool {
 		});
 	}
 
-	/**
-	 * Scan the session's events.jsonl for tool.execution_start events that never
-	 * got a matching tool.execution_complete. If found, inject a synthetic
-	 * completion event so the API doesn't reject the conversation history.
-	 * This can happen when the server is killed mid-tool-execution.
-	 */
-	private async repairOrphanedTools(sessionId: string): Promise<void> {
-		try {
-			const eventsPath = path.join(os.homedir(), '.copilot', 'session-state', sessionId, 'events.jsonl');
-			if (!fs.existsSync(eventsPath)) return;
-
-			const content = fs.readFileSync(eventsPath, 'utf8');
-			const lines = content.split('\n').filter(l => l.trim());
-
-			const starts = new Map<string, { lineIndex: number; parentId: string; timestamp: string }>();
-			const completions = new Map<string, number[]>();
-
-			for (let i = 0; i < lines.length; i++) {
-				try {
-					const event = JSON.parse(lines[i]) as { type: string; data?: { toolCallId?: string }; id?: string; timestamp?: string };
-					const toolCallId = event.data?.toolCallId;
-					if (!toolCallId) continue;
-					if (event.type === 'tool.execution_start') {
-						starts.set(toolCallId, { lineIndex: i, parentId: event.id ?? '', timestamp: event.timestamp ?? new Date().toISOString() });
-					} else if (event.type === 'tool.execution_complete') {
-						if (!completions.has(toolCallId)) completions.set(toolCallId, []);
-						completions.get(toolCallId)!.push(i);
-					}
-				} catch { /* skip */ }
-			}
-
-			// Orphaned starts, orphaned completions, duplicate completions
-			const orphanedStarts = [...starts.entries()].filter(([id]) => !completions.has(id));
-			const removeLines = new Set<number>();
-			for (const [tcid, indices] of completions) {
-				if (!starts.has(tcid)) indices.forEach(i => removeLines.add(i));
-				if (indices.length > 1) indices.slice(1).forEach(i => removeLines.add(i));
-			}
-
-			if (orphanedStarts.length === 0 && removeLines.size === 0) return;
-			this.log(`[Pool] Repairing ${orphanedStarts.length} orphaned start(s), ${removeLines.size} orphaned/duplicate completion(s) in session ${sessionId.slice(0, 8)}`);
-
-			const insertions = new Map<number, string>();
-			for (const [toolCallId, { lineIndex, parentId, timestamp }] of orphanedStarts) {
-				insertions.set(lineIndex, JSON.stringify({
-					type: 'tool.execution_complete',
-					data: { toolCallId, success: false, result: { content: 'Error: Server was interrupted during execution' } },
-					id: crypto.randomUUID(),
-					timestamp,
-					parentId,
-				}));
-			}
-
-			const newLines: string[] = [];
-			for (let i = 0; i < lines.length; i++) {
-				if (removeLines.has(i)) continue;
-				newLines.push(lines[i]);
-				if (insertions.has(i)) newLines.push(insertions.get(i)!);
-			}
-
-			fs.writeFileSync(eventsPath, newLines.join('\n') + '\n');
-			this.log(`[Pool] Repaired ${orphanedStarts.length + removeLines.size} event(s) (inline)`);
-		} catch (e) {
-			this.log(`[Pool] Tool repair failed (non-fatal): ${e}`);
-		}
-	}
-
 	private async _doConnect(sessionId: string): Promise<SessionHandle> {
 		this.log(`[Pool] Connecting: ${sessionId.slice(0, 8)}...`);
 		// Repair any orphaned tool_use events before the SDK loads the session
-		await this.repairOrphanedTools(sessionId);
+		await repairOrphanedToolEvents(sessionId, this.log).catch(e => this.log(`[Pool] Tool repair failed (non-fatal): ${e}`));
 		let handle!: SessionHandle;
 		const session = await this.client.resumeSession(sessionId, {
 			onPermissionRequest: (req) => handle.handlePermissionRequest(req),
@@ -1754,24 +1712,7 @@ export class SessionPool {
 				this.log(`[Pool] Session ${sessionId.slice(0, 8)} model: ${r.modelId}`);
 			}
 		}).catch(() => {});
-		handle.titleChangedCallback = async (title) => {
-			if (title) {
-				this.log(`[TitleChanged] session=${sessionId.slice(0,8)} summary=${title}`);
-				handle.lastKnownSummary = title;
-				this.onTitleChanged?.(sessionId, title);
-			} else {
-				// No title from event (e.g. session.idle check) — fetch from SDK
-				try {
-					const sessions = await this.client.listSessions();
-					const meta = sessions.find(s => s.sessionId === sessionId);
-					if (meta?.summary && meta.summary !== handle.lastKnownSummary) {
-						handle.lastKnownSummary = meta.summary;
-						this.log(`[TitleChanged] session=${sessionId.slice(0,8)} summary=${meta.summary} (fetched)`);
-						this.onTitleChanged?.(sessionId, meta.summary);
-					}
-				} catch {}
-			}
-		};
+		this.wireTitleCallback(handle, sessionId);
 		// Check for pending CLI approvals before the first client receives getActiveTurnEvents()
 		await handle.checkInitialState();
 		return handle;
@@ -1789,21 +1730,7 @@ export class SessionPool {
 		handle = new SessionHandle(session, this.log, undefined, undefined, this.rulesStore);
 		handle.sharedMode = this.shared;
 		this.pool.set(session.sessionId, handle);
-		handle.titleChangedCallback = async (title) => {
-			if (title) {
-				handle.lastKnownSummary = title;
-				this.onTitleChanged?.(session.sessionId, title);
-			} else {
-				try {
-					const sessions = await this.client.listSessions();
-					const meta = sessions.find(s => s.sessionId === session.sessionId);
-					if (meta?.summary && meta.summary !== handle.lastKnownSummary) {
-						handle.lastKnownSummary = meta.summary;
-						this.onTitleChanged?.(session.sessionId, meta.summary);
-					}
-				} catch {}
-			}
-		};
+		this.wireTitleCallback(handle, session.sessionId);
 		this.log(`[Pool] Created: ${session.sessionId.slice(0, 8)}`);
 		return handle;
 	}
@@ -1865,23 +1792,7 @@ export class SessionPool {
 			session.rpc.agent.select({ name: previousAgent }).catch(() => {});
 		}
 		// Wire up title-change callback (same as _doConnect)
-		handle.titleChangedCallback = async (title) => {
-			if (title) {
-				this.log(`[TitleChanged] session=${sessionId.slice(0,8)} summary=${title}`);
-				handle.lastKnownSummary = title;
-				this.onTitleChanged?.(sessionId, title);
-			} else {
-				try {
-					const sessions = await this.client.listSessions();
-					const meta = sessions.find(s => s.sessionId === sessionId);
-					if (meta?.summary && meta.summary !== handle.lastKnownSummary) {
-						handle.lastKnownSummary = meta.summary;
-						this.log(`[TitleChanged] session=${sessionId.slice(0,8)} summary=${meta.summary} (fetched)`);
-						this.onTitleChanged?.(sessionId, meta.summary);
-					}
-				} catch {}
-			}
-		};
+		this.wireTitleCallback(handle, sessionId);
 		this.log(`[Pool] Reconnected ${sessionId.slice(0, 8)} with cwd: ${workingDirectory}`);
 		return handle;
 	}

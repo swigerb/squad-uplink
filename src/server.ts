@@ -528,6 +528,7 @@ export class PortalServer {
 				delete this.sessionPrompts[sessionId];
 				this.saveSessionPrompts();
 				delete this.sessionAgents[sessionId];
+				this.squadContextInjected.delete(sessionId);
 				this.saveSessionAgents();
 				this.sendJson(res, 200, { ok: true });
 				this.log(`[API] Deleted session: ${sessionId.slice(0, 8)}`);
