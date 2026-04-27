@@ -61,3 +61,49 @@ Lead agent for squad-uplink. Responsible for architecture, code review, scope de
 - F7 (MINOR): dynamic agent placeholder
 
 **Testing:** E2E 52/53 passed, verification complete, 523 tests passing.
+
+### 2026-04-27: Comprehensive Architecture Review
+
+**Scope:** Full codebase review — all 10 source files + frontend + build system.
+
+**Critical findings:**
+- qrcode.ts imports `vscode` — dead code, never used by the server. Leftover from a VS Code extension prototype.
+- App.tsx is 175KB / ~4,500 lines — a single-file monolith with 60+ useState hooks in one component. Must be decomposed.
+- repairOrphanedTools is fully duplicated between SessionHandle (instance) and SessionPool (class-level).
+- Kill-CLI-server snippet (`Get-NetTCPConnection -LocalPort 3848`) repeated 5 times across main.ts.
+- getGitHubToken() duplicated in both server.ts and updater.ts.
+
+**Moderate findings:**
+- server.ts handleHttp is a 400+ line if/else chain — needs a router abstraction.
+- context-templates API endpoints reference a directory that doesn't exist.
+- titleChangedCallback wired up identically 3 times in SessionPool (_doConnect, create, reconnectWithCwd).
+- loadShields() called at line 651 mid-request (return value unused) vs startup load at line 1384.
+- No graceful shutdown timeout — process.exit(0) called synchronously in signal handlers.
+
+**Architecture assessment:** Module boundaries between server.ts (HTTP+WS) and session.ts (SDK bridge) are sound. The real structural debt is in App.tsx and in duplicated utility code. The 6 smaller backend modules are well-scoped.
+
+## Team Audit: 2026-04-27
+
+**From:** Scribe (orchestration log entry)
+**Scope:** Full codebase architecture + correctness review
+
+### Your Findings (Jobs, Lead)
+
+Architecture review identified:
+- **Critical:** App.tsx monolith 175KB, 400+ line handleHttp, dead qrcode.ts, 5+ duplicated utilities
+- **Moderate:** 9 issues across module coupling, build dependencies, tech debt
+- **Minor:** 7 issues
+
+Full recommendations: decompose App.tsx by domain (session mgmt, message rendering, approval flow, guides, settings); extract router from handleHttp; consolidate duplicated code.
+
+**Status:** Recommendations ready for sprint planning.
+
+### Cross-Team Summary
+
+- **Woz (Backend):** 7 parity bugfixes implemented + verified (F1–F7). Critical F1 (ReferenceError) fixed. Build green.
+- **Kare (Frontend):** 92 useState calls analyzed. Decomposition plan with module boundaries provided. 5 critical, 9 moderate, 8 minor findings.
+- **Hertzfeld (Tester):** 53 E2E tests pass. Vitest framework recommended. P0 test targets identified (RulesStore, SquadReader, auth). Coverage ceiling 55–65%.
+
+### Decisions Archived
+
+All 7 inbox entries merged to decisions.md. No archival needed (all entries from 2026-04-27).
