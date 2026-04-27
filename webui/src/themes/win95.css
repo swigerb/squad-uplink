@@ -1,25 +1,46 @@
 /* Windows 95 Theme - Retro desktop */
 
 [data-theme="win95"] {
-  --fg: #c0c0c0;
-  --bg: #008080;
-  --cursor: #ffffff;
-  --selection: rgba(0, 0, 128, 0.5);
-  --glow-color: transparent;
-  --scanline-opacity: 0;
-  --border-color: #c0c0c0;
-  
+  --bg: #000080;
+  --surface: #c0c0c0;
+  --border: #808080;
+  --text: #c0c0c0;
+  --text-muted: #a0a0a0;
+  --text-bright: #ffffff;
+  --primary: #000080;
+  --primary-hover: #1084d0;
+  --error: #ff0000;
+  --success: #008000;
+  --tool-call: #808000;
+  --purple: #800080;
+  --accent: #1084d0;
+  --warning: #ff8c00;
+  --shield: #f5a623;
+  --error-tint: rgba(255,0,0,0.10);
+  --success-tint: rgba(0,128,0,0.10);
+  --tool-call-tint: rgba(128,128,0,0.10);
+  --primary-tint: rgba(0,0,128,0.15);
+  --warning-tint: rgba(255,140,0,0.12);
+  --muted-tint: rgba(192,192,192,0.08);
+  --overlay: rgba(0,0,0,0.6);
+  --subtle-bg: rgba(192,192,192,0.12);
+  --code-inline: #ffff00;
+  --code-bg: #000040;
+  --code-fg: #c0c0c0;
+  --scrollbar: rgba(192,192,192,0.25);
+  --scrollbar-code: rgba(192,192,192,0.35);
+
   --win95-gray: #c0c0c0;
   --win95-dark-gray: #808080;
   --win95-light-gray: #dfdfdf;
   --win95-blue: #000080;
   --win95-teal: #008080;
-  
+
   --font-family: 'W95FA', 'Fixedsys', 'Courier New', monospace;
   --font-size: 14px;
-  
+
   background: var(--bg);
-  color: var(--fg);
+  color: var(--text);
   font-family: var(--font-family);
 }
 

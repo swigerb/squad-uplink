@@ -3,6 +3,19 @@ import { themes, THEME_ORDER, type ThemeId, type ThemeConfig } from '../themes';
 
 const STORAGE_KEY = 'squad-uplink-theme';
 
+// Map of theme CSS importers — Vite handles code-splitting automatically.
+// The default theme relies on :root variables in styles.css.
+const themeImporters: Partial<Record<ThemeId, () => Promise<unknown>>> = {
+	pipboy: () => import('../themes/pipboy.css'),
+	apple2e: () => import('../themes/apple2e.css'),
+	c64: () => import('../themes/c64.css'),
+	matrix: () => import('../themes/matrix.css'),
+	lcars: () => import('../themes/lcars.css'),
+	muthur: () => import('../themes/muthur.css'),
+	wopr: () => import('../themes/wopr.css'),
+	win95: () => import('../themes/win95.css'),
+};
+
 export interface ThemeContextValue {
 	theme: ThemeConfig;
 	themeId: ThemeId;
@@ -33,6 +46,9 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
 			// ignore
 		}
 		document.documentElement.setAttribute('data-theme', themeId);
+		// Lazy-load theme CSS on first use
+		const importer = themeImporters[themeId];
+		if (importer) importer();
 		return () => {
 			document.documentElement.removeAttribute('data-theme');
 		};
