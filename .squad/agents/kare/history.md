@@ -13,3 +13,7 @@ See archive for full history. Recent work captured in decisions.md and orchestra
 - Test planning and quality assurance
 - E2E verification across all features
 - CI/CD integration and automation
+
+## Learnings
+
+- **2026-04-27T08:44:59.669-04:00 — README rewrite with images and feature docs:** Rewrote README.md to replace the rocket emoji header with the `docs/logo.png` image, replaced the ASCII architecture diagram with `docs/architecture.png`, added comprehensive feature documentation for all v0.5.7–v0.5.13 upstream features (Working Directory, Agent Picker, Tool Error Surfacing, Copy Improvements, ask_user, SDK Auto-Detection, Security), reorganized features into Portal Features and Squad Features sections, and removed the closing centered div. Kept Getting Started, Themes, Credits, Built with Squad, and License sections intact.

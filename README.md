@@ -1,8 +1,10 @@
-# 🚀 Squad Uplink
+<div align="center">
+<img src="docs/logo.png" alt="Squad Uplink" width="400">
 
 ### A portal for GitHub Copilot CLI with Squad intelligence
 
 ![Node.js 22+](https://img.shields.io/badge/Node.js-22%2B-339933) ![React 19](https://img.shields.io/badge/React-19-61DAFB) ![Vite](https://img.shields.io/badge/Vite-6-646CFF) ![Tailwind 4](https://img.shields.io/badge/Tailwind-4-38BDF8) ![License MIT](https://img.shields.io/badge/License-MIT-green)
+</div>
 
 ---
 
@@ -16,17 +18,11 @@ The portal ships with 8 retro terminal themes — Pip-Boy, Apple IIe, Commodore 
 
 ---
 
-## 🏗️ Architecture
+## Architecture
 
-```
-Browser (React SPA)
-    │  WebSocket (ws://)
-    ▼
-PortalServer (Node.js)        ← src/server.ts
-    │  IPC / @github/copilot-sdk
-    ▼
-Copilot CLI (copilot.exe)
-```
+<div align="center">
+<img src="docs/architecture.png" alt="Squad Uplink Architecture" width="700">
+</div>
 
 One `PortalServer` manages multiple Copilot sessions simultaneously. Each browser connection attaches as a listener on a `SessionHandle`, which fans events to all connected clients watching that session.
 
@@ -96,23 +92,61 @@ npm run watch:ui
 
 ---
 
-## Squad Features
+## Features
+
+### Portal Features
+
+These capabilities come from the core portal architecture and upstream sync with copilot-portal:
+
+#### Working Directory Support
+
+Browse and set the working directory before creating sessions. The folder browser supports breadcrumb navigation and Windows drive letter detection. You can also change the CWD on existing sessions or start sessions in draft mode to configure them before launch.
+
+#### Agent Picker
+
+Select custom agents from the session drawer. Agents are discovered from `~/.copilot/agents/` (user-level) and `.github/agents/` (repository-level), with source labels so you know where each agent comes from. Your agent selection persists across sessions.
+
+#### Tool Error Surfacing
+
+When a tool call fails, the error is shown in red with the actual error message — not just a generic "failed" label. Error details persist after the turn ends so you can review what went wrong.
+
+#### Copy Improvements
+
+Every Markdown table gets a per-table copy button. Copied content strips dark theme colors for clean paste into other apps. Uses the Clipboard API with dual-format output (HTML + plain text) and an `execCommand` fallback that forces light styling.
+
+#### ask_user Input
+
+When Copilot asks you a question, you get a multi-line textarea with auto-grow — type naturally with Shift+Enter for newlines. The input timeout is 30 minutes, giving you time to think.
+
+#### SDK Auto-Detection
+
+The server auto-detects the tool approval format across Copilot SDK versions. Works with both legacy and current SDK wire formats without configuration.
+
+#### Multi-Session Management
+
+Run multiple Copilot sessions simultaneously. The session drawer lets you create, switch between, and manage sessions. Each session is independent with its own conversation history, model selection, and tool approvals.
+
+#### Multi-Client Fan-Out
+
+Multiple browsers can connect to the same session at once. All clients see the same conversation in real time over WebSocket — great for pairing, demos, or watching from your phone.
+
+### Squad Features
 
 Squad Uplink integrates deeply with your repo's `.squad/` directory across three levels:
 
-### Level 1 — Session Context Auto-Injection
+#### Level 1 — Session Context Auto-Injection
 
 Every Copilot session automatically receives your team context (roster + recent decisions) as its first message. Your AI conversations are team-aware from the start — no copy-pasting context. Opt out per session with `?squadContext=0`.
 
-### Level 2 — Live File Watching
+#### Level 2 — Live File Watching
 
 The server watches `.squad/` for changes in real time via `fs.watch()`. When a team member updates `decisions.md` or a charter, the portal broadcasts a `squad_file_changed` WebSocket event and the Squad panel auto-refreshes — no manual reload.
 
-### Level 3 — Auto-Generated Prompt Catalog
+#### Level 3 — Auto-Generated Prompt Catalog
 
 Agent charters are parsed into one-click prompts (e.g., *"What is Woz responsible for?"*). These appear as a virtual "Squad" guide in the guides API alongside any custom guides, and are also available at `/api/squad/prompts`.
 
-### API Endpoints
+#### Squad API Endpoints
 
 | Endpoint | Description |
 |----------|-------------|
@@ -123,7 +157,9 @@ Agent charters are parsed into one-click prompts (e.g., *"What is Woz responsibl
 | `GET /api/squad/guide` | Compiled team context guide |
 | `GET /api/squad/prompts` | Auto-generated prompt catalog |
 
-All file access goes through a security allowlist — only approved files are exposed. Path traversal is blocked.
+### Security
+
+All file access goes through a security allowlist — only approved files are exposed. The folder browser includes path traversal protection, CWD validation, and symlink filtering. Auth endpoints use rate limiting to prevent abuse.
 
 ---
 
@@ -152,20 +188,12 @@ Squad Uplink is built on [copilot-portal](https://github.com/shannonfritz/copilo
 
 ---
 
-## 🤖 Built with Squad
+## Built with Squad
 
 This project is developed by an AI team managed by [Squad](https://github.com/bradygaster/squad) — a Git-native AI agent orchestration framework. The team (Jobs, Woz, Kare, Hertzfeld, Scribe, Ralph) lives in `.squad/` and coordinates through this repo.
 
 ---
 
-## 📜 License
+## License
 
 MIT License — same as the upstream [copilot-portal](https://github.com/shannonfritz/copilot-portal). See [LICENSE](LICENSE) for details.
-
----
-
-<div align="center">
-
-**Squad Uplink** — A portal for GitHub Copilot CLI with Squad intelligence
-
-</div>
