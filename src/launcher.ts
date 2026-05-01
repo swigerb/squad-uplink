@@ -75,10 +75,12 @@ function launchCli(port: number): boolean {
 			stdio: 'ignore',
 			detached: true,
 		});
+		cliChildPid = child.pid ?? null;
 		child.on('error', (err) => {
 			console.error(`[Launcher] Failed to spawn copilot: ${err.message}`);
 			console.error(`[Launcher] Install GitHub Copilot CLI: https://docs.github.com/copilot/how-tos/copilot-cli`);
 			cliLaunched = false;
+			cliChildPid = null;
 		});
 		child.unref();
 	}
@@ -88,6 +90,7 @@ function launchCli(port: number): boolean {
 }
 
 let cliLaunched = false;
+let cliChildPid: number | null = null;
 
 /** Stop the CLI server process if we launched it */
 function stopCli(): void {
@@ -95,8 +98,11 @@ function stopCli(): void {
 	cliLaunched = false;
 	console.log(`[Launcher] Stopping CLI server...`);
 	try {
-		if (process.platform === 'win32') {
-			// spawnSync so it works in 'exit' handler (synchronous only)
+		if (cliChildPid) {
+			process.kill(cliChildPid);
+			cliChildPid = null;
+		} else if (process.platform === 'win32') {
+			// Fallback for Windows Start-Process launches where we don't have a PID
 			spawnSync('pwsh', ['-NoProfile', '-Command',
 				`Get-NetTCPConnection -LocalPort ${CLI_PORT} -ErrorAction SilentlyContinue | ForEach-Object { Stop-Process -Id $_.OwningProcess -Force -ErrorAction SilentlyContinue }`
 			], { stdio: 'ignore', windowsHide: true });
@@ -148,6 +154,8 @@ async function start() {
 	launch(cliUrl);
 }
 
+let signalHandlersRegistered = false;
+
 function launch(cliUrl?: string) {
 	const extraArgs = cliUrl ? ['--cli-url', cliUrl] : [];
 	const child = spawn(process.execPath, [serverScript, ...serverArgs, ...extraArgs], {
@@ -166,14 +174,24 @@ function launch(cliUrl?: string) {
 		}
 	});
 
-	// Forward SIGINT/SIGTERM to child and clean up CLI
-	const forward = (sig: NodeJS.Signals) => {
-		child.kill(sig);
-	};
-	process.on('SIGINT', () => { forward('SIGINT'); stopCli(); });
-	process.on('SIGTERM', () => { forward('SIGTERM'); stopCli(); });
-	// Catch-all: clean up CLI on any exit (e.g. terminal window closed)
-	process.on('exit', () => stopCli());
+	// Register signal handlers only once to prevent accumulation across restarts
+	if (!signalHandlersRegistered) {
+		signalHandlersRegistered = true;
+		let activeChild = child;
+		// Expose a setter so restarts can update the child reference
+		const getChild = () => activeChild;
+		const updateChild = (c: typeof child) => { activeChild = c; };
+
+		process.on('SIGINT', () => { getChild().kill('SIGINT'); stopCli(); });
+		process.on('SIGTERM', () => { getChild().kill('SIGTERM'); stopCli(); });
+		process.on('exit', () => stopCli());
+
+		// Patch: update child ref on each launch
+		(launch as unknown as { _updateChild: typeof updateChild })._updateChild = updateChild;
+	} else {
+		// Update the child reference for existing signal handlers
+		(launch as unknown as { _updateChild: (c: typeof child) => void })._updateChild(child);
+	}
 }
 
 start();

@@ -65,6 +65,7 @@ export class TunnelManager {
 
 	/** Check if a named tunnel already exists */
 	private tunnelExists(name: string): boolean {
+		if (!/^[a-zA-Z0-9_-]+$/.test(name)) throw new Error(`Invalid tunnel name: ${name}`);
 		try {
 			execSync(`devtunnel show ${name}`, { stdio: 'ignore' });
 			return true;
@@ -73,6 +74,7 @@ export class TunnelManager {
 
 	/** Create a named tunnel with port forwarding */
 	private createTunnel(name: string, allowAnonymous: boolean): void {
+		if (!/^[a-zA-Z0-9_-]+$/.test(name)) throw new Error(`Invalid tunnel name: ${name}`);
 		const anonFlag = allowAnonymous ? ' --allow-anonymous' : '';
 		execSync(`devtunnel create ${name}${anonFlag}`, { stdio: 'ignore' });
 		execSync(`devtunnel port create ${name} -p ${this.port}`, { stdio: 'ignore' });
@@ -190,7 +192,9 @@ export class TunnelManager {
 		const config = this.config;
 		if (config) {
 			try {
-				execSync(`devtunnel delete ${config.name} --force`, { stdio: 'ignore' });
+				if (/^[a-zA-Z0-9_-]+$/.test(config.name)) {
+					execSync(`devtunnel delete ${config.name} --force`, { stdio: 'ignore' });
+				}
 			} catch { /* tunnel may not exist */ }
 			try {
 				if (existsSync(this.configPath)) unlinkSync(this.configPath);

@@ -101,7 +101,7 @@ export interface PortalInfo {
 }
 
 export interface PortalEvent {
-	type: 'delta' | 'idle' | 'message_end' | 'error' | 'approval_request' | 'approval_resolved' | 'input_request' | 'tool_call' | 'tool_start' | 'tool_complete' | 'tool_update' | 'intent' | 'session_switched' | 'session_not_found' | 'session_renamed' | 'thinking' | 'reasoning_delta' | 'sync' | 'model_changed' | 'rules_list' | 'history_meta' | 'history_user' | 'cli_approval_pending' | 'cli_approval_resolved' | 'cli_input_pending' | 'cli_input_resolved' | 'turn_stopping' | 'history_start' | 'history_end' | 'session_context_updated' | 'session_created' | 'session_deleted' | 'session_shield_changed' | 'approve_all_changed' | 'warning' | 'info' | 'session_usage' | 'context_usage';
+	type: 'delta' | 'idle' | 'message_end' | 'error' | 'approval_request' | 'approval_resolved' | 'input_request' | 'input_resolved' | 'tool_call' | 'tool_start' | 'tool_complete' | 'tool_update' | 'intent' | 'session_switched' | 'session_not_found' | 'session_renamed' | 'thinking' | 'reasoning_delta' | 'sync' | 'model_changed' | 'rules_list' | 'history_meta' | 'history_user' | 'cli_approval_pending' | 'cli_approval_resolved' | 'cli_input_pending' | 'cli_input_resolved' | 'turn_stopping' | 'history_start' | 'history_end' | 'session_context_updated' | 'session_created' | 'session_deleted' | 'session_shield_changed' | 'approve_all_changed' | 'warning' | 'info' | 'session_usage' | 'context_usage';
 	content?: string;
 	role?: 'user' | 'assistant';
 	intermediate?: boolean; // true for assistant.message events that were mid-turn (history replay)
@@ -120,6 +120,7 @@ export interface PortalEvent {
 	toolName?: string;
 	mcpServerName?: string;
 	displayLabel?: string;
+	toolCallIds?: string[];
 	intentionSummary?: string;
 	rules?: ApprovalRule[];
 	approveAll?: boolean;
@@ -127,6 +128,9 @@ export interface PortalEvent {
 	shielded?: boolean;
 	session?: unknown;
 	images?: string[]; // data: URIs for image attachments (history replay)
+	usage?: unknown;
+	questionChoices?: string[];
+	quota?: unknown;
 }
 
 type PendingApproval = {
@@ -179,6 +183,7 @@ export class SessionHandle {
 	private activeUserMessage = ''; // current in-flight user message (CLI or portal)
 	private cliApprovalSummary: string | null = null;// set when CLI turn is waiting for tool approval
 	private cliInputPending: string | null = null; // set when CLI turn is waiting for user input
+	private cliInputToolCallId: string | null = null; // the ask_user tool call ID that triggered cliInputPending
 	private turnProbeTimer: ReturnType<typeof setTimeout> | null = null;
 	private turnStartTime: number = 0; // ms timestamp when current turn started
 	// Proactive compaction: track estimated tokens since last compaction.
@@ -388,7 +393,7 @@ if (total !== shown) result.push({ type: 'history_meta', total, shown });
 		const roundMsgs: string[] = [];
 		const roundTimestamps: (number | undefined)[] = [];
 		const roundFollowingTools: (string | null)[] = [];
-		const roundPerMsgTools: Array<Array<{ toolName: string; display: string; completed: boolean }>>[] = []; // per-message tools
+		const roundPerMsgTools: Array<Array<{ toolName: string; display: string; completed: boolean }>> = []; // per-message tools
 		const askUserToolIds = new Set<string>();
 		const askUserChoices = new Map<string, string[]>();
 		const askUserQuestions = new Map<string, string>();
@@ -717,7 +722,7 @@ if (total !== shown) result.push({ type: 'history_meta', total, shown });
 					this.isReconnecting = false;
 					this.attachListeners();
 					this.log('[Session] Reconnected — retrying send');
-					await this.session.send({ prompt });
+					await this.session.send({ prompt, attachments });
 					return;
 				} catch (reconnectErr) {
 					this.isReconnecting = false;
@@ -728,7 +733,7 @@ if (total !== shown) result.push({ type: 'history_meta', total, shown });
 			if (statusCode === 429 || (statusCode !== undefined && statusCode >= 500)) {
 				this.log(`[Session] ${statusCode} on send — retrying after 2s...`);
 				await new Promise(r => setTimeout(r, 2000));
-				try { await this.session.send({ prompt }); return; } catch {}
+				try { await this.session.send({ prompt, attachments }); return; } catch {}
 			}
 			// Fallback: if the API rejects with 400 (context too large), compact and retry once
 			if (statusCode === 400) {
@@ -737,7 +742,7 @@ if (total !== shown) result.push({ type: 'history_meta', total, shown });
 				try {
 					await this.session.rpc.compaction.compact();
 					this.log('[Session] Fallback compaction complete, retrying send');
-					await this.session.send({ prompt });
+					await this.session.send({ prompt, attachments });
 					return;
 				} catch (compactErr) {
 					this.log(`[Session] Fallback compaction or retry failed: ${compactErr}`);
@@ -814,7 +819,7 @@ if (total !== shown) result.push({ type: 'history_meta', total, shown });
 		this.pendingInputs.delete(requestId);
 		p.resolve({ answer, wasFreeform });
 		this.log(`[Session] Input answered: "${answer.slice(0, 40)}"`);
-		this.broadcast({ type: 'approval_resolved', requestId });
+		this.broadcast({ type: 'input_resolved', requestId });
 	}
 
 	private activeApprovalId: string | null = null;
@@ -1105,6 +1110,7 @@ if (total !== shown) result.push({ type: 'history_meta', total, shown });
 		// If this is ask_user on a CLI turn, show the input pending banner
 		if (d.toolName === 'ask_user' && !this.isPortalTurn) {
 			this.cliInputPending = (args as { question?: string }).question ?? 'User input needed';
+			this.cliInputToolCallId = d.toolCallId ?? null;
 			this.log(`[Session] CLI ask_user detected: ${this.cliInputPending}`);
 			this.broadcast({ type: 'cli_input_pending', content: this.cliInputPending });
 		}
@@ -1119,9 +1125,10 @@ if (total !== shown) result.push({ type: 'history_meta', total, shown });
 		const errorMsg = d.success === false ? (d.error?.message ?? 'failed') : undefined;
 		this.log(`[Session] Tool complete (${this.toolsInFlight} remaining): ${d.toolCallId}`);
 		this.broadcast({ type: 'tool_complete', toolCallId: d.toolCallId, content: errorMsg ?? 'success' });
-		// Clear CLI input pending when any tool completes (ask_user resolved)
-		if (this.cliInputPending) {
+		// Clear CLI input pending only when the specific ask_user tool completes
+		if (this.cliInputPending && d.toolCallId && d.toolCallId === this.cliInputToolCallId) {
 			this.cliInputPending = null;
+			this.cliInputToolCallId = null;
 			this.broadcast({ type: 'cli_input_resolved' });
 		}
 	}
@@ -1496,7 +1503,9 @@ if (total !== shown) result.push({ type: 'history_meta', total, shown });
 		this.deltasSent = false;
 		this.toolsInFlight = 0;
 		// Remove old listeners before adding new ones to prevent accumulation on reconnect
-		this.session.removeAllListeners();
+		if (typeof (this.session as unknown as { removeAllListeners?: () => void }).removeAllListeners === 'function') {
+			(this.session as unknown as { removeAllListeners: () => void }).removeAllListeners();
+		}
 		this.session.on((event) => {
 			if (this.sessionGeneration !== gen) return;
 			// Suppress noisy delta/streaming events from log

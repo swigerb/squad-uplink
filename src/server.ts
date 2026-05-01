@@ -340,7 +340,7 @@ export class PortalServer {
 							newHandle.addListener(listener);
 							handleRef.current = newHandle;
 							this.log(`[${clientId}] Reconnected — retrying send`);
-							await newHandle.send(msg.content!);
+							await newHandle.send(prompt, attachments);
 						} catch (retryErr) {
 							this.log(`[${clientId}] Reconnect failed: ${retryErr}`);
 							if (ws.readyState === WebSocket.OPEN) {
@@ -790,7 +790,15 @@ export class PortalServer {
 					this.sendJson(res, 400, { error: 'Invalid folder name' });
 					return;
 				}
+				if (!isPathAllowed(parentPath)) {
+					this.sendJson(res, 403, { error: 'Parent path is outside the allowed directory' });
+					return;
+				}
 				const fullPath = path.join(path.resolve(parentPath), name);
+				if (!isPathAllowed(fullPath)) {
+					this.sendJson(res, 403, { error: 'Resulting path is outside the allowed directory' });
+					return;
+				}
 				fs.mkdirSync(fullPath, { recursive: true });
 				this.log(`[API] Created folder: ${fullPath}`);
 				this.sendJson(res, 201, { path: fullPath, ok: true });
@@ -1055,6 +1063,7 @@ export class PortalServer {
 			try {
 				const body = await this.readBody(req);
 				const { exampleId, copyGuide, copyPrompts, name } = JSON.parse(body) as { exampleId: string; copyGuide?: boolean; copyPrompts?: boolean; name?: string };
+				if (!/^[a-zA-Z0-9_-]+$/.test(exampleId)) { this.sendJson(res, 400, { error: 'exampleId must be alphanumeric with dashes/underscores only' }); return; }
 				const targetName = name || exampleId;
 				if (!/^[a-zA-Z0-9_-]+$/.test(targetName)) { this.sendJson(res, 400, { error: 'name must be alphanumeric with dashes/underscores only' }); return; }
 				const exBase = path.join(__dirname, '..', 'examples');
@@ -1091,6 +1100,7 @@ export class PortalServer {
 				const body = await this.readBody(req);
 				const { oldId, newId } = JSON.parse(body) as { oldId?: string; newId?: string };
 				if (!oldId || !newId) { this.sendJson(res, 400, { error: 'oldId and newId required' }); return; }
+				if (!/^[a-zA-Z0-9_-]+$/.test(oldId)) { this.sendJson(res, 400, { error: 'oldId must be alphanumeric with dashes/underscores only' }); return; }
 				if (!/^[a-zA-Z0-9_-]+$/.test(newId)) { this.sendJson(res, 400, { error: 'newId must be alphanumeric with dashes/underscores only' }); return; }
 				const renamed: string[] = [];
 				for (const sub of ['guides', 'prompts']) {
@@ -1491,6 +1501,7 @@ export class PortalServer {
 	}
 
 	async stop(): Promise<void> {
+		clearInterval(this.failedAuthCleanup);
 		this.updater.stop();
 		this.squadReader.stopWatching();
 		await this.pool.stop();

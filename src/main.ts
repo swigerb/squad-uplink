@@ -45,8 +45,10 @@ const NEW_TOKEN = args.includes('--new-token');
 
 const server = new PortalServer(PORT, DATA_DIR, { newToken: NEW_TOKEN, cliUrl: CLI_URL });
 
+let tunnel: TunnelManager | null = null;
+
 async function gracefulShutdown(): Promise<void> {
-	tunnel.stop();
+	tunnel?.stop();
 	await server.stop().catch(() => {});
 	killCliServer();
 	process.exit(0);
@@ -65,7 +67,7 @@ await server.start();
 
 // Initialize tunnel manager
 const dataDir = DATA_DIR ?? 'data';
-const tunnel = new TunnelManager(dataDir, PORT);
+tunnel = new TunnelManager(dataDir, PORT);
 
 // Print QR code for easy phone access
 if (!NO_QR) {

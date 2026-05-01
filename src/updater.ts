@@ -125,17 +125,20 @@ export class UpdateChecker {
 		this.error = null;
 		try {
 			const results: PackageUpdate[] = [];
-			for (const name of TRACKED_PACKAGES) {
+			const versionChecks = TRACKED_PACKAGES.map(async (name) => {
 				const installed = getInstalledVersion(name);
 				const latest = await fetchLatestVersion(name, this.log);
 				const hasUpdate = !!(installed && latest && latest !== installed && isNewer(latest, installed));
-				results.push({ name, installed: installed ?? 'unknown', latest: latest ?? 'unknown', hasUpdate });
-			}
+				return { name, installed: installed ?? 'unknown', latest: latest ?? 'unknown', hasUpdate };
+			});
 			// Also check the CLI binary version (bundled as @github/copilot via copilot-sdk)
-			const cliInstalled = getInstalledVersion('@github/copilot');
-			const cliLatest = await fetchLatestVersion('@github/copilot', this.log);
-			const cliHasUpdate = !!(cliInstalled && cliLatest && cliLatest !== cliInstalled && isNewer(cliLatest, cliInstalled));
-			results.push({ name: '@github/copilot', installed: cliInstalled ?? 'unknown', latest: cliLatest ?? 'unknown', hasUpdate: cliHasUpdate });
+			const cliCheck = (async () => {
+				const cliInstalled = getInstalledVersion('@github/copilot');
+				const cliLatest = await fetchLatestVersion('@github/copilot', this.log);
+				const cliHasUpdate = !!(cliInstalled && cliLatest && cliLatest !== cliInstalled && isNewer(cliLatest, cliInstalled));
+				return { name: '@github/copilot', installed: cliInstalled ?? 'unknown', latest: cliLatest ?? 'unknown', hasUpdate: cliHasUpdate };
+			})();
+			results.push(...await Promise.all([...versionChecks, cliCheck]));
 
 			this.packages = results;
 			this.lastChecked = Date.now();
@@ -372,9 +375,15 @@ function downloadFile(url: string, dest: string, log?: (msg: string) => void): P
 		const doGet = (getUrl: string, redirects = 0) => {
 			if (redirects > 5) { reject(new Error('Too many redirects')); return; }
 			const headers: Record<string, string> = { 'User-Agent': 'copilot-portal', Accept: 'application/octet-stream' };
-			// Only send auth to GitHub domains (don't leak token to CDN redirects)
-			if (token && (getUrl.includes('github.com') || getUrl.includes('githubusercontent.com'))) {
-				headers['Authorization'] = `Bearer ${token}`;
+			// Only send auth to exact GitHub domains (don't leak token to crafted redirects)
+			const TRUSTED_HOSTS = ['github.com', 'api.github.com', 'githubusercontent.com', 'objects.githubusercontent.com'];
+			if (token) {
+				try {
+					const parsedUrl = new URL(getUrl);
+					if (TRUSTED_HOSTS.some(h => parsedUrl.hostname === h || parsedUrl.hostname.endsWith('.' + h))) {
+						headers['Authorization'] = `Bearer ${token}`;
+					}
+				} catch { /* malformed URL — don't send auth */ }
 			}
 			const req = https.get(getUrl, { headers, timeout: 60_000 }, (res) => {
 				if (res.statusCode === 302 || res.statusCode === 301) {
