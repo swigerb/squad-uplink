@@ -1,12 +1,12 @@
 {
-  "name": "copilot-portal",
+  "name": "squad-uplink",
   "version": "0.5.6",
-  "description": "Mobile-friendly web portal for GitHub Copilot CLI",
+  "description": "Mobile-friendly web portal for GitHub Copilot CLI — share a session across any device",
   "author": "Shannon Fritz",
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/shannonfritz/copilot-portal.git"
+    "url": "https://github.com/swigerb/squad-uplink.git"
   },
   "type": "module",
   "main": "./dist/server.js",
@@ -20,8 +20,8 @@
     "start": "node dist/launcher.js"
   },
   "dependencies": {
-    "@github/copilot-sdk": "^0.2.0",
-    "qrcode": "^1.5.4",
+    "@github/copilot": "^1.0.36",
+    "@github/copilot-sdk": "^0.3.0",
     "qrcode-terminal": "^0.12.0",
     "ws": "^8.18.0"
   }

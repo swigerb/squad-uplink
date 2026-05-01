@@ -19,8 +19,22 @@ jobs:
         with:
           node-version: 22
 
-      - name: Run tests
-        run: node --test test/*.test.cjs
+      - name: Install dependencies
+        run: npm install
+
+      - name: Install webui dependencies
+        run: cd webui && npm install
+
+      - name: Typecheck (backend)
+        continue-on-error: true
+        run: npx tsc --noEmit
+
+      - name: Typecheck (webui)
+        continue-on-error: true
+        run: cd webui && npx tsc --noEmit
+
+      - name: Test
+        run: npx vitest run
 
       - name: Validate version consistency
         run: |

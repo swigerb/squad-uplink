@@ -1,7 +1,7 @@
 {
-  "name": "Copilot Portal",
-  "short_name": "Copilot Portal",
-  "description": "Mobile-friendly web portal for GitHub Copilot CLI sessions",
+  "name": "Squad Uplink",
+  "short_name": "Squad Uplink",
+  "description": "Mobile-friendly web portal for GitHub Copilot CLI — share a session across any device",
   "display": "standalone",
   "scope": "/",
   "background_color": "#1e1e2e",

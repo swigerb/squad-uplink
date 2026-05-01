@@ -21,8 +21,16 @@ jobs:
       - name: Install webui dependencies
         run: cd webui && npm install
 
-      - name: Build
-        run: npm run build
+      - name: Typecheck (backend)
+        continue-on-error: true
+        run: npx tsc --noEmit
+
+      - name: Typecheck (webui)
+        continue-on-error: true
+        run: cd webui && npx tsc --noEmit
 
       - name: Test
         run: npx vitest run
+
+      - name: Build
+        run: npm run build

@@ -36,6 +36,9 @@
 		"test": "vitest run",
 		"test:watch": "vitest",
 		"test:e2e": "node tools/test-client.mjs",
+		"typecheck": "tsc --noEmit",
+		"typecheck:all": "tsc --noEmit && cd webui && tsc --noEmit",
+		"install:all": "npm install && cd webui && npm install",
 		"package": "node package.mjs",
 		"postinstall": "node patch.mjs"
 	},
