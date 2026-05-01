@@ -18,11 +18,11 @@ jobs:
       - name: Install root dependencies
         run: npm install
 
-      - name: Build root
-        run: npm run build
-
       - name: Install webui dependencies
         run: cd webui && npm install
 
-      - name: Build webui
-        run: cd webui && npm run build
+      - name: Build
+        run: npm run build
+
+      - name: Test
+        run: npx vitest run
