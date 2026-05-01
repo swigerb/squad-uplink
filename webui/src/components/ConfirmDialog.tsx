@@ -19,16 +19,36 @@ export function ConfirmDialog({
 	onConfirm,
 	onCancel,
 }: ConfirmDialogProps) {
+	const dialogRef = useRef<HTMLDivElement>(null);
 	const confirmRef = useRef<HTMLButtonElement>(null);
+	const previousFocusRef = useRef<Element | null>(null);
 
 	useEffect(() => {
-		if (open) confirmRef.current?.focus();
+		if (open) {
+			previousFocusRef.current = document.activeElement;
+			confirmRef.current?.focus();
+		}
+		return () => {
+			if (!open && previousFocusRef.current instanceof HTMLElement) {
+				previousFocusRef.current.focus();
+				previousFocusRef.current = null;
+			}
+		};
 	}, [open]);
 
 	useEffect(() => {
 		if (!open) return;
 		const onKey = (e: KeyboardEvent) => {
-			if (e.key === 'Escape') onCancel();
+			if (e.key === 'Escape') { onCancel(); return; }
+			// Focus trapping
+			if (e.key === 'Tab' && dialogRef.current) {
+				const focusable = dialogRef.current.querySelectorAll<HTMLElement>('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])');
+				if (focusable.length === 0) return;
+				const first = focusable[0];
+				const last = focusable[focusable.length - 1];
+				if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+				else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+			}
 		};
 		window.addEventListener('keydown', onKey);
 		return () => window.removeEventListener('keydown', onKey);
@@ -43,11 +63,15 @@ export function ConfirmDialog({
 			onClick={onCancel}
 		>
 			<div
+				ref={dialogRef}
+				role="dialog"
+				aria-modal="true"
+				aria-labelledby="confirm-dialog-title"
 				className="w-full max-w-sm rounded-2xl p-5"
 				style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}
 				onClick={(e) => e.stopPropagation()}
 			>
-				<h3 className="mb-2 text-sm font-semibold" style={{ color: 'var(--text-bright)' }}>{title}</h3>
+				<h3 id="confirm-dialog-title" className="mb-2 text-sm font-semibold" style={{ color: 'var(--text-bright)' }}>{title}</h3>
 				<p className="mb-4 text-sm" style={{ color: 'var(--text)' }}>{message}</p>
 				<div className="flex justify-end gap-2">
 					<button

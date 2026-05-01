@@ -185,7 +185,7 @@ function FolderBrowser({ value, onChange }: { value: string; onChange: (path: st
 					<HomeIcon size="size-3" />
 				</button>
 				{breadcrumbs.map((b, i) => (
-					<span key={i} className="flex items-center gap-0.5">
+					<span key={b.path} className="flex items-center gap-0.5">
 						<span style={{ color: 'var(--text-muted)' }}>/</span>
 						<button type="button" onClick={() => fetchFolders(b.path)} className="px-1 py-0.5 rounded hover:underline" style={{ color: i === breadcrumbs.length - 1 ? 'var(--text)' : 'var(--accent)' }}>
 							{b.label}
@@ -2127,6 +2127,8 @@ export default function App() {
 		].sort((a, b) => a.ts - b.ts);
 	}, [messages, toolEvents]);
 
+	const lastUserMsg = messages.findLast(m => m.role === 'user') ?? null;
+
 	if (connectionState === 'no_token') {
 		return (
 			<div className="flex min-h-full flex-col items-center justify-center p-6 text-center">
@@ -3169,7 +3171,7 @@ export default function App() {
 										</summary>
 										<div style={{ marginTop: '5px', display: 'flex', flexDirection: 'column', gap: '2px' }}>
 											{msg.toolSummary.map((t, i) => (
-												<div key={i}>
+												<div key={`${t.toolName}-${i}`}>
 													{t.intentionSummary && (
 														<div style={{ display: 'flex', alignItems: 'flex-start', gap: '5px', fontSize: '11px', color: 'var(--text-muted)', fontStyle: 'italic' }}>
 															<span style={{ flexShrink: 0, color: 'var(--purple)' }}>●</span>
@@ -3197,7 +3199,7 @@ export default function App() {
 										</summary>
 										<div style={{ marginTop: '5px', display: 'flex', flexDirection: 'column', gap: '2px' }}>
 											{msg.questionChoices.map((choice, i) => (
-												<div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: '5px', fontSize: '11px', color: 'var(--text-muted)' }}>
+												<div key={`${choice}-${i}`} style={{ display: 'flex', alignItems: 'flex-start', gap: '5px', fontSize: '11px', color: 'var(--text-muted)' }}>
 													<span style={{ flexShrink: 0 }}>○</span>
 													<span>{choice}</span>
 												</div>
@@ -3233,7 +3235,7 @@ export default function App() {
 												</summary>
 												<div style={{ marginTop: '4px', display: 'flex', flexDirection: 'column', gap: '2px' }}>
 													{msg.askUserChoices.map((choice, i) => (
-														<div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: '5px', fontSize: '11px', opacity: 0.8 }}>
+														<div key={`${choice}-${i}`} style={{ display: 'flex', alignItems: 'flex-start', gap: '5px', fontSize: '11px', opacity: 0.8 }}>
 															<span style={{ flexShrink: 0 }}>{choice === msg.content ? '●' : '○'}</span>
 															<span>{choice}</span>
 														</div>
@@ -3244,7 +3246,7 @@ export default function App() {
 										{msg.images && msg.images.length > 0 && (
 											<div className="flex gap-2 mb-2 flex-wrap">
 												{msg.images.map((src, i) => (
-													<img key={i} src={src} alt="Attached" className="rounded-lg cursor-pointer hover:opacity-80 transition-opacity" style={{ maxHeight: 150, maxWidth: '100%', objectFit: 'contain' }} onClick={() => setLightboxImage(src)} />
+													<img key={`${src.slice(-32)}-${i}`} src={src} alt="Attached" className="rounded-lg cursor-pointer hover:opacity-80 transition-opacity" style={{ maxHeight: 150, maxWidth: '100%', objectFit: 'contain' }} onClick={() => setLightboxImage(src)} />
 												))}
 											</div>
 										)}
@@ -3409,7 +3411,7 @@ export default function App() {
 								{pendingInput.choices && pendingInput.choices.length > 0 && (
 									<div className="mb-2 flex flex-col gap-1.5">
 										{pendingInput.choices.map((choice, i) => (
-											<button key={i} className="rounded-lg px-3 py-2 text-left text-sm" style={{ background: 'var(--surface)', border: '1px solid var(--border)' }} onClick={() => respondInput(choice, false)} type="button">{choice}</button>
+											<button key={`${choice}-${i}`} className="rounded-lg px-3 py-2 text-left text-sm" style={{ background: 'var(--surface)', border: '1px solid var(--border)' }} onClick={() => respondInput(choice, false)} type="button">{choice}</button>
 										))}
 									</div>
 								)}
@@ -3485,7 +3487,7 @@ export default function App() {
 										setPromptsAtBottom(el.scrollHeight - el.scrollTop - el.clientHeight < 4);
 									}}>
 										{sessionPrompts.map((p, i) => (
-										<div key={i} className="flex items-center gap-1">
+										<div key={`${p.label}-${i}`} className="flex items-center gap-1">
 											<button
 												type="button"
 												className="flex-1 rounded-lg px-3 py-2 text-left text-sm"
@@ -3527,7 +3529,7 @@ export default function App() {
 							{pendingImages.length > 0 && (
 								<div className="flex gap-2 px-4 pt-3 pb-1 overflow-x-auto">
 									{pendingImages.map((img, i) => (
-										<div key={i} className="relative shrink-0 rounded-lg overflow-hidden" style={{ border: '1px solid var(--border)' }}>
+										<div key={`${img.name}-${i}`} className="relative shrink-0 rounded-lg overflow-hidden" style={{ border: '1px solid var(--border)' }}>
 											<img src={`data:${img.mimeType};base64,${img.data}`} alt={img.name} className="block" style={{ height: 64, maxWidth: 120, objectFit: 'cover' }} />
 											<button type="button" className="absolute top-0.5 right-0.5 rounded-full p-0.5" style={{ background: 'var(--bg)', border: '1px solid var(--border)' }} onClick={() => setPendingImages(prev => prev.filter((_, j) => j !== i))} title="Remove">
 												<svg className="size-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
@@ -3583,11 +3585,11 @@ export default function App() {
 										<ChatBubbleIcon />
 									</button>
 								)}
-								{!input && messages.filter(m => m.role === 'user').length > 0 && (
+								{!input && lastUserMsg && (
 									<button
 										type="button"
 										title="Recall last message"
-										onClick={() => { const msgs = messages.filter(m => m.role === 'user'); if (msgs.length) setInput(msgs[msgs.length - 1].content); }}
+										onClick={() => { if (lastUserMsg) setInput(lastUserMsg.content); }}
 										className="absolute top-1/2 flex size-6 -translate-y-1/2 items-center justify-center rounded opacity-40 hover:opacity-80"
 										style={{ color: 'var(--text-muted)', right: sessionPrompts.length > 0 ? 28 : 8 }}
 									>

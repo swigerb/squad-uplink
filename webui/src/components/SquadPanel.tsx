@@ -41,8 +41,12 @@ export interface SquadFileChange {
 }
 
 function getToken(): string | null {
-	const match = document.cookie.match(/(?:^|; )token=([^;]*)/);
-	return match ? decodeURIComponent(match[1]) : null;
+	const urlToken = new URLSearchParams(window.location.search).get('token');
+	if (urlToken) {
+		localStorage.setItem('portal_token', urlToken);
+		return urlToken;
+	}
+	return localStorage.getItem('portal_token');
 }
 
 const apiFetch = (url: string, init?: RequestInit) => {
@@ -104,6 +108,7 @@ export function SquadPanel({ open, onClose, lastChange }: { open: boolean; onClo
 	}, [open, fetchAllData]);
 
 	// React to file change events — only refresh when panel is open
+	const indicatorTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 	useEffect(() => {
 		if (!open || !lastChange) return;
 
@@ -138,13 +143,17 @@ export function SquadPanel({ open, onClose, lastChange }: { open: boolean; onClo
 
 				// Show updated indicator briefly
 				setUpdatedIndicator(true);
-				setTimeout(() => setUpdatedIndicator(false), 2000);
+				if (indicatorTimerRef.current) clearTimeout(indicatorTimerRef.current);
+				indicatorTimerRef.current = setTimeout(() => setUpdatedIndicator(false), 2000);
 			} catch {
 				// Silently ignore refresh errors
 			}
 		};
 
 		refreshTabs();
+		return () => {
+			if (indicatorTimerRef.current) { clearTimeout(indicatorTimerRef.current); indicatorTimerRef.current = null; }
+		};
 	}, [open, lastChange]);
 
 	const handleFileClick = async (filePath: string) => {

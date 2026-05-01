@@ -11,7 +11,6 @@ button { cursor: pointer; }
 	--text-muted: #858585;
 	--text-bright: #e8e8e8;
 	--primary: #0e639c;
-	--primary-hover: #1177bb;
 	--error: #f48771;
 	--success: #4ec9b0;
 	--tool-call: #dcdcaa;
@@ -157,11 +156,6 @@ body,
 /* Strong / em */
 .prose strong { color: var(--text-bright); font-weight: 600; }
 .prose em { color: var(--code-fg); }
-
-/* Code blocks inside assistant bubbles: scroll horizontally, don't overflow */
-.prose pre {
-	overflow-x: auto;
-}
 
 /* Thin scrollbar for main chat area */
 .chat-scroll {

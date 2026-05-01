@@ -8,19 +8,11 @@
 @import url(https://fonts.googleapis.com/css2?family=VT323&display=swap);
 
 /* ── Animations ──────────────────────────────── */
-@keyframes pipboy-flicker {
-  0%   { box-shadow: 0px 0px 5px 0px red; }
-  5%   { box-shadow: 0px 0px 30px 2px red; }
-  60%  { box-shadow: 0px 0px 30px 2px red; }
-  80%  { box-shadow: 0px 0px 10px 0px orange; }
-  90%  { box-shadow: 0px 0px 30px 2px red; }
-  100% { box-shadow: 0px 0px 0px 0px red; }
-}
 
 @keyframes pipboy-scan {
-  0%   { top: -80px; }
-  70%  { top: 100%; }
-  100% { top: 100%; }
+  0%   { transform: translateY(-80px); }
+  70%  { transform: translateY(100vh); }
+  100% { transform: translateY(100vh); }
 }
 
 @keyframes pipboy-walk {
@@ -37,7 +29,6 @@
   --text-muted: #0dcc66;
   --text-bright: #4dffaa;
   --primary: #1bff80;
-  --primary-hover: #4dffaa;
   --error: #ffb641;
   --success: #1bff80;
   --tool-call: #ffb641;
@@ -211,10 +202,12 @@
 /* ── Scanline sweep ──────────────────────────── */
 [data-theme='pipboy'] .pipboy-scanline {
   position: absolute;
+  top: 0;
   width: 100%;
   height: 80px;
   background: linear-gradient(rgba(0,0,0,0), rgba(27,255,128,0.06));
   animation: pipboy-scan 4s infinite;
+  will-change: transform;
   z-index: 50;
   pointer-events: none;
 }

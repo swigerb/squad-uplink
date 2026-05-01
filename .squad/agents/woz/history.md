@@ -63,3 +63,16 @@ Reviewed the `src/` backend/server codebase read-only. Key findings:
 - **Reliability:** Retry paths in `server.ts` and `session.ts` drop image attachments and can resend a different prompt than the original user payload.
 - **Performance/resource cleanup:** Agent source detection runs sync git commands inside a per-agent loop; shutdown misses the auth cleanup interval; launcher restart paths accumulate signal handlers.
 - **Validation:** `npm run build:ext -- --no-color` passes; `npx tsc --noEmit --pretty false` fails with the type-safety issues above.
+
+### 2026-05-01T13:57:52-04:00 — Fixed All 17 Backend Code Review Findings
+
+Fixed every finding from the code review in a single commit across 6 files:
+
+- **Security (5 fixes):** Path traversal in `POST /api/browse` (#1), guide rename `oldId` traversal (#2), `exampleId` traversal in from-example (#5), loose GitHub token forwarding URL check (#12), devtunnel command injection via tunnel names (#15).
+- **Reliability (4 fixes):** Server reconnect retry drops attachments (#6), session send retry drops attachments in 3 paths (#7), `resolveUserInput` broadcasts wrong event type (#8), any tool completion incorrectly clears `cliInputPending` (#9).
+- **Cross-platform (2 fixes):** `stopCli()` Windows-only — now tracks PID cross-platform (#10), signal handlers accumulate on restart (#11).
+- **Type safety (3 fixes):** `roundPerMsgTools` extra nesting (#3), `PortalEvent` missing fields + `removeAllListeners` guard (#4).
+- **Resource cleanup (2 fixes):** `failedAuthCleanup` interval not cleared in `stop()` (#13/#17), `tunnel` referenced before init in `gracefulShutdown` (#14).
+- **Performance (1 fix):** Sequential version checks → `Promise.all` (#16).
+
+Build verified clean. All fixes are surgical — no unrelated changes.
