@@ -55,3 +55,16 @@ Vitest config provided (root + webui). Mocking strategy documented.
 
 **Key decision:** Used pure logic extraction instead of React Testing Library. Rationale: (1) webui has no test deps (no jsdom, no RTL), (2) features don't exist yet so imports would fail, (3) matches existing project convention. Component-level RTL tests should be added after UI lands.
 
+
+### 2026-05-01T13:42:55.643-04:00 — Full Test Coverage Analysis
+
+**What I did:** Ran the requested WebUI Vitest command and coverage command, then ran the root Vitest suite for the actual test inventory. Reviewed server-side `src/`, WebUI source, test configuration, and all current tests.
+
+**Key findings:**
+- Requested `webui` test run fails because `webui/` has no test files. Root Vitest passes: 9 test files, 169 tests.
+- Coverage cannot currently be measured: `@vitest/coverage-v8` is missing, so both WebUI and root coverage commands fail before producing metrics.
+- Only `src/rules.ts` and `src/squad.ts` have production imports in tests. `src/server.ts`, `src/session.ts`, `src/updater.ts`, `src/tunnel.ts`, `src/launcher.ts`, `src/main.ts`, `src/config.ts`, and `src/github-token.ts` have no direct coverage.
+- Most WebUI tests are mirrored algorithm tests, not component/hook tests. `webui/src/App.tsx`, hooks, and every component lack React Testing Library coverage.
+- Critical missing categories: HTTP/WS integration tests, SDK/session event tests, hook tests, error boundary tests, accessibility tests, and real coverage thresholds.
+
+**Decision:** Wrote critical gap report to `.squad/decisions/inbox/hertzfeld-test-coverage-gaps.md`.

@@ -115,3 +115,11 @@ Full recommendations: decompose App.tsx by domain (session mgmt, message renderi
 ### Decisions Archived
 
 All 7 inbox entries merged to decisions.md. No archival needed (all entries from 2026-04-27).
+
+### 2026-05-01T13:42:55.643-04:00: Architecture Review — Cross-cutting Health
+- **Health score: C+.** The server/client split is conceptually sound and there are no internal import cycles, but the safety rails are weak: build succeeds while TypeScript type-checking fails, and WebUI has no tsconfig/typecheck gate.
+- **Highest-risk architecture debt:** `package.dist.json` is stale versus root `package.json` (`@github/copilot-sdk` 0.2.x, old repo/name, extra `qrcode`), so release packaging can ship different runtime dependencies than development.
+- **CI drift:** Active CI builds/tests but does not typecheck; Squad CI/release workflows still call nonexistent `test/*.test.cjs`; disabled Azure SWA workflow says the app pivoted to WinUI 3 and references missing lint/typecheck scripts.
+- **Structure:** No circular dependencies found. Backend modules are separated by role, but `server.ts`, `session.ts`, and `webui/src/App.tsx` remain orchestration monoliths that hide defects and make ownership fuzzy.
+- **Performance:** Vite emits a single ~493 KB client JS chunk (~146 KB gzip), close to the default warning threshold. Markdown/QR/session UI are pulled into the first load instead of being split by interaction.
+- **Config consistency:** Two independent npm projects without workspaces make installs/builds easy to skew. Root build assumes `webui/node_modules` already exists.

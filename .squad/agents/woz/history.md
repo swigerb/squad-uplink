@@ -52,3 +52,14 @@ Ported 4 features from upstream copilot-portal into squad-uplink backend:
 
 Build verified clean — no new type errors introduced.
 
+
+### 2026-05-01T13:42:55.643-04:00 — Backend/Server Code Review
+
+Reviewed the `src/` backend/server codebase read-only. Key findings:
+
+- **Security:** `POST /api/browse` does not apply the same path allowlist as browse reads, allowing folder creation outside the intended home/CWD boundary.
+- **Security:** Guide rename and example-copy endpoints validate destination names but not source IDs, leaving traversal paths into unintended `.md` files.
+- **Type safety:** Backend strict type-check currently fails; `session.ts` emits fields missing from `PortalEvent`, has a nested `roundPerMsgTools` type error, and calls SDK members not present in current typings.
+- **Reliability:** Retry paths in `server.ts` and `session.ts` drop image attachments and can resend a different prompt than the original user payload.
+- **Performance/resource cleanup:** Agent source detection runs sync git commands inside a per-agent loop; shutdown misses the auth cleanup interval; launcher restart paths accumulate signal handlers.
+- **Validation:** `npm run build:ext -- --no-color` passes; `npx tsc --noEmit --pretty false` fails with the type-safety issues above.

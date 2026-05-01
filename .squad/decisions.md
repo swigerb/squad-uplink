@@ -2393,3 +2393,160 @@ Hertzfeld: New test coverage needed for:
 - History replay image extraction
 - WS prompt handler with image-only messages
 
+---
+
+# Decision: Kare Frontend Code Review — 2026-05-01
+
+**Author:** Kare (Lead UI)  
+**Date:** 2026-05-01T13:42:55.643-04:00  
+**Scope:** `webui/src/` component review, auth token handling, UI decomposition
+
+## Significant Issues for Team Decision
+
+1. **App.tsx Decomposition Incomplete** — `webui/src/App.tsx` remains the production owner for chat, session management, guides, approvals, input, WebSocket handling, and rendering while extracted equivalents exist unused. Decide whether to finish the decomposition or delete the orphaned extracted modules to avoid two divergent UI implementations.
+
+2. **Auth Token Source Inconsistency** — `webui/src/components/SquadPanel.tsx` uses cookie-based token discovery while `App.tsx` uses URL capture plus `localStorage` (`portal_token`). Decide on a single frontend auth token source and shared helper.
+
+3. **Accessibility: Session Picker Nesting** — Session picker UI in both `App.tsx` and `SessionPicker.tsx` nests a copy button inside a session button. Needs an accessibility pass for dialog/listbox semantics before further visual polish.
+
+## Suggested Priority
+
+1. Fix auth helper consistency for SquadPanel.
+2. Replace nested interactive controls in session picker.
+3. Resolve the App.tsx decomposition fork: integrate extracted components/hooks or remove them.
+
+---
+
+# Decision: Jobs Architecture Code Review — 2026-05-01
+
+**Author:** Jobs (Lead)  
+**Date:** 2026-05-01T13:42:55.643-04:00  
+**Scope:** 30,000-foot architecture/codebase review; root config, package/build/test boundaries, server/client separation, cross-cutting health.
+
+## Recommendation
+
+Treat the architecture as **viable but under-governed**. Do not add major product surface until the build/package/CI contract is tightened. The app is still carrying copilot-portal heritage and Squad-specific pivots in the same files; that is survivable only if the gates are honest.
+
+## High-Priority Findings
+
+### 🔴 TypeScript is Not an Actual Quality Gate
+- **Location:** `tsconfig.json`, root `package.json`, CI workflows
+- **Problem:** Production build succeeds through esbuild/Vite transpilation, but root TypeScript type-checking fails. The tsconfig is CommonJS while the code is ESM with `import.meta` and top-level await. SDK-facing code also has type drift. WebUI has no `tsconfig.json` and no typecheck script.
+- **Recommendation:** Convert root TypeScript config to NodeNext/ESM, add WebUI tsconfig, add `typecheck` scripts for root and WebUI, and run them in CI before build.
+
+### 🔴 Release Package Manifest is Stale
+- **Location:** `package.dist.json`, `package.mjs`, root `package.json`
+- **Problem:** Development uses `@github/copilot-sdk` 0.3.x and `@github/copilot` 1.0.x, but the distribution manifest still declares SDK 0.2.x, an old repository/name, and a dependency set that does not match root.
+- **Recommendation:** Generate the distribution manifest from root package data or delete `package.dist.json` as a hand-maintained artifact. One source of truth.
+
+## Medium-Priority Findings
+
+### 🟡 CI/Release Workflows Disagree About Reality
+- **Location:** `.github/workflows/ci.yml`, `.github/workflows/squad-ci.yml`, `.github/workflows/squad-release.yml`, `.github/workflows/azure-static-web-apps.yml`
+- **Problem:** Main CI uses npm build/test but skips typecheck. Squad CI and release workflows call `node --test test/*.test.cjs`, but tests live under `tests/*.test.ts`. Azure SWA workflow is disabled, references missing scripts, and documents an obsolete WinUI pivot.
+- **Recommendation:** Pick one CI contract: install both projects, typecheck, test, build, package. Delete or quarantine stale workflows.
+
+### 🟡 Package Topology Invites Dependency Skew
+- **Location:** root `package.json`, `webui/package.json`, lockfiles, build scripts
+- **Problem:** The repo has two npm projects and two lockfiles but no workspace relationship. `npm run build` enters WebUI and assumes dependencies were installed separately.
+- **Recommendation:** Use npm workspaces or document/enforce a bootstrap command. CI and local dev should follow the same dependency graph.
+
+### 🟡 Client Bundle Near Warning Cliff
+- **Location:** `webui/vite.config.ts`, `webui/src/App.tsx`, Vite build output
+- **Problem:** The WebUI ships as one main JS chunk around 493 KB before gzip. Markdown rendering, QR code support, theme/session UI, and the large App shell land in the initial path.
+- **Recommendation:** Split route-like interaction islands with dynamic imports: guides/Squad panel, QR/share surface, markdown-heavy transcript rendering where practical. Add bundle-size budget reporting to active CI.
+
+## Low-Priority Findings
+
+### 🟢 Import Graph Clean, Module Size Not
+- **Location:** `src/server.ts`, `src/session.ts`, `webui/src/App.tsx`
+- **Problem:** No internal circular dependencies found. Server/session/App still mix transport, orchestration, persistence, and UI state.
+- **Recommendation:** Keep the existing boundary, but extract routers/services/hooks only where they remove duplicated decisions. Do not create framework architecture for its own sake.
+
+### 🟢 Runtime Cleanup Has Loose Ends
+- **Location:** `src/server.ts`
+- **Problem:** Server stop closes update checks, watcher, pool, websockets, and HTTP server, but the auth cleanup interval is not cleared.
+- **Recommendation:** Clear every owned timer/resource in `stop()` and keep lifecycle ownership explicit.
+
+## Architecture Health Score
+
+**C+** — The core shape is right: local Node bridge, React client, clear transport boundary, no circular dependency mess. But the engineering contract is mushy. TypeScript is configured but not trusted, releases can drift from development, and CI has stale paths. Fix the gates before adding more features.
+
+---
+
+# Decision: Woz Backend Code Review — 2026-05-01
+
+**Author:** Woz (Lead Dev)  
+**Date:** 2026-05-01T13:42:55.643-04:00  
+**Scope:** `src/` backend/server code review, read-only source review
+
+## Decision-Relevant Findings
+
+### 🔴 Security: File-Management Path Validation Gaps
+**Location:** `POST /api/browse`, `POST /api/guides/rename`, `POST /api/guides/from-example`  
+**Problem:** Path-validation gaps can create, move, or copy files outside the intended roots.  
+**Recommendation:** Treat path-validation fixes as release-blocking before exposing the portal beyond localhost/trusted users.
+
+### 🔴 TypeScript Strict Mode Not Enforcing Safety
+**Location:** `src/session.ts`, `src/server.ts`, TypeScript configuration  
+**Problem:** `npx tsc --noEmit --pretty false` fails with source-level type errors in `session.ts` plus ESM/module configuration mismatches, while the esbuild backend bundle still succeeds.  
+**Recommendation:** Add a CI gate that type-checks backend sources with the actual ESM module settings used by the build.
+
+### 🟡 Retry Paths Lose Image Attachments
+**Location:** `src/server.ts`, `src/session.ts` retry logic  
+**Problem:** Both retry paths resend text-only prompts, dropping attachments and sometimes the squad-context-prefixed prompt.  
+**Recommendation:** Standardize retry payload handling around a single `{ prompt, attachments }` payload object so reconnect/429/compaction paths cannot drift.
+
+### 🟡 Long-Running Process Cleanup Has Leaks
+**Location:** `src/server.ts`, `src/launcher.ts`, CLI child processes  
+**Problem:** Auth cleanup intervals, launcher signal handlers, and non-Windows CLI child processes are not cleaned consistently.  
+**Recommendation:** Ensure all owned timers, event listeners, and child processes are cleaned in shutdown paths.
+
+---
+
+# Decision: Hertzfeld Test Coverage Gaps — 2026-05-01
+
+**Author:** Hertzfeld  
+**Date:** 2026-05-01T13:42:55.643-04:00  
+**Scope:** Full repository test coverage review
+
+## Coverage Status
+
+- **Root Vitest Suite:** 9 test files passed, 169 tests passed.
+- **Root Coverage:** Blocked by missing `@vitest/coverage-v8`.
+- **WebUI Tests:** No test files exist; Vitest cannot run.
+- **Effective Coverage:** Unavailable—coverage provider is missing.
+
+## Critical Gaps: Production Code Without Tests
+
+| Priority | Source | What Needs Tests | Est. Count |
+|----------|--------|------------------|------------|
+| 🔴 | `webui/src/App.tsx` | WebSocket events, message state transitions, send/image flows, notifications, context, session switching, guides, update polling, error states | 35–50 |
+| 🔴 | `src/server.ts` | Auth/rate limiting on HTTP/WS handlers, all API status codes, path traversal guards, guide/import SSRF guards, image-only forwarding, WS broadcasts | 35–45 |
+| 🔴 | `src/session.ts` | `send()` with attachments, usage conversion, history replay with images/tools, approvals, reconnect/sync, active turn, truncation/compaction | 45–60 |
+| 🔴 | `webui/src/hooks/useWebSocket.ts` | token/no-token paths, WS URL, heartbeat/pong timeout, reconnect, fast auth fail, management cleanup, visibility/focus recovery | 18–24 |
+| 🔴 | `webui/src/hooks/useSessionManager.ts` | URL/session state, draft/no-session, delete active, shield optimistic update/revert, picker refresh | 14–18 |
+| 🟡 | `src/updater.ts` | version comparison, package/portal check, failed npm/gh/network, apply concurrency, restart semantics, cleanup | 20–28 |
+| 🟡 | `webui/src/components/InputBar.tsx` | send button, Enter/Shift+Enter/touch, paste/drop/file images, tray recall/delete, draft CWD, pending hiding | 18–24 |
+| 🟡 | `webui/src/components/ChatMessageList.tsx` | message/tool ordering, tool consolidation, lightbox callback, markdown copy, notifications, truncation, streaming | 20–28 |
+
+## Test Infrastructure Gaps
+
+- No React Testing Library setup
+- No hook tests despite complex WebSocket/session state logic
+- No server integration harness for HTTP/WebSocket routes
+- No SDK/session seam tests for `SessionHandle`
+- No accessibility assertions
+- No coverage thresholds or provider configured
+
+## Infrastructure Recommendations
+
+1. Add `@vitest/coverage-v8` and configure coverage collection/thresholds.
+2. Add WebUI test setup with jsdom/happy-dom plus React Testing Library.
+3. Expand `vitest.config.ts` to include `webui/src/**/*.test.{ts,tsx}`.
+4. Add shared test setup for fake timers, clipboard, matchMedia, ResizeObserver, WebSocket mocks.
+5. Create server integration test helper for `PortalServer` with ephemeral port and fake dependencies.
+6. Extract testable seams from App.tsx or continue decomposition.
+7. Replace mirrored algorithm tests with production imports as code is decomposed.
+8. Add CI coverage reporting once provider and thresholds are in place. Start realistic, ratchet upward.
+
