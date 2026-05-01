@@ -101,7 +101,7 @@ export interface PortalInfo {
 }
 
 export interface PortalEvent {
-	type: 'delta' | 'idle' | 'message_end' | 'error' | 'approval_request' | 'approval_resolved' | 'input_request' | 'tool_call' | 'tool_start' | 'tool_complete' | 'tool_update' | 'intent' | 'session_switched' | 'session_not_found' | 'session_renamed' | 'thinking' | 'reasoning_delta' | 'sync' | 'model_changed' | 'rules_list' | 'history_meta' | 'history_user' | 'cli_approval_pending' | 'cli_approval_resolved' | 'cli_input_pending' | 'cli_input_resolved' | 'turn_stopping' | 'history_start' | 'history_end' | 'session_context_updated' | 'session_created' | 'session_deleted' | 'session_shield_changed' | 'approve_all_changed' | 'warning' | 'info' | 'session_usage';
+	type: 'delta' | 'idle' | 'message_end' | 'error' | 'approval_request' | 'approval_resolved' | 'input_request' | 'tool_call' | 'tool_start' | 'tool_complete' | 'tool_update' | 'intent' | 'session_switched' | 'session_not_found' | 'session_renamed' | 'thinking' | 'reasoning_delta' | 'sync' | 'model_changed' | 'rules_list' | 'history_meta' | 'history_user' | 'cli_approval_pending' | 'cli_approval_resolved' | 'cli_input_pending' | 'cli_input_resolved' | 'turn_stopping' | 'history_start' | 'history_end' | 'session_context_updated' | 'session_created' | 'session_deleted' | 'session_shield_changed' | 'approve_all_changed' | 'warning' | 'info' | 'session_usage' | 'context_usage';
 	content?: string;
 	role?: 'user' | 'assistant';
 	intermediate?: boolean; // true for assistant.message events that were mid-turn (history replay)
@@ -126,6 +126,7 @@ export interface PortalEvent {
 	summary?: string;
 	shielded?: boolean;
 	session?: unknown;
+	images?: string[]; // data: URIs for image attachments (history replay)
 }
 
 type PendingApproval = {
@@ -445,7 +446,11 @@ if (total !== shown) result.push({ type: 'history_meta', total, shown });
 					currentMsgTools = [];
 				}
 				flushRound();
-				result.push({ type: 'history_user', content: (raw.data as { content?: string })?.content ?? '', timestamp: ts });
+				result.push({ type: 'history_user', content: (raw.data as { content?: string })?.content ?? '', timestamp: ts,
+				images: ((raw.data as { attachments?: Array<{ type: string; data: string; mimeType?: string }> })?.attachments ?? [])
+					.filter(a => a.type === 'blob' && a.data)
+					.map(a => `data:${a.mimeType ?? 'image/png'};base64,${a.data}`),
+			});
 			} else if (e.type === 'assistant.message') {
 				// Save accumulated tools for the previous message
 				if (roundMsgs.length > 0) {
@@ -672,13 +677,14 @@ if (total !== shown) result.push({ type: 'history_meta', total, shown });
 		}
 	}
 
-	async send(prompt: string): Promise<void> {
+	async send(prompt: string, attachments?: Array<{ type: 'blob'; data: string; mimeType: string; displayName?: string }>): Promise<void> {
 		// Mark turn active immediately so pollForChanges() won't reconnect when
 		// user.message fires and changes modifiedTime.
 		this.isTurnActive = true;
 		this.isPortalTurn = true;
 		this.activeUserMessage = prompt;
-		this.log(`[${this.sessionId.slice(0, 8)}] Sending prompt (${prompt.length} chars), ~${this.tokensSinceCompaction} tokens since last compaction`);
+		const attachCount = attachments?.length ?? 0;
+		this.log(`[${this.sessionId.slice(0, 8)}] Sending prompt (${prompt.length} chars${attachCount ? `, ${attachCount} attachment(s)` : ''}), ~${this.tokensSinceCompaction} tokens since last compaction`);
 
 		// Proactively compact if we're approaching the context limit
 		if (this.tokensSinceCompaction >= SessionHandle.COMPACT_TOKEN_THRESHOLD) {
@@ -694,7 +700,7 @@ if (total !== shown) result.push({ type: 'history_meta', total, shown });
 		}
 
 		try {
-			await this.session.send({ prompt });
+			await this.session.send({ prompt, attachments });
 		} catch (e) {
 			const statusCode = (e as { statusCode?: number })?.statusCode;
 			const errMsg = String(e);
@@ -1435,6 +1441,11 @@ if (total !== shown) result.push({ type: 'history_meta', total, shown });
 		this.broadcast({ type: 'tool_complete', toolCallId: d.toolCallId ?? '', content: `Subagent ${d.name ?? 'task'} completed` });
 	}
 
+	private onSessionUsageInfo(data: unknown): void {
+		const d = data as { tokenLimit?: number; currentTokens?: number; systemTokens?: number; conversationTokens?: number; toolDefinitionsTokens?: number; messagesLength?: number };
+		this.broadcast({ type: 'context_usage', content: JSON.stringify(d) });
+	}
+
 	private onAssistantTurnEnd(): void {
 		// assistant.turn_end fires between tool rounds — NOT a definitive session end.
 		// Only session.idle signals the entire conversation turn is done.
@@ -1477,6 +1488,7 @@ if (total !== shown) result.push({ type: 'history_meta', total, shown });
 		'subagent.completed':               (d) => this.onSubagentCompleted(d),
 		'assistant.turn_end':               () => this.onAssistantTurnEnd(),
 		'assistant.usage':                  (d) => this.onAssistantUsage(d),
+		'session.usage_info':               (d) => this.onSessionUsageInfo(d),
 	};
 
 	private attachListeners(): void {

@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import type { ConnectionState } from '../hooks/useWebSocket';
+import { ImageIcon } from './Icons';
 
 export interface InputBarProps {
 	input: string;
@@ -18,6 +19,12 @@ export interface InputBarProps {
 	onSetDraftCwd: (cwd: string) => void;
 	/** Render slot for the FolderBrowser when in draft mode */
 	folderBrowser?: React.ReactNode;
+	pendingImages: Array<{ data: string; mimeType: string; name: string }>;
+	onRemoveImage: (index: number) => void;
+	onAddImageFiles: (files: FileList | File[]) => void;
+	isDraggingImage: boolean;
+	onDragStateChange: (dragging: boolean) => void;
+	fileInputRef: React.RefObject<HTMLInputElement | null>;
 }
 
 export function InputBar({
@@ -35,6 +42,12 @@ export function InputBar({
 	onRemovePrompt,
 	onClearPrompts,
 	folderBrowser,
+	pendingImages,
+	onRemoveImage,
+	onAddImageFiles,
+	isDraggingImage,
+	onDragStateChange,
+	fileInputRef,
 }: InputBarProps) {
 	const textareaRef = useRef<HTMLTextAreaElement>(null);
 	const inputContainerRef = useRef<HTMLDivElement>(null);
@@ -82,12 +95,22 @@ export function InputBar({
 				className="border-t px-4 py-3"
 				style={{
 					background: 'var(--surface)',
-					borderColor: 'var(--border)',
+					borderColor: isDraggingImage ? 'var(--primary)' : 'var(--border)',
 					paddingBottom: 'calc(0.75rem + env(safe-area-inset-bottom))',
+					outline: isDraggingImage ? '2px dashed var(--primary)' : undefined,
+					outlineOffset: '-2px',
+					transition: 'outline 0.15s, border-color 0.15s',
 				}}
 				onSubmit={(e) => {
 					e.preventDefault();
 					onSendPrompt();
+				}}
+				onDragOver={(e) => { e.preventDefault(); if (e.dataTransfer?.types.includes('Files')) onDragStateChange(true); }}
+				onDragLeave={() => onDragStateChange(false)}
+				onDrop={(e) => {
+					e.preventDefault();
+					onDragStateChange(false);
+					if (e.dataTransfer?.files.length) onAddImageFiles(e.dataTransfer.files);
 				}}
 			>
 				<div ref={inputContainerRef} className="flex gap-2">
@@ -140,6 +163,18 @@ export function InputBar({
 								)}
 							</div>
 						)}
+						{pendingImages.length > 0 && (
+							<div className="flex gap-2 px-4 pt-3 pb-1 overflow-x-auto">
+								{pendingImages.map((img, i) => (
+									<div key={i} className="relative shrink-0 rounded-lg overflow-hidden" style={{ border: '1px solid var(--border)' }}>
+										<img src={`data:${img.mimeType};base64,${img.data}`} alt={img.name} className="block" style={{ height: 64, maxWidth: 120, objectFit: 'cover' }} />
+										<button type="button" className="absolute top-0.5 right-0.5 rounded-full p-0.5" style={{ background: 'var(--bg)', border: '1px solid var(--border)' }} onClick={() => onRemoveImage(i)} title="Remove">
+											<svg className="size-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
+										</button>
+									</div>
+								))}
+							</div>
+						)}
 						<div className="relative">
 							<textarea
 								ref={textareaRef}
@@ -153,6 +188,18 @@ export function InputBar({
 								rows={1}
 								value={input}
 								onChange={(e) => onInputChange(e.target.value)}
+								onPaste={(e) => {
+									const items = e.clipboardData?.items;
+									if (!items) return;
+									const files: File[] = [];
+									for (const item of items) {
+										if (item.type.startsWith('image/')) {
+											const file = item.getAsFile();
+											if (file) files.push(file);
+										}
+									}
+									if (files.length) onAddImageFiles(files);
+								}}
 								enterKeyHint="enter"
 								onKeyDown={(e) => {
 									const isTouch = window.matchMedia('(hover: none)').matches;
@@ -228,15 +275,25 @@ export function InputBar({
 								)}
 							</div>
 						)}
+						<input ref={fileInputRef} type="file" accept="image/*" multiple className="hidden" onChange={(e) => { if (e.target.files?.length) { onAddImageFiles(e.target.files); e.target.value = ''; } }} />
+						<button
+							className="flex size-7 items-center justify-center rounded-full border-none opacity-40 hover:opacity-80"
+							style={{ background: 'transparent', color: 'var(--text-muted)', cursor: 'pointer' }}
+							onClick={() => fileInputRef.current?.click()}
+							type="button"
+							title="Attach image"
+						>
+							<ImageIcon size="size-4" />
+						</button>
 						<div className="flex items-center" style={{ marginTop: 'auto', marginBottom: 4 }}>
 							<button
 								className="flex size-11 items-center justify-center rounded-full border-none"
 								style={{
-									background: input.trim() && (connectionState === 'connected' || draftSession) ? 'var(--primary)' : 'var(--border)',
+									background: (input.trim() || pendingImages.length > 0) && (connectionState === 'connected' || draftSession) ? 'var(--primary)' : 'var(--border)',
 									color: 'white',
-									cursor: input.trim() && (connectionState === 'connected' || draftSession) ? 'pointer' : 'default',
+									cursor: (input.trim() || pendingImages.length > 0) && (connectionState === 'connected' || draftSession) ? 'pointer' : 'default',
 								}}
-								disabled={!input.trim() || (connectionState !== 'connected' && !draftSession)}
+								disabled={(!input.trim() && pendingImages.length === 0) || (connectionState !== 'connected' && !draftSession)}
 								type="submit"
 								title="Send"
 								aria-label="Send message"

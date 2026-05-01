@@ -19,8 +19,11 @@ import {
 	HomeIcon, FolderIcon, BranchIcon, ShieldIcon, GearIcon, PersonIcon,
 	SessionsIcon, GuidesIcon, RulesListIcon, EyeIcon, ChatBubbleIcon,
 	GuideScrollIcon, RecallIcon, ClearIcon, CopilotIcon, QRCodeIcon,
-	InfoCircleIcon, RefreshIcon,
+	InfoCircleIcon, RefreshIcon, ImageIcon,
 } from './components/Icons';
+import { Lightbox } from './components/Lightbox';
+import { ContextUsageBar } from './components/ContextUsageBar';
+import type { ContextUsage } from './components/ContextUsageBar';
 import {
 	COPY_FEEDBACK_MS, TOOL_COLLAPSE_DELAY_MS, STOP_CLEAR_DEBOUNCE_MS,
 	NOTIFICATION_DISMISS_MS, NOTIFICATION_DISMISS_SHORT_MS, RECENTLY_ADDED_HIGHLIGHT_MS,
@@ -255,6 +258,7 @@ interface Message {
 	toolCallIds?: string[]; // tool call IDs dispatched by this message (for tracking completion)
 	askUserChoices?: string[];
 	questionChoices?: string[];
+	images?: string[];
 }
 
 function buildToolSummary(events: ToolEvent[]): ToolSummaryItem[] {
@@ -537,6 +541,8 @@ function SessionDrawer({
 	sessionStartTime,
 	sessionUsage,
 	sessionQuota,
+	contextUsage,
+	draft,
 }: {
 	open: boolean;
 	onToggle: () => void;
@@ -551,6 +557,8 @@ function SessionDrawer({
 	sessionStartTime?: string;
 	sessionUsage?: { inputTokens: number; outputTokens: number; cacheReadTokens: number; reasoningTokens: number; requests: number } | null;
 	sessionQuota?: { unlimited: boolean; used: number; total: number; remaining: number; resetDate?: string } | null;
+	contextUsage?: ContextUsage | null;
+	draft?: { cwd: string } | null;
 }) {
 	const [showModelPicker, setShowModelPicker] = useState(false);
 	const [liveModels, setLiveModels] = useState<Array<{ id: string; name: string }> | null>(null);
@@ -681,12 +689,17 @@ function SessionDrawer({
 						</div>
 					)}
 
+					{/* Context usage bar */}
+					{contextUsage && contextUsage.tokenLimit > 0 && !draft && (
+						<ContextUsageBar contextUsage={contextUsage} />
+					)}
+
 					{/* Model selector */}
 					<div className="relative">
 						<button
 							type="button"
-							className="flex w-full items-center justify-between rounded-lg px-3 py-2 text-sm"
-							style={{ background: 'var(--bg)', border: '1px solid var(--border)' }}
+							className="flex w-full items-center justify-between px-3 py-2 text-sm"
+							style={{ background: 'var(--bg)', border: '1px solid var(--border)', borderTop: (contextUsage && contextUsage.tokenLimit > 0 && !draft) ? 'none' : undefined, borderRadius: (contextUsage && contextUsage.tokenLimit > 0 && !draft) ? (showModelPicker ? '0' : '0 0 0.5rem 0.5rem') : (showModelPicker ? '0.5rem 0.5rem 0 0' : '0.5rem') }}
 							onClick={() => {
 								const opening = !showModelPicker;
 								setShowModelPicker(opening);
@@ -804,8 +817,13 @@ export default function App() {
 	const [thinkingText, setThinkingText] = useState('');
 	const [reasoningText, setReasoningText] = useState('');
 	const [error, setError] = useState<string | null>(null);
-	const [notification, setNotification] = useState<{ type: 'warning' | 'info'; message: string; action?: { label: string; onClick: () => void } } | null>(null);
+	const [notification, setNotification] = useState<{ type: 'warning' | 'info'; message: string; action?: { label: string; onClick: () => void }; count?: number } | null>(null);
 	const [input, setInput] = useState('');
+	const [pendingImages, setPendingImages] = useState<Array<{ data: string; mimeType: string; name: string }>>([]);
+	const [lightboxImage, setLightboxImage] = useState<string | null>(null);
+	const [isDraggingImage, setIsDraggingImage] = useState(false);
+	const fileInputRef = useRef<HTMLInputElement>(null);
+	const [contextUsage, setContextUsage] = useState<ContextUsage | null>(null);
 	const [isStreaming, setIsStreaming] = useState(false);
 	const [isStopping, setIsStopping] = useState(false);
 	// Agent is "active" whenever it's thinking, running tools, streaming, or waiting for stop to confirm
@@ -958,6 +976,7 @@ export default function App() {
 		setCliInputInfo(null);
 		setActiveSessionSummary(null);
 		setActiveModel(null);
+		setContextUsage(null);
 		setRules([]);
 		setApproveAll(false);
 		const params = new URLSearchParams(window.location.search);
@@ -1144,6 +1163,7 @@ export default function App() {
 					setSessionContext((event as { context?: SessionContext | null }).context ?? null);
 					setActiveSessionSummary((event as { summary?: string | null }).summary ?? null);
 					setActiveModel((event as { model?: string | null }).model ?? null);
+					setContextUsage(null);
 					// Restore prompts for this session
 					setShowPromptsTray(false);
 					if (newId) {
@@ -1198,6 +1218,11 @@ export default function App() {
 						const q = e.quota['chat'] ?? e.quota['premium_interactions'];
 						if (q) setSessionQuota({ unlimited: !!q.isUnlimitedEntitlement, used: q.usedRequests, total: q.entitlementRequests, remaining: q.remainingPercentage, resetDate: q.resetDate });
 					}
+					return;
+				}
+
+				if (event.type === 'context_usage') {
+					try { setContextUsage(JSON.parse(event.content ?? '{}')); } catch {}
 					return;
 				}
 
@@ -1528,8 +1553,14 @@ export default function App() {
 					// Server switched CLI mode — reload to reconnect cleanly
 					window.location.reload();
 				} else if (event.type === 'warning' || event.type === 'info') {
-					setNotification({ type: event.type, message: event.content ?? '' });
-					if (!(event as { action?: unknown }).action) {
+					setNotification(prev => {
+						if (prev && prev.type === event.type && prev.message === (event.content ?? '')) {
+							return { ...prev, count: (prev.count ?? 1) + 1 };
+						}
+						return { type: event.type, message: event.content ?? '' };
+					});
+					// Info messages auto-dismiss; warnings persist until next user message
+					if (event.type === 'info' && !(event as { action?: unknown }).action) {
 						setTimeout(() => setNotification(null), NOTIFICATION_DISMISS_MS);
 					}
 				} else if (event.type === 'approval_request' && event.approval) {
@@ -1942,9 +1973,23 @@ export default function App() {
 		} catch { /* prompts are optional */ }
 	};
 
+	const addImageFiles = useCallback((files: FileList | File[]) => {
+		for (const file of files) {
+			if (!file.type.startsWith('image/')) continue;
+			const reader = new FileReader();
+			reader.onload = () => {
+				const dataUrl = reader.result as string;
+				const base64 = dataUrl.split(',')[1];
+				const name = file.name || `image-${Date.now()}.${file.type.split('/')[1]}`;
+				setPendingImages(prev => [...prev, { data: base64, mimeType: file.type, name }]);
+			};
+			reader.readAsDataURL(file);
+		}
+	}, []);
+
 	const sendPrompt = async () => {
 		const prompt = input.trim();
-		if (!prompt) return;
+		if (!prompt && pendingImages.length === 0) return;
 
 		if (draftSession) {
 			// Create session then send prompt
@@ -1959,18 +2004,23 @@ export default function App() {
 				const params = new URLSearchParams(window.location.search);
 				params.set('session', sessionId);
 				window.history.replaceState(null, '', `?${params.toString()}`);
-				setMessages([{ id: `msg-${Date.now()}`, role: 'user', content: prompt, timestamp: Date.now() }]);
+				setMessages([{ id: `msg-${Date.now()}`, role: 'user', content: prompt, timestamp: Date.now(), images: pendingImages.length > 0 ? pendingImages.map(img => `data:${img.mimeType};base64,${img.data}`) : undefined }]);
 				setInput('');
+				setNotification(null);
 				setIsThinking(true);
 				setThinkingText('');
 				setReasoningText('');
 				reasoningRef.current = '';
+				const attachments = pendingImages.length > 0
+					? pendingImages.map(img => ({ type: 'blob' as const, data: img.data, mimeType: img.mimeType, displayName: img.name }))
+					: undefined;
+				setPendingImages([]);
 				// Connect WS and send prompt after connection
 				const token = getToken();
 				const wsUrl = `${window.location.protocol === 'https:' ? 'wss' : 'ws'}://${window.location.host}?session=${sessionId}${token ? `&token=${token}` : ''}`;
 				const ws = new WebSocket(wsUrl);
 				ws.onopen = () => {
-					ws.send(JSON.stringify({ type: 'prompt', content: prompt }));
+					ws.send(JSON.stringify({ type: 'prompt', content: prompt, attachments }));
 				};
 				wsRef.current = ws;
 				// Re-attach normal message handling by triggering a reconnect
@@ -1984,18 +2034,23 @@ export default function App() {
 		if (connectionState !== 'connected') return;
 		setMessages((prev) => [
 			...prev,
-			{ id: `msg-${Date.now()}`, role: 'user', content: prompt, timestamp: Date.now() },
+			{ id: `msg-${Date.now()}`, role: 'user', content: prompt, timestamp: Date.now(), images: pendingImages.length > 0 ? pendingImages.map(img => `data:${img.mimeType};base64,${img.data}`) : undefined },
 		]);
 		setToolEvents([]);
 		intentionMapRef.current.clear();
 		setError(null);
+		setNotification(null);
 		setInput('');
 		setShowPromptsTray(false);
 		setIsThinking(true);
 		setThinkingText('');
 		setReasoningText('');
 		reasoningRef.current = '';
-		wsRef.current?.send(JSON.stringify({ type: 'prompt', content: prompt }));
+		const attachments = pendingImages.length > 0
+			? pendingImages.map(img => ({ type: 'blob' as const, data: img.data, mimeType: img.mimeType, displayName: img.name }))
+			: undefined;
+		setPendingImages([]);
+		wsRef.current?.send(JSON.stringify({ type: 'prompt', content: prompt, attachments }));
 	};
 
 	const stopAgent = () => {
@@ -2051,7 +2106,7 @@ export default function App() {
 
 	// Memoize consolidated message + tool event items for display
 	const consolidatedItems = useMemo(() => {
-		const visibleMessages = messages.filter(m => m.content.trim() || m.toolSummary?.length);
+		const visibleMessages = messages.filter(m => m.content.trim() || m.toolSummary?.length || m.images?.length);
 		const consolidated: Message[] = [];
 		for (const msg of visibleMessages) {
 			const isToolOnly = !msg.content.trim() && msg.toolSummary?.length;
@@ -2090,6 +2145,7 @@ export default function App() {
 		<div className="flex flex-col" style={{ height: '100%' }}>
 			<CRTOverlay />
 			<MatrixRain enabled={themeId === 'matrix'} />
+			{lightboxImage && <Lightbox src={lightboxImage} onClose={() => setLightboxImage(null)} />}
 			{/* QR Code Modal */}
 			{showQR && (
 				<div
@@ -2949,6 +3005,8 @@ export default function App() {
 					sessionStartTime={sessions.find(s => s.sessionId === activeSessionId)?.startTime}
 					sessionUsage={sessionUsage}
 					sessionQuota={sessionQuota}
+					contextUsage={contextUsage}
+					draft={draftSession}
 					/>
 				)}
 
@@ -3183,6 +3241,13 @@ export default function App() {
 												</div>
 											</details>
 										)}
+										{msg.images && msg.images.length > 0 && (
+											<div className="flex gap-2 mb-2 flex-wrap">
+												{msg.images.map((src, i) => (
+													<img key={i} src={src} alt="Attached" className="rounded-lg cursor-pointer hover:opacity-80 transition-opacity" style={{ maxHeight: 150, maxWidth: '100%', objectFit: 'contain' }} onClick={() => setLightboxImage(src)} />
+												))}
+											</div>
+										)}
 										<div className="whitespace-pre-wrap break-words">{msg.content}</div>
 										<div className="mt-1 flex items-center justify-between gap-2 text-xs opacity-50">
 											<span>{new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
@@ -3245,7 +3310,7 @@ export default function App() {
 							}}
 						>
 							<span className="flex-1">
-								<strong>{notification.type === 'warning' ? '⚠ Warning:' : '💬 Note:'}</strong> {notification.message}
+								<strong>{notification.type === 'warning' ? '⚠ Warning:' : '💬 Note:'}</strong> {notification.message}{notification.count && notification.count > 1 ? ` (×${notification.count})` : ''}
 							</span>
 							{notification.action && (
 								<button
@@ -3393,12 +3458,22 @@ export default function App() {
 					className="border-t px-4 py-3"
 					style={{
 						background: 'var(--surface)',
-						borderColor: 'var(--border)',
+						borderColor: isDraggingImage ? 'var(--primary)' : 'var(--border)',
 						paddingBottom: 'calc(0.75rem + env(safe-area-inset-bottom))',
+						outline: isDraggingImage ? '2px dashed var(--primary)' : undefined,
+						outlineOffset: '-2px',
+						transition: 'outline 0.15s, border-color 0.15s',
 					}}
 					onSubmit={(e) => {
 						e.preventDefault();
 						sendPrompt();
+					}}
+					onDragOver={(e) => { e.preventDefault(); if (e.dataTransfer?.types.includes('Files')) setIsDraggingImage(true); }}
+					onDragLeave={() => setIsDraggingImage(false)}
+					onDrop={(e) => {
+						e.preventDefault();
+						setIsDraggingImage(false);
+						if (e.dataTransfer?.files.length) addImageFiles(e.dataTransfer.files);
 					}}
 				>
 					<div ref={inputContainerRef} className="flex gap-2">
@@ -3449,6 +3524,18 @@ export default function App() {
 								)}
 								</div>
 							)}
+							{pendingImages.length > 0 && (
+								<div className="flex gap-2 px-4 pt-3 pb-1 overflow-x-auto">
+									{pendingImages.map((img, i) => (
+										<div key={i} className="relative shrink-0 rounded-lg overflow-hidden" style={{ border: '1px solid var(--border)' }}>
+											<img src={`data:${img.mimeType};base64,${img.data}`} alt={img.name} className="block" style={{ height: 64, maxWidth: 120, objectFit: 'cover' }} />
+											<button type="button" className="absolute top-0.5 right-0.5 rounded-full p-0.5" style={{ background: 'var(--bg)', border: '1px solid var(--border)' }} onClick={() => setPendingImages(prev => prev.filter((_, j) => j !== i))} title="Remove">
+												<svg className="size-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
+											</button>
+										</div>
+									))}
+								</div>
+							)}
 							<div className="relative">
 								<textarea
 									ref={textareaRef}
@@ -3462,6 +3549,18 @@ export default function App() {
 									rows={1}
 									value={input}
 									onChange={(e) => setInput(e.target.value)}
+									onPaste={(e) => {
+										const items = e.clipboardData?.items;
+										if (!items) return;
+										const files: File[] = [];
+										for (const item of items) {
+											if (item.type.startsWith('image/')) {
+												const file = item.getAsFile();
+												if (file) files.push(file);
+											}
+										}
+										if (files.length) addImageFiles(files);
+									}}
 									enterKeyHint="enter"
 									onKeyDown={(e) => {
 										// Touch devices (iOS): Enter adds newlines — send via button only.
@@ -3529,15 +3628,25 @@ export default function App() {
 									)}
 								</div>
 							)}
+							<input ref={fileInputRef} type="file" accept="image/*" multiple className="hidden" onChange={(e) => { if (e.target.files?.length) { addImageFiles(e.target.files); e.target.value = ''; } }} />
+							<button
+								className="flex size-7 items-center justify-center rounded-full border-none opacity-40 hover:opacity-80"
+								style={{ background: 'transparent', color: 'var(--text-muted)', cursor: 'pointer' }}
+								onClick={() => fileInputRef.current?.click()}
+								type="button"
+								title="Attach image"
+							>
+								<ImageIcon size="size-4" />
+							</button>
 							<div className="flex items-center" style={{ marginTop: 'auto', marginBottom: 4 }}>
 								<button
 									className="flex size-11 items-center justify-center rounded-full border-none"
 									style={{
-										background: input.trim() && connectionState === 'connected' ? 'var(--primary)' : 'var(--border)',
+										background: (input.trim() || pendingImages.length > 0) && (connectionState === 'connected' || draftSession) ? 'var(--primary)' : 'var(--border)',
 										color: 'white',
-										cursor: input.trim() && connectionState === 'connected' ? 'pointer' : 'default',
+										cursor: (input.trim() || pendingImages.length > 0) && (connectionState === 'connected' || draftSession) ? 'pointer' : 'default',
 									}}
-									disabled={!input.trim() || connectionState !== 'connected'}
+									disabled={(!input.trim() && pendingImages.length === 0) || (!draftSession && connectionState !== 'connected')}
 									type="submit"
 									title="Send"
 									aria-label="Send message"

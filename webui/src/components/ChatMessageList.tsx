@@ -23,6 +23,7 @@ export interface Message {
 	toolCallIds?: string[];
 	askUserChoices?: string[];
 	questionChoices?: string[];
+	images?: string[];
 }
 
 export interface ToolEvent {
@@ -293,11 +294,12 @@ export interface ChatMessageListProps {
 	isThinking: boolean;
 	thinkingText: string;
 	reasoningText: string;
-	notification: { type: 'warning' | 'info'; message: string; action?: { label: string; onClick: () => void } } | null;
+	notification: { type: 'warning' | 'info'; message: string; action?: { label: string; onClick: () => void }; count?: number } | null;
 	error: string | null;
 	historyTruncated: { total: number; shown: number } | null;
 	chatEndRef: React.RefObject<HTMLDivElement | null>;
 	onDismissNotification: () => void;
+	onImageClick?: (src: string) => void;
 }
 
 export function ChatMessageList({
@@ -313,6 +315,7 @@ export function ChatMessageList({
 	historyTruncated,
 	chatEndRef,
 	onDismissNotification,
+	onImageClick,
 }: ChatMessageListProps) {
 	return (
 		<div className="chat-scroll flex-1 overflow-y-auto p-4 space-y-4" role="log" aria-live="polite" aria-label="Chat messages">
@@ -343,7 +346,7 @@ export function ChatMessageList({
 			{/* Interleave messages and tool events by timestamp */}
 			{(() => {
 				// Consolidate consecutive tool-only messages
-				const visibleMessages = messages.filter(m => m.content.trim() || m.toolSummary?.length);
+				const visibleMessages = messages.filter(m => m.content.trim() || m.toolSummary?.length || m.images?.length);
 				const consolidated: Message[] = [];
 				for (const msg of visibleMessages) {
 					const isToolOnly = !msg.content.trim() && msg.toolSummary?.length;
@@ -467,6 +470,13 @@ export function ChatMessageList({
 										</div>
 									</details>
 								)}
+								{msg.images && msg.images.length > 0 && (
+									<div className="flex gap-2 mb-2 flex-wrap">
+										{msg.images.map((src, i) => (
+											<img key={i} src={src} alt="Attached" className="rounded-lg cursor-pointer hover:opacity-80 transition-opacity" style={{ maxHeight: 150, maxWidth: '100%', objectFit: 'contain' }} onClick={() => onImageClick?.(src)} />
+										))}
+									</div>
+								)}
 								<div className="whitespace-pre-wrap break-words">{msg.content}</div>
 								<div className="mt-1 flex items-center justify-between gap-2 text-xs opacity-50">
 									<span>{new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
@@ -545,7 +555,7 @@ export function ChatMessageList({
 					}}
 				>
 					<span className="flex-1">
-						<strong>{notification.type === 'warning' ? '⚠ Warning:' : '💬 Note:'}</strong> {notification.message}
+						<strong>{notification.type === 'warning' ? '⚠ Warning:' : '💬 Note:'}</strong> {notification.message}{notification.count && notification.count > 1 ? ` (×${notification.count})` : ''}
 					</span>
 					{notification.action && (
 						<button

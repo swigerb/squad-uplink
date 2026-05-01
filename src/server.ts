@@ -310,10 +310,13 @@ export class PortalServer {
 				kind?: string;
 				pattern?: string;
 				ruleId?: string;
+				approveAll?: boolean;
+				attachments?: Array<{ type: string; data: string; mimeType: string; displayName?: string }>;
 			};
-			if (msg.type === 'prompt' && msg.content) {
+			if (msg.type === 'prompt' && (msg.content || msg.attachments?.length)) {
 				// Auto-inject squad context on first message per session
-				let prompt = msg.content;
+				let prompt = msg.content || '';
+				const attachments = msg.attachments as Array<{ type: 'blob'; data: string; mimeType: string; displayName?: string }> | undefined;
 				const squadEnabled = this.squadContext;
 				if (squadEnabled && !this.squadContextInjected.has(sessionId)) {
 					const guide = this.squadReader.generateGuide();
@@ -323,8 +326,8 @@ export class PortalServer {
 					}
 					this.squadContextInjected.add(sessionId);
 				}
-				this.log(`[${clientId}] Prompt: ${msg.content.slice(0, 80)}`);
-				handle.send(prompt).catch(async (e) => {
+				this.log(`[${clientId}] Prompt: ${prompt.slice(0, 80) || '(image only)'}${attachments?.length ? ` [${attachments.length} image(s)]` : ''}`);
+				handle.send(prompt, attachments).catch(async (e) => {
 					const errMsg = String(e);
 					this.log(`[${clientId}] Send error: ${errMsg}`);
 					if (errMsg.includes('Connection is closed') || errMsg.includes('not connected')) {

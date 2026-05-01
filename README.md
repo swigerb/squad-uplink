@@ -106,6 +106,18 @@ Browse and set the working directory before creating sessions. The folder browse
 
 Select custom agents from the session drawer. Agents are discovered from `~/.copilot/agents/` (user-level) and `.github/agents/` (repository-level), with source labels so you know where each agent comes from. Your agent selection persists across sessions.
 
+#### Image Support
+
+Paste images from your clipboard, drag and drop image files, or use the file picker to attach images to your messages. On mobile, the file picker opens the camera so you can snap a photo and send it directly to Copilot. Attached images appear as thumbnails below the input bar, and clicking any image in the conversation opens a full-screen lightbox. Images persist in message history across page reloads.
+
+#### Context Window Usage Bar
+
+The session drawer displays a segmented progress bar showing how much of Copilot's context window is in use. The bar breaks down usage into System tokens, Message tokens, and Free space, with both percentages and token counts. The bar clears automatically when you switch sessions or enter draft mode.
+
+#### Notification Improvements
+
+Duplicate warnings accumulate with a count indicator (e.g., "Connection lost x3") instead of stacking. Warnings persist until your next message, while info notifications auto-dismiss. This keeps the notification area clean during flaky connections or repeated events.
+
 #### Tool Error Surfacing
 
 When a tool call fails, the error is shown in red with the actual error message — not just a generic "failed" label. Error details persist after the turn ends so you can review what went wrong.
@@ -184,7 +196,7 @@ Themes use CSS custom properties and conditional layout wrappers. The Pip-Boy th
 
 ## Credits & Attribution
 
-Squad Uplink is built on [copilot-portal](https://github.com/shannonfritz/copilot-portal) by **Shannon Fritz** ([@shannonfritz](https://github.com/shannonfritz)). The core architecture — WebSocket server, session management, approval flow, CLI↔Portal sync, and the React SPA — comes from Shannon's work. This repo extends it with Squad-specific features.
+Squad Uplink is built on [copilot-portal](https://github.com/shannonfritz/copilot-portal) by **Shannon Fritz** ([@shannonfritz](https://github.com/shannonfritz)). The core architecture — WebSocket server, session management, approval flow, CLI↔Portal sync, and the React SPA — comes from Shannon's work. This repo extends it with Squad-specific features. Image support, context usage bar, and notification improvements were ported from copilot-portal v0.6.1.
 
 ---
 
