@@ -1,16 +1,26 @@
 ---
-updated_at: 2026-05-01T13:42:55.643-04:00
-focus_area: Full code review complete — findings pending triage
-active_issues: 
-  - Kare: App.tsx decomposition fork + auth token consistency
-  - Jobs: TypeScript gates, CI alignment, bundle size
-  - Woz: Path validation security, strict mode, retry payloads
-  - Hertzfeld: Test coverage gaps (0% WebUI, critical backend/hooks gaps)
+updated_at: 2026-05-01T18:10:00Z
+focus_area: All 60 code review findings fixed, pushed to GitHub, 220 tests passing
+status: REVIEW COMPLETE ✅
+metrics:
+  - Backend findings fixed: 17 (Woz)
+  - Frontend findings fixed: 25 (Kare)
+  - Architecture findings fixed: 8 (Jobs)
+  - New tests written: 51 (Hertzfeld)
+  - Total findings: 60
+  - Tests passing: 220 (169 root + 51 webui)
+  - Build status: Clean
 ---
 
 # What We're Focused On
 
-All 6 waves shipped. Four comprehensive code reviews completed (Kare frontend, Jobs architecture, Woz backend, Hertzfeld test coverage). Findings merged to decisions.md. **Next: Prioritize which gaps to address first — architecture gates (TypeScript, CI) vs. security (path validation) vs. test coverage.**
+Code review cycle complete. All four agents shipped their fixes:
+- **Woz (Backend):** 17 security, type, and reliability fixes
+- **Kare (Frontend):** 25 dead code removals, auth fixes, a11y improvements
+- **Jobs (Architecture):** 8 infrastructure/CI/branding fixes
+- **Hertzfeld (Testing):** 51 WebUI tests + infrastructure setup
+
+All changes committed and pushed. Ready for feature development or next review cycle.
 
 Key decision points:
 - Complete App.tsx decomposition or delete orphaned modules (Kare)

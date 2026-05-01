@@ -2550,3 +2550,189 @@ Treat the architecture as **viable but under-governed**. Do not add major produc
 7. Replace mirrored algorithm tests with production imports as code is decomposed.
 8. Add CI coverage reporting once provider and thresholds are in place. Start realistic, ratchet upward.
 
+
+# Decision: WebUI Test Infrastructure and Coverage
+
+**Author:** Hertzfeld (Tester)
+**Date:** 2026-05-01T13:57:52-04:00
+**Status:** Implemented
+
+## Context
+
+The code review found ZERO WebUI test coverage. The webui package had no test dependencies, no test config, and no test files. Root-level tests (169) covered backend logic only.
+
+## Decision
+
+Built complete WebUI test infrastructure and wrote 51 component/utility tests:
+
+### Infrastructure
+- **vitest.config.ts** (separate from vite.config.ts) — jsdom environment, globals, v8 coverage at 50% thresholds
+- **test-setup.ts** — jest-dom matchers + mocks for matchMedia, WebSocket, clipboard, execCommand
+- **Dependencies** — @vitest/coverage-v8, @testing-library/react, @testing-library/jest-dom, @testing-library/user-event, jsdom
+
+### Test Coverage (51 tests, 7 files)
+| File | Tests | What's Covered |
+|------|-------|----------------|
+| ConfirmDialog.test.tsx | 11 | render, callbacks, Escape, focus |
+| Lightbox.test.tsx | 6 | image, close, propagation |
+| SquadPanel.test.tsx | 10 | fetch, tabs, a11y, errors |
+| ContextUsageBar.test.tsx | 8 | percentages, edge cases |
+| ErrorBoundary.test.tsx | 4 | catch, fallback, recovery |
+| clipboard.test.ts | 5 | API, fallback, rich copy |
+| constants.test.ts | 4 | timing invariants |
+
+### Key Patterns Established
+1. **Mock react-markdown** in component tests (remark plugins fail in jsdom)
+2. **Mock global fetch** not internal helpers — tests real auth header logic
+3. **Separate vitest.config.ts** from vite.config.ts — avoids Node imports breaking jsdom
+4. **Behavior-based assertions** — resilient to parallel refactors by other agents
+
+## What's Still Missing
+- App.tsx integration tests (175KB file, needs decomposition first)
+- Hook tests for remaining hooks (useTheme)
+- E2E tests with Playwright
+- Coverage measurement and enforcement in CI
+
+
+---
+
+# Architecture Fixes — Jobs
+
+**Date:** 2026-05-01  
+**Author:** Jobs (Lead)  
+**Status:** Accepted
+
+## Decisions Made
+
+### 1. TypeScript Quality Gate Infrastructure
+**Decision:** Set up typecheck infrastructure without fixing all pre-existing errors.
+- Root `tsconfig.json` updated: `module: NodeNext`, `moduleResolution: NodeNext` (was CommonJS, incompatible with ESM codebase)
+- Created `webui/tsconfig.json` with React/Vite-compatible settings (`module: ESNext`, `moduleResolution: bundler`, `jsx: react-jsx`)
+- Added `typecheck` script to root and webui `package.json`
+- Added `typecheck:all` script to root for full-project typecheck
+- **Known errors:** Backend: 15, WebUI: 67. These are pre-existing and should be burned down incrementally.
+
+### 2. Release Manifest Synchronized
+**Decision:** `package.dist.json` updated to match current development dependencies.
+- Name: `copilot-portal` → `squad-uplink`
+- Repo URL: `shannonfritz/copilot-portal` → `swigerb/squad-uplink`
+- Added `@github/copilot: ^1.0.36` (was missing entirely)
+- Updated `@github/copilot-sdk: ^0.2.0` → `^0.3.0`
+- Removed stale `qrcode: ^1.5.4` (dead code — we use `qrcode-terminal`)
+- Description aligned with root package.json
+
+### 3. CI Workflows Aligned
+**Decision:** All CI workflows now follow one contract: install → typecheck (allow failures) → test → build.
+- `ci.yml`: Added typecheck steps with `continue-on-error: true`. Reordered to typecheck → test → build.
+- `squad-ci.yml`: Replaced nonexistent `node --test test/*.test.cjs` with proper install + typecheck + vitest + build steps.
+- `squad-release.yml`: Same fix — replaced `node --test test/*.test.cjs` with real pipeline.
+- `azure-static-web-apps.yml`: Quarantined with explanatory header. References nonexistent scripts and stale SWA config. Manual-only trigger retained.
+
+### 4. Dual-Project Topology Documented
+**Decision:** Do NOT convert to npm workspaces now — too risky for the value. Instead:
+- Added `install:all` script to root: `npm install && cd webui && npm install`
+- **Future improvement:** Consider npm workspaces when a third project is added or when install skew causes a real bug. Not before.
+
+### 5. Bundle Size Documented (No Code Splitting Yet)
+**Decision:** Client bundle is 493 KB (146 KB gzip). Near the 500 KB warning cliff but not over.
+- Enabled `build.reportCompressedSize: true` in `webui/vite.config.ts` for visibility.
+- **Future work:** Lazy-load these modules via `React.lazy()` + dynamic `import()`:
+  - `react-markdown` + remark plugins (~150 KB estimated)
+  - `qrcode.react` + share dialog (~20 KB estimated)
+  - Guide/help panels
+- **Do not attempt** code splitting until App.tsx decomposition is complete (Kare's scope).
+
+### 6. Oversized Coordinators — Architectural Debt
+**Decision:** Document only. No code changes.
+- `server.ts` (~400+ lines in handleHttp): Needs router extraction.
+- `session.ts` (~1800 lines): Core SDK bridge, hard to split without API changes.
+- `App.tsx` (~4500 lines): Kare is actively decomposing. Do not duplicate effort.
+- These are tracked in the architecture review findings from 2026-04-27.
+
+### 7. Auth Cleanup Interval — Woz's Scope
+**Decision:** Skip. Woz owns backend fixes including `setInterval` cleanup in `server.ts` shutdown path. Verified: server.ts has unstaged changes from Woz's work.
+
+### 8. Branding Updated
+**Decision:** All user-visible references updated from "Copilot Portal" to "Squad Uplink".
+- `webui/index.html`: title + apple-mobile-web-app-title meta tag
+- `webui/public/manifest.json`: name, short_name, description
+- `webui/package.json`: name → `squad-uplink-webui`
+- `package.dist.json`: name, description, repo URL
+
+
+---
+
+# Frontend Code Review Fixes — All 25 Findings Resolved
+
+**Author:** Kare (Frontend Dev)
+**Date:** 2026-05-01T13:57:52-04:00
+**Scope:** webui/src/ — App.tsx, components, hooks, CSS themes, utilities
+
+---
+
+## Summary
+
+Resolved all 25 findings from the frontend code review in a single commit. Net result: 2,276 lines removed, 109 lines added. Build passes clean.
+
+## Decisions Made
+
+### 1. Dead code removal (findings #2, #12-18, #24-25)
+**Decision:** Deleted 7 unused extracted component/hook files rather than wiring them in.
+**Rationale:** App.tsx is the production code. The extracted files were never imported and duplicated inline logic. Removing them eliminates confusion about which implementation is canonical.
+**Files deleted:** ApprovalCard.tsx, ChatMessageList.tsx, GuidesModal.tsx, InputBar.tsx, SessionPicker.tsx, useSessionManager.ts, useWebSocket.ts
+
+### 2. SquadPanel auth unified (finding #1)
+**Decision:** SquadPanel now uses localStorage-based `portal_token` (same as App.tsx) instead of cookie-based auth.
+**Impact:** All API calls from SquadPanel now use the same token source as the rest of the app.
+
+### 3. Session row nested buttons (finding #3)
+**Decision:** Changed the outer `<button>` to `<div role="button">` so the inner copy-session-ID button is a sibling, not nested. Added keyboard handlers for accessibility.
+
+### 4. Clipboard failure surfacing (finding #4)
+**Decision:** All three copy components (CopyableTable, CopyButton, CopyRichButton) now check the copy operation result and show a failure indicator (✗) when copy fails.
+**Also:** clipboard.ts `copyToClipboard` now returns `false` when execCommand fails.
+
+### 5. A11y improvements (findings #8, #20)
+**Decision:** ConfirmDialog gets role="dialog", aria-modal, aria-labelledby, focus trapping, and focus restoration. Lightbox gets dialog role, Escape key handling, visible close button.
+
+### 6. CSS animation performance (finding #9)
+**Decision:** pipboy-scan keyframes changed from animating `top` to `transform: translateY()` for GPU-composited animation. Added `will-change: transform`.
+
+### 7. CSS cleanup (findings #21-23)
+**Decision:** Merged duplicate `.prose pre` rule; removed unused `--primary-hover` CSS variable from all 3 theme files; removed unused `@keyframes pipboy-flicker`.
+
+### 8. Findings resolved by other fixes
+- #5 (GuidesModal render side-effect): Not present in App.tsx inline code. Resolved by deleting GuidesModal.tsx.
+- #6 (useWebSocket sendMessage no readyState check): App.tsx inline code guards with `connectionState !== 'connected'`. Resolved by deleting useWebSocket.ts.
+- #7 (SessionPicker nested button): Same issue as #3, resolved there. Resolved by deleting SessionPicker.tsx.
+
+
+---
+
+# Backend Security & Reliability Fixes — 2026-05-01
+
+**Author:** Woz  
+**Status:** Implemented  
+**Commit:** fix: address all 17 backend code review findings
+
+## Decisions Made
+
+### 1. Safe-ID regex as standard validation pattern
+All user-facing ID parameters (guide IDs, example IDs, tunnel names) now use `/^[a-zA-Z0-9_-]+$/` as the validation regex. This should be the standard pattern for any future endpoint that accepts file/resource identifiers.
+
+### 2. PortalEvent type as source of truth
+Added `input_resolved`, `toolCallIds`, `usage`, `questionChoices`, and `quota` to the `PortalEvent` type union. Any new event fields broadcast from session.ts must be added to `PortalEvent` — the type should always match runtime usage.
+
+### 3. SDK removeAllListeners guarded at runtime
+The `CopilotSession` SDK type doesn't declare `removeAllListeners()`. Rather than augmenting the SDK types (which would break on updates), we guard the call with a runtime check. If the SDK adds this to their types later, the guard can be removed.
+
+### 4. Trusted hosts for token forwarding
+GitHub token is only sent to exact hostnames: `github.com`, `api.github.com`, `githubusercontent.com`, and `objects.githubusercontent.com`. Any new GitHub-owned domains that need auth must be added to the `TRUSTED_HOSTS` array in `updater.ts`.
+
+### 5. ask_user tool tracking by call ID
+`cliInputPending` is now cleared only when the specific `ask_user` tool call completes (matched by `toolCallId`), not on any tool completion. This prevents unrelated tool completions from dismissing the input banner.
+
+
+---
+
+
