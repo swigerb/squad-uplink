@@ -77,6 +77,14 @@ Lead agent for squad-uplink. Responsible for architecture, code review, scope de
 - server.ts handleHttp is a 400+ line if/else chain — needs a router abstraction.
 - context-templates API endpoints reference a directory that doesn't exist.
 - titleChangedCallback wired up identically 3 times in SessionPool (_doConnect, create, reconnectWithCwd).
+
+### 2025-07-27: Upstream port plan — copilot-portal v0.6.1 features
+- **Decomposition map established:** Upstream monolithic App.tsx (4143 lines) maps cleanly to squad-uplink's decomposed architecture. Key files: InputBar.tsx, ChatMessageList.tsx, SessionPicker.tsx, Icons.tsx, useWebSocket.ts, useSessionManager.ts.
+- **Image support architecture:** State (pendingImages, lightboxImage, isDraggingImage) lives in App.tsx. InputBar.tsx gets new props for drag/drop/paste/file-picker. Lightbox is a new standalone component. ChatMessageList gets `onImageClick` prop + `images` in Message type.
+- **Context bar architecture:** New ContextUsageBar.tsx component. State lives in App.tsx. Backend emits `context_usage` via `session.usage_info` SDK event → `onSessionUsageInfo()` handler. Rendered above model picker with coordinated border-radius.
+- **Backend pattern:** server.ts parses `attachments` from WS prompt messages and forwards to session.ts `send()`. History replay maps attachments back to `images` data URIs. Both already exist upstream — just need porting.
+- **Key decision:** No new hooks for image state — it's simple enough for App.tsx useState. Lightbox is NOT nested in ChatMessageList — it's a portal-level overlay. InputBar owns drag/drop UX but App owns image state.
+- **Plan written to:** `.squad/decisions/inbox/jobs-upstream-port-plan.md`
 - loadShields() called at line 651 mid-request (return value unused) vs startup load at line 1384.
 - No graceful shutdown timeout — process.exit(0) called synchronously in signal handlers.
 

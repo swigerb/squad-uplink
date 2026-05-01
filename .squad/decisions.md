@@ -1711,3 +1711,685 @@ This is minor because the tool error IS shown during the 2-second live display w
 5. **F4** (🟡) — Agent source shows 'unknown' for repo agents.
 6. **F6–F8** (🟢) — Cleanup when convenient.
 
+
+
+---
+
+# Decision: Test Strategy for v0.6.1 Upstream Port
+
+**Author:** Hertzfeld (Tester)
+**Date:** 2025-07-27
+**Status:** IMPLEMENTED
+
+## Context
+
+Three features are being ported from upstream v0.6.1: Image Support, Context Usage Bar, and Notification Polish. Tests needed to be written before the features land.
+
+## Decision
+
+Wrote 96 tests using **pure logic extraction** pattern (matching auth.test.ts / permissions.test.ts precedent) rather than React Testing Library component tests.
+
+### Rationale
+1. The webui has no test dependencies (no jsdom, no RTL, no @testing-library/*)
+2. Components don't exist yet — import-based tests would crash the test runner
+3. Logic extraction tests pass NOW and validate the algorithms Woz/Kare will implement
+4. Zero config changes needed — works with existing vitest.config.ts
+
+### Test Coverage
+
+| File | Tests | Feature |
+|------|-------|---------|
+| `notification-logic.test.ts` | 21 | Accumulation reducer, count formatting, auto-dismiss, warning persistence |
+| `context-usage-bar.test.ts` | 21 | Percentage math, token formatting, edge cases, visibility |
+| `image-support.test.ts` | 44 | File processing, canSend, payload building, message images, removal, history replay |
+| `lightbox.test.ts` | 10 | State transitions, click handling |
+
+### Follow-up Needed
+
+Once UI components land, add React Testing Library tests for:
+- InputBar paste/drag/drop DOM interactions
+- Image thumbnail rendering + remove button clicks
+- ContextUsageBar visual segments
+- Lightbox overlay rendering
+
+This requires installing: `jsdom`, `@testing-library/react`, `@testing-library/jest-dom`, `@testing-library/user-event` and updating vitest.config.ts with `environment: 'jsdom'` for webui tests.
+
+
+---
+
+# Upstream Port Plan: copilot-portal v0.6.1 → Squad Uplink
+
+**Author:** Jobs (Lead)
+**Date:** 2025-07-27
+**Status:** PROPOSED
+**Upstream ref:** `upstream/master` — monolithic `App.tsx` (4143 lines)
+**Target:** Squad Uplink decomposed architecture (3424-line App.tsx + components + hooks)
+
+---
+
+## Architecture Delta Summary
+
+The upstream is a single monolithic `App.tsx`. Squad Uplink has already decomposed into:
+
+| Module | File | Role |
+|--------|------|------|
+| **InputBar** | `webui/src/components/InputBar.tsx` | Chat input, prompts tray, send button |
+| **ChatMessageList** | `webui/src/components/ChatMessageList.tsx` | Message rendering, tool events, markdown |
+| **SessionPicker** | `webui/src/components/SessionPicker.tsx` | Session list modal |
+| **Icons** | `webui/src/components/Icons.tsx` | SVG icon components |
+| **useWebSocket** | `webui/src/hooks/useWebSocket.ts` | WS connection, heartbeat, reconnection |
+| **useSessionManager** | `webui/src/hooks/useSessionManager.ts` | Session CRUD, switching, draft mode |
+| **App.tsx** | `webui/src/App.tsx` | Orchestrator — state, event dispatch, layout |
+| **session.ts** | `src/session.ts` | Backend session handle (SDK bridge) |
+| **server.ts** | `src/server.ts` | Backend HTTP/WS server |
+
+Three features to port. Each is mapped below with exact upstream references and target locations.
+
+---
+
+## Feature 1: Image Support (HIGH PRIORITY)
+
+### 1.1 Type Changes
+
+**Message interface** — add `images` field.
+
+| Location | Current | Required Change |
+|----------|---------|-----------------|
+| `ChatMessageList.tsx:15-26` | `Message` type has no `images` | Add `images?: string[]` (data: URIs) |
+| `App.tsx:247-258` | Local `Message` also lacks `images` | Add `images?: string[]` — keep in sync with ChatMessageList's export |
+
+**Upstream reference:** `App.tsx:70` — `images?: string[]; // data: URIs for attached images`
+
+### 1.2 New State (lives in App.tsx)
+
+These are input-area concerns owned by the orchestrator, passed down to InputBar:
+
+```typescript
+const [pendingImages, setPendingImages] = useState<Array<{ data: string; mimeType: string; name: string }>>([]);
+const [lightboxImage, setLightboxImage] = useState<string | null>(null);
+const [isDraggingImage, setIsDraggingImage] = useState(false);
+const fileInputRef = useRef<HTMLInputElement>(null);
+```
+
+**Upstream reference:** `App.tsx:1064-1067`
+
+### 1.3 New Callback: `addImageFiles`
+
+**Where:** `App.tsx` (new `useCallback`, passed to InputBar)
+
+Reads files via FileReader, extracts base64, pushes to `pendingImages`.
+
+**Upstream reference:** `App.tsx:2400-2411`
+
+```typescript
+const addImageFiles = useCallback((files: FileList | File[]) => {
+    for (const file of files) {
+        if (!file.type.startsWith('image/')) continue;
+        const reader = new FileReader();
+        reader.onload = () => {
+            const dataUrl = reader.result as string;
+            const base64 = dataUrl.split(',')[1];
+            const name = file.name || `image-${Date.now()}.${file.type.split('/')[1]}`;
+            setPendingImages(prev => [...prev, { data: base64, mimeType: file.type, name }]);
+        };
+        reader.readAsDataURL(file);
+    }
+}, []);
+```
+
+### 1.4 sendPrompt Changes
+
+**Where:** `App.tsx` — existing `sendPrompt()` function
+
+**Changes required:**
+1. Allow sending when `pendingImages.length > 0` even if text is empty
+2. Attach `images` to the user message added to `messages` state
+3. Build `attachments` array from `pendingImages`
+4. Clear `pendingImages` after send
+5. Include `attachments` in the WS `prompt` message
+
+**Upstream reference:** `App.tsx:2416-2442`
+
+```typescript
+// Guard change:
+if (!prompt && pendingImages.length === 0) return;
+
+// Message with images:
+{ id: `msg-${Date.now()}`, role: 'user', content: prompt, timestamp: Date.now(),
+  images: pendingImages.length > 0
+    ? pendingImages.map(img => `data:${img.mimeType};base64,${img.data}`)
+    : undefined },
+
+// WS payload:
+const attachments = pendingImages.length > 0
+  ? pendingImages.map(img => ({ type: 'blob' as const, data: img.data, mimeType: img.mimeType, displayName: img.name }))
+  : undefined;
+setPendingImages([]);
+wsRef.current?.send(JSON.stringify({ type: 'prompt', content: prompt, attachments }));
+```
+
+### 1.5 InputBar.tsx Changes
+
+**New props to add to `InputBarProps`:**
+
+```typescript
+pendingImages: Array<{ data: string; mimeType: string; name: string }>;
+onRemoveImage: (index: number) => void;
+onAddImageFiles: (files: FileList | File[]) => void;
+isDraggingImage: boolean;
+onDragStateChange: (dragging: boolean) => void;
+fileInputRef: React.RefObject<HTMLInputElement>;
+```
+
+**New UI elements inside InputBar:**
+
+1. **Image preview strip** — above textarea, shows thumbnails with remove buttons
+   - Upstream: `App.tsx:4154-4163`
+2. **Paste handler** — `onPaste` on textarea intercepts image clipboard items
+   - Upstream: `App.tsx:4181-4191`
+3. **Drag/drop handlers** — `onDragOver`, `onDragLeave`, `onDrop` on the form element
+   - Upstream: `App.tsx:4093-4098`
+4. **File picker button** — hidden `<input type="file" accept="image/*">` + camera icon button
+   - Upstream: `App.tsx:4219-4235`
+5. **Visual drag feedback** — dashed border when dragging images over
+   - Upstream: `App.tsx:4083-4085`
+6. **Send button disabled state** — also check `pendingImages.length === 0`
+   - Upstream: `App.tsx:4240`
+
+**New icon needed in Icons.tsx:**
+
+```typescript
+export function ImageIcon({ size, ...props }: IconProps) {
+    return (
+        <svg {...defaults(size)} {...props}>
+            <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+            <circle cx="8.5" cy="8.5" r="1.5" />
+            <path d="M21 15l-5-5L5 21" />
+        </svg>
+    );
+}
+```
+
+### 1.6 ChatMessageList.tsx Changes
+
+**User message rendering** — add image thumbnails above message text:
+
+```tsx
+{msg.images && msg.images.length > 0 && (
+    <div className="flex gap-2 mb-2 flex-wrap">
+        {msg.images.map((src, i) => (
+            <img key={i} src={src} alt="Attached"
+                className="rounded-lg cursor-pointer hover:opacity-80 transition-opacity"
+                style={{ maxHeight: 150, maxWidth: '100%', objectFit: 'contain' }}
+                onClick={() => onImageClick?.(src)} />
+        ))}
+    </div>
+)}
+```
+
+**New prop:** `onImageClick?: (src: string) => void` — calls up to App.tsx's `setLightboxImage`
+
+**Upstream reference:** `App.tsx:3881-3886`
+
+**`visibleMessages` filter** — update to include image-only messages:
+
+```typescript
+const visibleMessages = messages.filter(m => m.content.trim() || m.toolSummary?.length || m.images?.length);
+```
+
+### 1.7 Lightbox Component
+
+**Option A (recommended):** New standalone component `webui/src/components/Lightbox.tsx`
+
+```tsx
+export function Lightbox({ src, onClose }: { src: string; onClose: () => void }) {
+    return (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4"
+             style={{ background: 'rgba(0,0,0,0.85)' }}
+             onClick={onClose}>
+            <img src={src} alt="Full size" className="rounded-lg"
+                 style={{ maxWidth: '95vw', maxHeight: '90vh', objectFit: 'contain' }}
+                 onClick={(e) => e.stopPropagation()} />
+        </div>
+    );
+}
+```
+
+**Rendered in App.tsx** at the top-level (portal-style, above all other content).
+
+**Upstream reference:** `App.tsx:3209-3216`
+
+### 1.8 History Replay with Images
+
+**Backend `session.ts`** — history replay already maps `attachments` to `images`:
+
+```typescript
+images: ((raw.data as { attachments?: Array<{ type: string; data: string; mimeType?: string }> })?.attachments ?? [])
+    .filter(a => a.type === 'blob' && a.data)
+    .map(a => `data:${a.mimeType ?? 'image/png'};base64,${a.data}`),
+```
+
+**Upstream reference:** `session.ts:358-360`
+
+**Current squad-uplink `session.ts`:** Does NOT have this mapping. Must add to the history replay event construction in `onUserMessage()` or wherever history events are built.
+
+### 1.9 Backend: server.ts Changes
+
+**WS prompt handler** — parse `attachments` from incoming WS message and pass to `session.send()`:
+
+```typescript
+// Current (server.ts:314):
+if (msg.type === 'prompt' && msg.content) {
+
+// Change to:
+if (msg.type === 'prompt' && (msg.content || msg.attachments?.length)) {
+    const prompt = msg.content || '';
+    const attachments = msg.attachments as Array<{ type: 'blob'; data: string; mimeType: string; displayName?: string }> | undefined;
+    handle.send(prompt, attachments).catch(...)
+```
+
+**Upstream reference:** `server.ts:305-311`
+
+### 1.10 Backend: session.ts Changes
+
+**`send()` method signature** — already accepts `attachments` parameter in upstream:
+
+```typescript
+async send(prompt: string, attachments?: Array<{ type: 'blob'; data: string; mimeType: string; displayName?: string }>): Promise<void>
+```
+
+Current squad-uplink `session.ts` send method needs this parameter added and forwarded to `this.session.send({ prompt, attachments })`.
+
+**Upstream reference:** `session.ts:587-610`
+
+**Event type union** — add `'context_usage'` to the broadcast type discriminant (line 104 in local).
+
+### 1.11 Implementation Order
+
+```
+1. Types (Message.images)           — no deps
+2. Backend session.ts send()        — no deps
+3. Backend server.ts prompt handler — depends on #2
+4. Icons.tsx (ImageIcon)             — no deps
+5. Lightbox component               — no deps
+6. App.tsx state + addImageFiles     — depends on #1
+7. InputBar.tsx (paste/drag/picker)  — depends on #4, #6
+8. ChatMessageList.tsx (images)      — depends on #1, #5
+9. History replay (session.ts)       — depends on #1
+```
+
+---
+
+## Feature 2: Context Window Usage Bar (MEDIUM PRIORITY)
+
+### 2.1 New State
+
+**Where:** `App.tsx`
+
+```typescript
+const [contextUsage, setContextUsage] = useState<{
+    tokenLimit: number;
+    currentTokens: number;
+    systemTokens: number;
+    conversationTokens: number;
+    toolDefinitionsTokens: number;
+} | null>(null);
+```
+
+**Upstream reference:** `App.tsx:1195`
+
+### 2.2 WS Event Handling
+
+**Where:** `App.tsx` — event dispatch switch/if-chain
+
+Add handler for `context_usage` event (currently missing from local):
+
+```typescript
+if (event.type === 'context_usage') {
+    try {
+        const d = JSON.parse(event.content ?? '{}');
+        setContextUsage(d);
+    } catch {}
+    return;
+}
+```
+
+**Upstream reference:** `App.tsx:1586-1589`
+
+**Session usage handler** (already exists at local line 1194) — no changes needed.
+
+### 2.3 Clear on Session Switch / Draft Mode
+
+**Where:** `App.tsx` — session reset callbacks
+
+Add `setContextUsage(null)` alongside existing state resets in:
+- `enterNoSession()` flow
+- `switchSession()` flow
+- `newSession()` / draft mode entry
+
+**Upstream reference:** `App.tsx:2110, 2148`
+
+### 2.4 New Component: `ContextUsageBar.tsx`
+
+**Recommended:** Extract to `webui/src/components/ContextUsageBar.tsx`
+
+```tsx
+interface ContextUsageBarProps {
+    contextUsage: {
+        tokenLimit: number;
+        currentTokens: number;
+        systemTokens: number;
+        conversationTokens: number;
+        toolDefinitionsTokens: number;
+    };
+}
+
+export function ContextUsageBar({ contextUsage }: ContextUsageBarProps) {
+    const { tokenLimit, currentTokens, systemTokens, conversationTokens, toolDefinitionsTokens } = contextUsage;
+    const systemTotal = systemTokens + toolDefinitionsTokens;
+    const free = tokenLimit - currentTokens;
+    const pct = Math.round(currentTokens / tokenLimit * 100);
+    const sysPct = Math.round(systemTotal / tokenLimit * 100);
+    const convPct = Math.round(conversationTokens / tokenLimit * 100);
+    const freePct = Math.round(free / tokenLimit * 100);
+
+    return (
+        <div className="px-3 py-1.5 text-xs"
+             style={{ background: 'var(--bg)', border: '1px solid var(--border)',
+                      borderBottom: 'none', borderRadius: '0.5rem 0.5rem 0 0',
+                      color: 'var(--text-muted)' }}>
+            <div className="flex items-center justify-between mb-1">
+                <span>Context: {pct}%</span>
+                <span className="font-mono">
+                    {(currentTokens / 1000).toFixed(0)}k / {(tokenLimit / 1000).toFixed(0)}k
+                </span>
+            </div>
+            <div className="flex rounded-full overflow-hidden" style={{ height: 6, background: 'var(--border)' }}>
+                <div style={{ width: `${sysPct}%`, background: 'var(--accent)', opacity: 0.6 }}
+                     title={`System/Tools: ${sysPct}%`} />
+                <div style={{ width: `${convPct}%`, background: 'var(--primary)' }}
+                     title={`Messages: ${convPct}%`} />
+            </div>
+            <div className="flex gap-3 mt-1" style={{ fontSize: 10 }}>
+                <span><span style={{ color: 'var(--accent)', opacity: 0.6 }}>█</span> System {sysPct}%
+                    <span className="font-mono"> {(systemTotal / 1000).toFixed(0)}k</span></span>
+                <span><span style={{ color: 'var(--primary)' }}>█</span> Messages {convPct}%
+                    <span className="font-mono"> {(conversationTokens / 1000).toFixed(0)}k</span></span>
+                <span><span style={{ color: 'var(--border)' }}>█</span> Free {freePct}%
+                    <span className="font-mono"> {(free / 1000).toFixed(0)}k</span></span>
+            </div>
+        </div>
+    );
+}
+```
+
+**Upstream reference:** `App.tsx:843-869`
+
+### 2.5 Rendering Location
+
+The context bar renders **above the model picker button** in the bottom toolbar area. In squad-uplink's layout, this is inside the `PipBoyLayout` or the footer bar in `App.tsx`.
+
+**Conditions:** Only show when `contextUsage && contextUsage.tokenLimit > 0 && !draft`
+
+**Model picker border radius adjustment:** When the context bar is visible above the model button, the model button loses its top border-radius (becomes `0 0 0.5rem 0.5rem`). The context bar takes `0.5rem 0.5rem 0 0`.
+
+**Upstream reference:** `App.tsx:872` (dynamic borderRadius)
+
+### 2.6 Backend: session.ts
+
+**Already exists:** The `onSessionUsageInfo()` handler broadcasts `context_usage` events. The local `session.ts` already has `session_usage` (line 1426), but needs `context_usage` added.
+
+**Check:** The upstream `session.ts:1443` calls:
+```typescript
+this.broadcast({ type: 'context_usage', content: JSON.stringify(d) });
+```
+
+This is emitted by `onSessionUsageInfo()` which handles the `session.usage_info` SDK event. Verify squad-uplink's `session.ts` has this handler in its `eventHandlers` map. If missing, add:
+
+```typescript
+'session.usage_info': (d) => this.onSessionUsageInfo(d),
+```
+
+And the handler:
+```typescript
+private onSessionUsageInfo(data: unknown): void {
+    const d = data as { tokenLimit?: number; currentTokens?: number; systemTokens?: number;
+                        conversationTokens?: number; toolDefinitionsTokens?: number; messagesLength?: number };
+    this.broadcast({ type: 'context_usage', content: JSON.stringify(d) });
+}
+```
+
+**Also update the event type union** in `session.ts:104` to include `'context_usage'`.
+
+### 2.7 Implementation Order
+
+```
+1. Backend session.ts (context_usage broadcast)  — no deps
+2. App.tsx state + event handler                  — depends on #1
+3. ContextUsageBar component                      — no deps
+4. App.tsx rendering (wire component)              — depends on #2, #3
+5. Clear on session switch                         — depends on #2
+```
+
+---
+
+## Feature 3: UI Polish (LOWER PRIORITY)
+
+### 3.1 Warning Count Accumulation
+
+**Current (local App.tsx:1530-1533):**
+```typescript
+} else if (event.type === 'warning' || event.type === 'info') {
+    setNotification({ type: event.type, message: event.content ?? '' });
+```
+
+**Change to (upstream App.tsx:1930-1938):**
+```typescript
+} else if (event.type === 'warning' || event.type === 'info') {
+    setNotification(prev => {
+        if (prev && prev.type === event.type && prev.message === (event.content ?? '')) {
+            return { ...prev, count: (prev.count ?? 1) + 1 };
+        }
+        return { type: event.type, message: event.content ?? '' };
+    });
+    // Info messages auto-dismiss; warnings persist until next user message
+    if (event.type === 'info' && !(event as { action?: unknown }).action) {
+        setTimeout(() => setNotification(null), NOTIFICATION_DISMISS_MS);
+    }
+}
+```
+
+**Also update the notification state type** (local line 807):
+```typescript
+// Add count field:
+const [notification, setNotification] = useState<{
+    type: 'warning' | 'info';
+    message: string;
+    action?: { label: string; onClick: () => void };
+    count?: number;  // NEW
+} | null>(null);
+```
+
+**Notification render** (local line 3248) — add count display:
+```tsx
+{notification.message}{notification.count && notification.count > 1 ? ` (×${notification.count})` : ''}
+```
+
+**Warning/info dismiss behavior:**
+- Warnings: persist until next user message (clear in `sendPrompt`)
+- Info without action: auto-dismiss after `NOTIFICATION_DISMISS_MS`
+- Currently local dismisses both equally — upstream differentiates
+
+**Upstream reference:** `App.tsx:1930-1938, 3953`
+
+### 3.2 Clear Notification on Send
+
+**Where:** `App.tsx` — `sendPrompt()`
+
+Add `setNotification(null)` when user sends a message (dismisses accumulated warnings).
+
+**Upstream reference:** `App.tsx:2431`
+
+### 3.3 Session Name Fade Effect
+
+**Where:** `SessionPicker.tsx` or the session title bar in the main layout
+
+The upstream uses a CSS gradient fade on truncated session names in the session picker. This is a CSS-only change — add `mask-image: linear-gradient(to right, black 85%, transparent)` on the session name container when text overflows.
+
+**Upstream reference:** `App.tsx:659` area — session name bar with click-to-rename + fade
+
+### 3.4 Model Picker Improvements
+
+**Current state:** Squad-uplink already has a model picker. The upstream improvements include:
+- Dynamic border-radius coordination with context bar (covered in Feature 2)
+- Close-on-click-outside behavior
+- Dropdown positioning refinements
+
+**Where:** `App.tsx` — model picker section. These are incremental CSS/behavior changes, not new architecture.
+
+### 3.5 Notification Dismiss Button
+
+**Current render** (local line 3258-3263): Already has dismiss button `✕`
+
+**Upstream change:** The dismiss button only shows when `notification.action` is present (the action button row includes both the action button and a dismiss button). For actionless notifications, auto-dismiss handles it.
+
+**Upstream reference:** `App.tsx:3963-3968`
+
+### 3.6 Implementation Order
+
+```
+1. Notification type + count accumulation  — no deps, small change
+2. Warning vs info dismiss behavior        — depends on #1
+3. Clear notification on send              — trivial, no deps
+4. Session name fade (CSS)                 — no deps
+5. Model picker border coordination        — depends on Feature 2
+```
+
+---
+
+## Cross-Feature Dependencies
+
+```
+Feature 1 (Images) ──────────────────────────── independent
+Feature 2 (Context Bar) ────────────────────── independent
+Feature 3 (UI Polish) ──────────────────────── #3.5 depends on Feature 2
+
+Feature 1 and Feature 2 can be developed in parallel.
+Feature 3 can be developed in parallel with both.
+```
+
+## Recommended Execution Order
+
+| Phase | Work Item | Owner | Est. Complexity |
+|-------|-----------|-------|-----------------|
+| **Phase 1A** | Image types + backend (1.1, 1.2, 1.9, 1.10) | Woz | Medium |
+| **Phase 1B** | Image UI — InputBar + Lightbox + ChatMessageList (1.5–1.8) | Kare | Medium |
+| **Phase 1C** | Image icon (1.5 icon) | Kare | Trivial |
+| **Phase 2A** | Context bar backend (2.6) | Woz | Small |
+| **Phase 2B** | Context bar component + wiring (2.1–2.5) | Kare | Medium |
+| **Phase 3** | Notification polish (3.1–3.5) | Woz or Kare | Small |
+| **Testing** | E2E: paste image, drag image, lightbox, context bar values | Hertzfeld | Medium |
+
+## Files Modified (Summary)
+
+### Frontend
+| File | Changes |
+|------|---------|
+| `webui/src/App.tsx` | State: pendingImages, lightboxImage, isDraggingImage, contextUsage. Callbacks: addImageFiles. Event handlers: context_usage. Send: attachments. Notification: count field. |
+| `webui/src/components/InputBar.tsx` | New props: image-related. New UI: paste handler, drag/drop, file picker button, image preview strip. |
+| `webui/src/components/ChatMessageList.tsx` | Message type: images field. Render: image thumbnails. New prop: onImageClick. |
+| `webui/src/components/Icons.tsx` | New: ImageIcon |
+| `webui/src/components/Lightbox.tsx` | **NEW FILE** — fullscreen image overlay |
+| `webui/src/components/ContextUsageBar.tsx` | **NEW FILE** — token usage progress bar |
+
+### Backend
+| File | Changes |
+|------|---------|
+| `src/session.ts` | send() signature: add attachments param. New handler: onSessionUsageInfo → context_usage broadcast. Event type union: add 'context_usage'. History replay: map attachments to images. |
+| `src/server.ts` | WS prompt handler: parse attachments from message, forward to send(). Guard: allow image-only prompts. |
+
+---
+
+## Design Principles (Jobs's Call)
+
+1. **Images are first-class.** Don't gate them behind a feature flag. Mobile camera input is table stakes.
+2. **Context bar is information, not interaction.** Read-only display. Don't add buttons or controls to it.
+3. **The lightbox is its own component.** Don't nest it inside ChatMessageList. It's a portal-level overlay rendered from App.tsx.
+4. **InputBar owns drag/drop UX** but App.tsx owns the image state. InputBar calls up through props. Clean separation.
+5. **No new hooks for this.** The state is simple enough to live in App.tsx. A `useImageAttachments` hook would be premature abstraction.
+6. **Warning accumulation is a one-line win.** Ship it first since it improves UX immediately with almost no risk.
+
+
+---
+
+# Frontend Port: v0.6.1 Image Support, Context Bar, Notification Accumulation
+
+**Author:** Kare (Frontend Dev)
+**Date:** 2026-04-28
+**Scope:** Upstream feature port from copilot-portal v0.6.1
+
+## Decision
+
+Ported three feature groups from upstream monolithic App.tsx into squad-uplink's decomposed architecture:
+
+### 1. Image Support (HIGH PRIORITY)
+- Added `images?: string[]` to Message interface in both App.tsx and ChatMessageList.tsx
+- New state: `pendingImages`, `lightboxImage`, `isDraggingImage`, `fileInputRef`
+- `addImageFiles` callback reads files as base64 data URIs
+- `sendPrompt` attaches images as WS `attachments` array and embeds data URIs in user messages
+- InputBar.tsx: paste handler, drag/drop, image preview strip with remove buttons, file picker button
+- ChatMessageList.tsx: renders image thumbnails in user messages, clickable for lightbox
+- New: `Lightbox.tsx` — full-screen image overlay
+- New: `ImageIcon` in Icons.tsx
+
+### 2. Context Window Usage Bar (MEDIUM PRIORITY)
+- New state: `contextUsage` with token breakdown
+- WS handler for `context_usage` event
+- New: `ContextUsageBar.tsx` — segmented bar showing system/messages/free percentages
+- Rendered in SessionDrawer above model picker, with connected border radius
+
+### 3. Notification Accumulation (LOWER PRIORITY)
+- Notification handler now uses functional `setNotification(prev => ...)` to accumulate duplicate counts
+- Added `count?: number` to notification state type
+- Display shows `(×N)` for repeated warnings
+- Warnings persist until next user message; info auto-dismisses after timeout
+
+## Architecture Note
+
+Changes are applied to both the inline App.tsx code AND the decomposed component files (InputBar.tsx, ChatMessageList.tsx). This maintains dual compatibility until the full decomposition wiring is complete.
+
+
+---
+
+# Decision: Backend Image Attachment & Context Usage Port (v0.6.1)
+
+**Author:** Woz
+**Date:** 2026-04-28
+**Scope:** session.ts, server.ts — backend only
+
+## What Changed
+
+Ported 4 upstream features into squad-uplink backend:
+
+1. **Image attachments in `send()`** — `SessionHandle.send()` now accepts an optional `attachments` array and forwards to the SDK. The WS handler parses `msg.attachments` and allows image-only prompts (no text required).
+
+2. **`context_usage` event** — New `onSessionUsageInfo()` handler listens for `session.usage_info` SDK events and broadcasts token usage data (tokenLimit, currentTokens, systemTokens, etc.) as `context_usage` events.
+
+3. **History replay images** — User message history now extracts blob attachments and maps them to `data:` URIs on the `images` field, so the frontend can display them.
+
+4. **`PortalEvent` type updates** — Added `'context_usage'` to the event type union and `images?: string[]` to the interface.
+
+## Frontend Impact
+
+Kare: The backend now emits two new things the frontend should handle:
+- `context_usage` events with token usage JSON in `content`
+- `images` array on `history_user` events containing `data:image/...` URIs
+
+## Testing Impact
+
+Hertzfeld: New test coverage needed for:
+- `send()` with attachments parameter
+- `context_usage` broadcast from `session.usage_info` events
+- History replay image extraction
+- WS prompt handler with image-only messages
+

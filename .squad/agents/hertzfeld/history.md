@@ -41,3 +41,17 @@ Your Findings (Hertzfeld, Tester)
 - P0 Priority: RulesStore, SquadReader, auth. P1: session mgmt, agent selection. Coverage ceiling 55-65%.
 Vitest config provided (root + webui). Mocking strategy documented.
 
+### 2025-07-27 — Tests for Upstream v0.6.1 Port (Image, Context Bar, Notifications)
+
+**What I did:** Wrote 96 new tests across 4 test files for the 3 features being ported from copilot-portal v0.6.1. All 169 tests pass (73 existing + 96 new).
+
+**Test files created:**
+- `tests/notification-logic.test.ts` (21 tests) — notification accumulation state machine, count display formatting, auto-dismiss behavior (info vs warning), warning persistence until send
+- `tests/context-usage-bar.test.ts` (21 tests) — token percentage calculations, edge cases (0%, 100%, very small, 1M context), formatting, visibility conditions, rounding behavior
+- `tests/image-support.test.ts` (44 tests) — image file processing, canSend with images, WS payload building, message image URIs, remove-by-index, visibility filter with image-only messages, history replay attachment mapping, end-to-end flow simulations
+- `tests/lightbox.test.ts` (10 tests) — open/close state, backdrop vs image click handling, lifecycle transitions
+
+**Pattern followed:** Extracted logic into standalone testable functions matching the existing project pattern (auth.test.ts, permissions.test.ts). Tests validate algorithms independently of React DOM, so they pass NOW and will continue passing as components are built by Woz and Kare.
+
+**Key decision:** Used pure logic extraction instead of React Testing Library. Rationale: (1) webui has no test deps (no jsdom, no RTL), (2) features don't exist yet so imports would fail, (3) matches existing project convention. Component-level RTL tests should be added after UI lands.
+

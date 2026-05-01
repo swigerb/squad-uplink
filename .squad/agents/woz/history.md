@@ -41,3 +41,14 @@ Your Findings (Woz, Backend Dev)
 - Moderate: F2-F7 fixes (content, timeout, callbacks) - ALL FIXED
 All 7 bugfixes verified. Build passes cleanly.
 
+### Port Backend from Upstream v0.6.1 — Image Attachments & Context Usage
+
+Ported 4 features from upstream copilot-portal into squad-uplink backend:
+
+1. **session.ts — `send()` image attachments**: Added optional `attachments` parameter to `send()`. Forwarded to SDK's `session.send({ prompt, attachments })`. Updated log line to include attachment count.
+2. **session.ts — `context_usage` event**: Added `onSessionUsageInfo()` handler for `session.usage_info` SDK events. Broadcasts `context_usage` with token limit/usage data. Added to `eventHandlers` map. Added `'context_usage'` to the `PortalEvent` type union.
+3. **session.ts — History replay images**: When replaying `user.message` history, image attachments are now extracted and mapped to `data:` URIs on the `images` field. Added `images?: string[]` to `PortalEvent` interface.
+4. **server.ts — WS prompt handler**: Expanded prompt guard to accept image-only prompts (`msg.content || msg.attachments?.length`). Parses and forwards `attachments` to `handle.send()`. Added `approveAll` to the msg parse type (was previously used but untyped). Updated log to show attachment count.
+
+Build verified clean — no new type errors introduced.
+
