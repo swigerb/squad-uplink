@@ -68,3 +68,29 @@ Vitest config provided (root + webui). Mocking strategy documented.
 - Critical missing categories: HTTP/WS integration tests, SDK/session event tests, hook tests, error boundary tests, accessibility tests, and real coverage thresholds.
 
 **Decision:** Wrote critical gap report to `.squad/decisions/inbox/hertzfeld-test-coverage-gaps.md`.
+
+### 2026-05-01T13:57:52-04:00 — WebUI Test Infrastructure + 51 Component Tests
+
+**What I did:** Built complete WebUI test infrastructure from zero and wrote 51 tests across 7 test files — the first React Testing Library coverage for this project.
+
+**Phase 1 — Infrastructure:**
+- Installed `@vitest/coverage-v8`, `@testing-library/react`, `@testing-library/jest-dom`, `@testing-library/user-event`, `jsdom` in webui
+- Created `webui/vitest.config.ts` with jsdom environment, globals, setup file, v8 coverage (50% thresholds)
+- Created `webui/src/test-setup.ts` with jest-dom matchers, `window.matchMedia` mock, WebSocket global mock, `navigator.clipboard` mock, `document.execCommand` mock
+
+**Phase 2 — Tests (51 passing):**
+- `ConfirmDialog.test.tsx` (11) — open/close render, default/custom title & buttons, confirm/cancel callbacks, backdrop click, stopPropagation on inner dialog, Escape key, focus management
+- `Lightbox.test.tsx` (6) — image src/alt, backdrop close, click stopPropagation, overlay styling, viewport constraints
+- `SquadPanel.test.tsx` (10) — open/close, ARIA dialog attrs, data fetching (3 endpoints), tabs, backdrop/close button, error state, empty files state, non-ok responses
+- `ContextUsageBar.test.tsx` (8) — percentage display, token counts, system/conversation/free breakdown, 0%/100% edge cases, progress bar segments
+- `ErrorBoundary.test.tsx` (4) — renders children, catches errors with message, custom fallback, Try Again button
+- `clipboard.test.ts` (5) — writeText API, execCommand fallback, rich clipboard write, fallback on write failure, empty string
+- `constants.test.ts` (4) — all positive numbers, heartbeat timeout < interval, short < standard dismiss, timing contracts
+
+**Key decisions:**
+- Mocked `react-markdown`, `remark-gfm`, `remark-breaks` in SquadPanel tests — remark plugins don't work in jsdom
+- Mocked global `fetch` in SquadPanel tests, not individual API functions — tests the real `apiFetch` auth header logic
+- Created separate `webui/vitest.config.ts` rather than extending `vite.config.ts` — avoids importing `fs`/`module` which break in jsdom
+- Used `ClipboardItem` mock for rich clipboard tests — jsdom doesn't implement the Clipboard API
+- Did NOT test hooks being deleted by Kare (useWebSocket, useSessionManager) per task instructions
+- All tests use behavior-based assertions, not implementation details — resilient to parallel refactors
