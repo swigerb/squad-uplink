@@ -1,18 +1,18 @@
-# Open WebUI vs Copilot Portal
+# Open WebUI vs Squad Uplink
 
-Comparison of [Open WebUI](https://github.com/open-webui/open-webui) and Copilot Portal — both are self-hosted web UIs for AI, but for very different use cases.
+Comparison of [Open WebUI](https://github.com/open-webui/open-webui) and Squad Uplink — both are self-hosted web UIs for AI, but for very different use cases.
 
 ## What Is Open WebUI?
 
 Open WebUI (132K GitHub stars) is a **self-hosted ChatGPT-like interface** for any AI model. It connects to Ollama (local models), OpenAI, Anthropic, and any OpenAI-compatible API. It's designed for teams, with multi-user auth, knowledge bases, RAG, tools, plugins, and admin dashboards. Think of it as a private, extensible alternative to ChatGPT.
 
-## What Is Copilot Portal?
+## What Is Squad Uplink?
 
-Copilot Portal is a **mobile-friendly web UI specifically for GitHub Copilot CLI**. It connects to the Copilot CLI agent running on your machine, providing a browser interface for coding sessions — send messages, approve tool actions, apply guides, manage sessions. It's a single-user developer tool.
+Squad Uplink is a **mobile-friendly web UI specifically for GitHub Copilot CLI**. It connects to the Copilot CLI agent running on your machine, providing a browser interface for coding sessions — send messages, approve tool actions, apply guides, manage sessions. It's a single-user developer tool.
 
 ## They Solve Different Problems
 
-| | Open WebUI | Copilot Portal |
+| | Open WebUI | Squad Uplink |
 |---|---|---|
 | **Primary purpose** | General AI chat interface (ChatGPT replacement) | Remote control for Copilot CLI coding sessions |
 | **AI backend** | Any model (Ollama, OpenAI, Anthropic, local, etc.) | GitHub Copilot only |
@@ -32,7 +32,7 @@ AI Providers (Ollama / OpenAI / Anthropic / vLLM / etc.)
   + Vector DB (ChromaDB / PGVector / Qdrant / etc.)
 ```
 
-### Copilot Portal
+### Squad Uplink
 ```
 Browser / PWA
   ↕ WebSocket

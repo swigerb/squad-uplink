@@ -1,6 +1,6 @@
-# Termote vs Copilot Portal
+# Termote vs Squad Uplink
 
-Comparison of [Termote](https://github.com/lamngockhuong/termote) and Copilot Portal — both provide remote terminal access from mobile, but with different approaches.
+Comparison of [Termote](https://github.com/lamngockhuong/termote) and Squad Uplink — both provide remote terminal access from mobile, but with different approaches.
 
 ## What Is Termote?
 

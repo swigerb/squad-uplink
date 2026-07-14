@@ -6,8 +6,7 @@ import * as https from 'node:https';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { exec } from 'node:child_process';
-import { getGitHubToken } from './github-token.js';
+import { exec, execSync } from 'node:child_process';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PROJECT_ROOT = path.join(__dirname, '..');
@@ -39,8 +38,20 @@ export interface UpdateStatus {
 /** Packages to monitor for updates */
 const TRACKED_PACKAGES = ['@github/copilot-sdk'] as const;
 
-/** How often to auto-check (ms) — default 4 hours, configurable via SQUAD_UPDATE_INTERVAL */
-const CHECK_INTERVAL_MS = parseInt(process.env.SQUAD_UPDATE_INTERVAL || String(4 * 60 * 60 * 1000), 10);
+/**
+ * The PUBLIC npm registry — the authoritative source of "latest" for the
+ * @github toolchain packages. We query and install from this explicitly rather
+ * than npm's configured registry: this machine's npm is routed through a
+ * corporate mirror (`packagefeedproxy.microsoft.io`) that can LAG the public
+ * registry (it lacked 1.0.70 while npmjs had it) or point its `latest` dist-tag
+ * at a prerelease. The contract is simple: whatever npmjs marks `latest` IS the
+ * latest release, and we install that exact version from the same registry so
+ * the check and the install can never disagree (the ETARGET class of failure).
+ */
+const PUBLIC_NPM_REGISTRY = 'https://registry.npmjs.org';
+
+/** How often to auto-check (ms) — 4 hours */
+const CHECK_INTERVAL_MS = 4 * 60 * 60 * 1000;
 
 export class UpdateChecker {
 	private packages: PackageUpdate[] = [];
@@ -54,7 +65,6 @@ export class UpdateChecker {
 	private log: (msg: string) => void;
 	/** Versions at process start — if on-disk versions differ after an apply, restart is needed */
 	private startupVersions: Record<string, string> = {};
-	private hasLoggedVersions = false;
 	private repoOwner: string;
 	private repoName: string;
 
@@ -98,9 +108,19 @@ export class UpdateChecker {
 			lastChecked: this.lastChecked,
 			checking: this.checking,
 			applying: this.applying,
-			restartNeeded: this.isRestartNeeded(),
+			// Never surface "restart needed" while an apply is still running — npm
+			// install rewrites the on-disk version BEFORE `npm run build` finishes,
+			// which would otherwise pop the Restart button mid-build (and a restart
+			// there corrupts node_modules/dist). Only report it once we're idle.
+			restartNeeded: this.applying ? false : this.isRestartNeeded(),
 			error: this.error,
 		};
+	}
+
+	/** True while an update (packages or portal) is being applied. Single source
+	 *  of truth used to hard-gate every restart path. */
+	isBusy(): boolean {
+		return this.applying;
 	}
 
 	/** True if on-disk versions differ from what this process loaded at startup */
@@ -125,20 +145,17 @@ export class UpdateChecker {
 		this.error = null;
 		try {
 			const results: PackageUpdate[] = [];
-			const versionChecks = TRACKED_PACKAGES.map(async (name) => {
+			for (const name of TRACKED_PACKAGES) {
 				const installed = getInstalledVersion(name);
 				const latest = await fetchLatestVersion(name, this.log);
 				const hasUpdate = !!(installed && latest && latest !== installed && isNewer(latest, installed));
-				return { name, installed: installed ?? 'unknown', latest: latest ?? 'unknown', hasUpdate };
-			});
+				results.push({ name, installed: installed ?? 'unknown', latest: latest ?? 'unknown', hasUpdate });
+			}
 			// Also check the CLI binary version (bundled as @github/copilot via copilot-sdk)
-			const cliCheck = (async () => {
-				const cliInstalled = getInstalledVersion('@github/copilot');
-				const cliLatest = await fetchLatestVersion('@github/copilot', this.log);
-				const cliHasUpdate = !!(cliInstalled && cliLatest && cliLatest !== cliInstalled && isNewer(cliLatest, cliInstalled));
-				return { name: '@github/copilot', installed: cliInstalled ?? 'unknown', latest: cliLatest ?? 'unknown', hasUpdate: cliHasUpdate };
-			})();
-			results.push(...await Promise.all([...versionChecks, cliCheck]));
+			const cliInstalled = getInstalledVersion('@github/copilot');
+			const cliLatest = await fetchLatestVersion('@github/copilot', this.log);
+			const cliHasUpdate = !!(cliInstalled && cliLatest && cliLatest !== cliInstalled && isNewer(cliLatest, cliInstalled));
+			results.push({ name: '@github/copilot', installed: cliInstalled ?? 'unknown', latest: cliLatest ?? 'unknown', hasUpdate: cliHasUpdate });
 
 			this.packages = results;
 			this.lastChecked = Date.now();
@@ -149,13 +166,20 @@ export class UpdateChecker {
 				try {
 					const pkg = JSON.parse(fs.readFileSync(path.join(PROJECT_ROOT, 'package.json'), 'utf8'));
 					const installed = pkg.version ?? 'unknown';
-					const release = await fetchLatestRelease(this.repoOwner, this.repoName, this.log);
+					// If we're running a pre-release (e.g. -rc.N), track the pre-release
+					// channel so we see newer rc's AND the eventual final; a stable build
+					// only tracks stable releases.
+					const installedIsPre = installed.includes('-');
+					const release = await fetchLatestRelease(this.repoOwner, this.repoName, installedIsPre, this.log);
 					if (release) {
 						const latestVer = release.tag.replace(/^v/, '');
 						const hasUpdate = isNewer(latestVer, installed);
 						this.portal = { installed, latest: latestVer, hasUpdate, downloadUrl: release.zipUrl };
 						if (hasUpdate) {
 							this.log(`[Update] Portal update available: v${installed} → v${latestVer}`);
+						} else if (installedIsPre && release.latestStableTag && isNewer(installed, release.latestStableTag)) {
+							const stable = release.latestStableTag.replace(/^v/, '');
+							this.log(`[Update] Portal v${installed} is a pre-release ahead of the latest stable (v${stable})`);
 						} else {
 							this.log(`[Update] Portal v${installed} is up to date (latest: v${latestVer})`);
 						}
@@ -169,12 +193,12 @@ export class UpdateChecker {
 				this.log(`[Update] No repository configured — skipping portal update check`);
 			}
 
-			// Log installed versions on first check (startup)
-			if (!this.hasLoggedVersions) {
-				this.hasLoggedVersions = true;
-				for (const p of results) {
-					this.log(`[Version] ${p.name} ${p.installed}`);
-				}
+			// Report installed CLI/SDK versions on every check so a manual [u]pdate
+			// check answers "up to date — at what version?" (4h cadence = negligible
+			// noise). The startup [Versions] line is a one-shot boot snapshot and the
+			// only readout in container mode; these complement it per-check.
+			for (const p of results) {
+				this.log(`[Version] ${p.name} ${p.installed} (package)`);
 			}
 
 			const updatable = results.filter(p => p.hasUpdate);
@@ -200,13 +224,61 @@ export class UpdateChecker {
 		try {
 			this.log(`[Update] Applying updates...`);
 
-			// Update packages. Use `npm install pkg@latest` instead of `npm update`
-			// because npm update respects the semver range in package.json (e.g. ^0.1.32
-			// won't update to 0.2.0). Install @latest forces the newest version.
-			const updatable = this.packages.filter(p => p.hasUpdate).map(p => `${p.name}@latest`);
-			if (updatable.length > 0) {
-				await runCommand(`npm install --no-fund --no-audit ${updatable.join(' ')}`, PROJECT_ROOT);
+			// Re-check right before installing. The cached `hasUpdate` flags can be stale:
+			// the user may have waited days since the last check (a newer version may be
+			// out now), or — as happened with @github/copilot 1.0.70 — a version can be
+			// UNPUBLISHED from npm AFTER we detected it, rolling the `latest` dist-tag
+			// backward. Acting on the stale flag runs `npm install @latest` against a
+			// target that no longer satisfies our pin → a scary ETARGET. A fresh check
+			// re-resolves against npm's CURRENT `latest`, so we install what's actually
+			// installable now (grabbing an even-newer drop), or cleanly no-op if the
+			// offered update evaporated.
+			await this.check();
+
+			// Install the EXACT version the public registry marks as `latest`,
+			// pinned — not the moving `@latest` tag — and from that same public
+			// registry. Pinning + a fixed registry means we install precisely
+			// what the pre-flight check just resolved as installable, so the
+			// check and install can't disagree (the ETARGET class of failure).
+			// An explicit version also bypasses the package.json semver range.
+			const targets = this.packages
+				.filter(p => p.hasUpdate && p.latest && p.latest !== 'unknown')
+				.map(p => ({ name: p.name, version: p.latest }));
+			if (targets.length > 0) {
+				const specs = targets.map(t => `${t.name}@${t.version}`).join(' ');
+				await runCommand(`npm install --no-fund --no-audit --registry=${PUBLIC_NPM_REGISTRY} ${specs}`, PROJECT_ROOT);
 				this.log(`[Update] npm install complete`);
+				process.title = 'Copilot Portal';
+
+				// Post-install verify + self-heal. npm treats its hidden lockfile
+				// (node_modules/.package-lock.json) as the source of truth for "what's
+				// installed". If the tree is DESYNCED — logical state (package.json +
+				// lockfiles) already at the target version but the physical files left
+				// behind, e.g. a prior `npm install` against a registry that lacked the
+				// target advanced the lockfile while disk stayed put — then
+				// `npm install pkg@X` is a SILENT NO-OP ("up to date", disk unchanged).
+				// The install above would then "succeed" without actually upgrading.
+				// Guard against that: re-read each package's on-disk version; for any
+				// that don't match the target, force a clean re-extract by deleting the
+				// package dir and reinstalling from the (target-pinned) lockfile.
+				const mismatched = targets.filter(t => getInstalledVersion(t.name) !== t.version);
+				if (mismatched.length > 0) {
+					for (const t of mismatched) {
+						this.log(`[Update] ${t.name} on disk is ${getInstalledVersion(t.name) ?? 'missing'}, expected ${t.version} — forcing clean re-extract`);
+						fs.rmSync(path.join(PROJECT_ROOT, 'node_modules', ...t.name.split('/')), { recursive: true, force: true });
+					}
+					await runCommand(`npm install --no-fund --no-audit --registry=${PUBLIC_NPM_REGISTRY}`, PROJECT_ROOT);
+					this.log(`[Update] Re-extract complete`);
+					process.title = 'Copilot Portal';
+					const stillWrong = mismatched.filter(t => getInstalledVersion(t.name) !== t.version);
+					if (stillWrong.length > 0) {
+						const detail = stillWrong.map(t => `${t.name} (on disk ${getInstalledVersion(t.name) ?? 'missing'}, expected ${t.version})`).join(', ');
+						throw new Error(`Update did not take effect on disk after re-extract: ${detail}`);
+					}
+					for (const t of mismatched) this.log(`[Update] ${t.name} re-extracted to ${t.version}`);
+				}
+			} else {
+				this.log(`[Update] Nothing to install — packages already at the latest release.`);
 			}
 
 			// 2. Rebuild the server and UI (skip if no build script — e.g. release packages ship pre-built)
@@ -214,6 +286,7 @@ export class UpdateChecker {
 			if (pkg.scripts?.build) {
 				await runCommand('npm run build', PROJECT_ROOT);
 				this.log(`[Update] Rebuild complete`);
+				process.title = 'Copilot Portal';
 			} else {
 				this.log(`[Update] No build script — skipping rebuild (pre-built release)`);
 			}
@@ -223,8 +296,19 @@ export class UpdateChecker {
 
 			this.log(`[Update] Update applied successfully. Restart required to use new versions.`);
 		} catch (e) {
-			this.error = String(e);
-			this.log(`[Update] Apply failed: ${this.error}`);
+			const raw = String(e);
+			if (/ETARGET|E404|No matching version|could not be found/i.test(raw)) {
+				// A version we offered was pulled from npm in the small window between our
+				// pre-flight re-check and the install (a yanked release). The installed
+				// version is untouched; the next check re-resolves against npm's current
+				// `latest`. Surface a calm, human message instead of the npm stack wall.
+				this.error = 'Update target is no longer available on npm (it may have been unpublished). Your installed version is unchanged — this usually clears on the next check.';
+				this.log(`[Update] Apply skipped: ${this.error}`);
+				this.log(`[Update] (npm detail: ${raw.split('\n').find(l => /npm error/i.test(l))?.trim() ?? raw.split('\n')[0]})`);
+			} else {
+				this.error = raw;
+				this.log(`[Update] Apply failed: ${this.error}`);
+			}
 		} finally {
 			this.applying = false;
 		}
@@ -276,43 +360,92 @@ function getInstalledVersion(name: string): string | null {
 	}
 }
 
-/** Fetch the latest published version from the npm registry */
+/**
+ * Resolve what a package's PUBLIC npm `latest` dist-tag points at.
+ *
+ * The contract (per the user): whatever the public registry marks as `latest`
+ * IS the latest release — we take it verbatim and do NO semver filtering. The
+ * version number's prerelease semantics are irrelevant; if npmjs published it as
+ * `latest`, that's the released build we compare against. We query npmjs.org
+ * explicitly (not npm's configured registry) so a lagging corporate mirror can't
+ * hide the real latest, and `apply()` installs from the same registry so the
+ * check and install can never disagree.
+ *
+ * (Copilot Portal itself is NOT resolved here — it has its own latest/rc release
+ * channels via GitHub Releases; see fetchLatestRelease.)
+ */
 function fetchLatestVersion(name: string, log?: (msg: string) => void): Promise<string | null> {
-	return new Promise((resolve) => {
-		const url = `https://registry.npmjs.org/${name}/latest`;
-		const req = https.get(url, { headers: { Accept: 'application/json' }, timeout: 10_000 }, (res) => {
-			if (res.statusCode !== 200) { log?.(`[Update] Registry returned ${res.statusCode} for ${name}`); resolve(null); res.resume(); return; }
-			let body = '';
-			res.on('data', (chunk: Buffer) => { body += chunk; });
-			res.on('end', () => {
-				try {
-					const data = JSON.parse(body);
-					resolve(data.version ?? null);
-				} catch { resolve(null); }
-			});
+	return runCommand(`npm view ${name} dist-tags.latest --registry=${PUBLIC_NPM_REGISTRY}`, PROJECT_ROOT)
+		.then((out) => {
+			const v = out.trim();
+			return v || null;
+		})
+		.catch((e) => {
+			log?.(`[Update] Could not resolve latest for ${name}: ${(e as Error).message.split('\n')[0]}`);
+			return null;
 		});
-		req.on('error', (e) => { log?.(`[Update] Network error fetching ${name}: ${(e as Error).message}`); resolve(null); });
-		req.on('timeout', () => { log?.(`[Update] Timeout fetching ${name}`); req.destroy(); resolve(null); });
-	});
 }
 
-/** Simple semver comparison: is `a` newer than `b`? (handles x.y.z format) */
-function isNewer(a: string, b: string): boolean {
-	const pa = a.replace(/^v/, '').split('.').map(Number);
-	const pb = b.replace(/^v/, '').split('.').map(Number);
-	for (let i = 0; i < Math.max(pa.length, pb.length); i++) {
-		const va = pa[i] ?? 0;
-		const vb = pb[i] ?? 0;
-		if (va > vb) return true;
-		if (va < vb) return false;
+/** Parse a semver string into its numeric core and pre-release identifiers. */
+function parseSemver(v: string): { core: number[]; pre: (string | number)[] } {
+	const clean = v.replace(/^v/, '').trim();
+	const dash = clean.indexOf('-');
+	const coreStr = dash === -1 ? clean : clean.slice(0, dash);
+	const preStr = dash === -1 ? '' : clean.slice(dash + 1);
+	const core = coreStr.split('.').map(n => parseInt(n, 10) || 0);
+	while (core.length < 3) core.push(0);
+	const pre = preStr
+		? preStr.split('.').map(id => (/^\d+$/.test(id) ? parseInt(id, 10) : id))
+		: [];
+	return { core, pre };
+}
+
+/**
+ * Compare two pre-release identifier lists per semver §11. Returns 1 if `a`
+ * has higher precedence, -1 if lower, 0 if equal. A version with NO pre-release
+ * (e.g. `0.8.0`) outranks one that has one (e.g. `0.8.0-rc.16`).
+ */
+function comparePrerelease(a: (string | number)[], b: (string | number)[]): number {
+	if (a.length === 0 && b.length === 0) return 0;
+	if (a.length === 0) return 1;  // a is a final release, higher precedence
+	if (b.length === 0) return -1; // b is a final release, higher precedence
+	const len = Math.min(a.length, b.length);
+	for (let i = 0; i < len; i++) {
+		const ai = a[i];
+		const bi = b[i];
+		if (ai === bi) continue;
+		const aNum = typeof ai === 'number';
+		const bNum = typeof bi === 'number';
+		if (aNum && bNum) return (ai as number) > (bi as number) ? 1 : -1;
+		if (aNum) return -1; // numeric identifiers rank below alphanumeric
+		if (bNum) return 1;
+		return (ai as string) > (bi as string) ? 1 : -1;
 	}
-	return false;
+	if (a.length === b.length) return 0;
+	return a.length > b.length ? 1 : -1; // more fields = higher precedence
+}
+
+/**
+ * Semver comparison: is `a` newer than `b`? Handles `x.y.z` cores plus
+ * `-prerelease` tags, so `0.8.0` > `0.8.0-rc.16` > `0.8.0-rc.2` > `0.7.5`.
+ */
+function isNewer(a: string, b: string): boolean {
+	const pa = parseSemver(a);
+	const pb = parseSemver(b);
+	for (let i = 0; i < 3; i++) {
+		if (pa.core[i] > pb.core[i]) return true;
+		if (pa.core[i] < pb.core[i]) return false;
+	}
+	return comparePrerelease(pa.pre, pb.pre) > 0;
 }
 
 /** Run a shell command and return stdout. Rejects on non-zero exit. */
 function runCommand(cmd: string, cwd: string): Promise<string> {
 	return new Promise((resolve, reject) => {
-		exec(cmd, { cwd, timeout: 10 * 60 * 1000 }, (err, stdout, stderr) => {
+		// maxBuffer raised to 64MB: `npm ci` + build emit far more than the 1MB
+		// default, which would otherwise abort with ERR_CHILD_PROCESS_STDIO_MAXBUFFER
+		// and report the update as failed even when it actually succeeded.
+		exec(cmd, { cwd, timeout: 10 * 60 * 1000, maxBuffer: 64 * 1024 * 1024 }, (err, stdout, stderr) => {
 			if (err) {
 				const details = [stderr, stdout, err.message].filter(s => s?.trim()).join('\n');
 				reject(new Error(`${cmd} failed: ${details}`));
@@ -322,10 +455,39 @@ function runCommand(cmd: string, cwd: string): Promise<string> {
 	});
 }
 
-/** Fetch the latest releasefrom GitHub Releases API (tries unauthenticated first, falls back to auth for private repos) */
-function fetchLatestRelease(owner: string, repo: string, log?: (msg: string) => void): Promise<{ tag: string; zipUrl: string } | null> {
-	const doFetch = (token?: string): Promise<{ tag: string; zipUrl: string } | null> => new Promise((resolve) => {
-		const url = `/repos/${owner}/${repo}/releases/latest`;
+/** Get a GitHub token from environment or gh CLI */
+function getGitHubToken(): string | null {
+	// Check environment first
+	if (process.env.GITHUB_TOKEN) return process.env.GITHUB_TOKEN;
+	if (process.env.GH_TOKEN) return process.env.GH_TOKEN;
+	// Try gh CLI's cached token
+	try {
+		return execSync('gh auth token', { stdio: ['pipe', 'pipe', 'pipe'], timeout: 5000 }).toString().trim() || null;
+	} catch { return null; }
+}
+
+type PortalRelease = { tag: string; zipUrl: string; prerelease: boolean; latestStableTag: string | null };
+
+/**
+ * Fetch the portal release to compare against. When `includePrereleases` is
+ * false (running a stable build) this hits `/releases/latest`, which GitHub
+ * defines as the newest NON-prerelease. When true (running a pre-release like
+ * an `-rc`) it lists releases and returns the newest overall by semver — so an
+ * rc tracks newer rc's AND the eventual final, while never getting stranded.
+ * Either way `latestStableTag` carries the newest non-prerelease for logging.
+ * Tries unauthenticated first, falls back to auth for private repos.
+ */
+function fetchLatestRelease(owner: string, repo: string, includePrereleases: boolean, log?: (msg: string) => void): Promise<PortalRelease | null> {
+	const zipUrlOf = (rel: { assets?: { name: string; url?: string; browser_download_url?: string }[] }, token?: string): string | null => {
+		// For private repos, use API URL (requires auth + Accept: application/octet-stream)
+		// For public repos, browser_download_url works without auth
+		const asset = (rel.assets ?? []).find(a => a.name.endsWith('.zip'));
+		return (token ? asset?.url : asset?.browser_download_url) ?? null;
+	};
+	const doFetch = (token?: string): Promise<PortalRelease | null> => new Promise((resolve) => {
+		const url = includePrereleases
+			? `/repos/${owner}/${repo}/releases?per_page=30`
+			: `/repos/${owner}/${repo}/releases/latest`;
 		const headers: Record<string, string> = { 'User-Agent': 'copilot-portal', Accept: 'application/vnd.github+json' };
 		if (token) headers['Authorization'] = `Bearer ${token}`;
 		const req = https.get({
@@ -344,13 +506,26 @@ function fetchLatestRelease(owner: string, repo: string, log?: (msg: string) => 
 			res.on('end', () => {
 				try {
 					const data = JSON.parse(body);
-					const tag = data.tag_name ?? '';
-					// Find the first .zip asset
-					const asset = (data.assets ?? []).find((a: { name: string }) => a.name.endsWith('.zip'));
-					// For private repos, use API URL (requires auth + Accept: application/octet-stream)
-					// For public repos, browser_download_url works without auth
-					const zipUrl = (token ? asset?.url : asset?.browser_download_url) ?? null;
-					resolve(tag && zipUrl ? { tag, zipUrl } : null);
+					if (Array.isArray(data)) {
+						// Pre-release channel: pick the newest release overall (incl.
+						// pre-releases) that ships a zip, and track the newest stable.
+						let chosen: PortalRelease | null = null;
+						let latestStableTag: string | null = null;
+						for (const rel of data) {
+							if (rel.draft) continue;
+							const tag: string = rel.tag_name ?? '';
+							if (!tag) continue;
+							if (!rel.prerelease && (!latestStableTag || isNewer(tag, latestStableTag))) latestStableTag = tag;
+							const zipUrl = zipUrlOf(rel, token);
+							if (!zipUrl) continue;
+							if (!chosen || isNewer(tag, chosen.tag)) chosen = { tag, zipUrl, prerelease: !!rel.prerelease, latestStableTag: null };
+						}
+						resolve(chosen ? { ...chosen, latestStableTag } : null);
+					} else {
+						const tag: string = data.tag_name ?? '';
+						const zipUrl = zipUrlOf(data, token);
+						resolve(tag && zipUrl ? { tag, zipUrl, prerelease: !!data.prerelease, latestStableTag: tag } : null);
+					}
 				} catch { resolve(null); }
 			});
 		});
@@ -375,15 +550,9 @@ function downloadFile(url: string, dest: string, log?: (msg: string) => void): P
 		const doGet = (getUrl: string, redirects = 0) => {
 			if (redirects > 5) { reject(new Error('Too many redirects')); return; }
 			const headers: Record<string, string> = { 'User-Agent': 'copilot-portal', Accept: 'application/octet-stream' };
-			// Only send auth to exact GitHub domains (don't leak token to crafted redirects)
-			const TRUSTED_HOSTS = ['github.com', 'api.github.com', 'githubusercontent.com', 'objects.githubusercontent.com'];
-			if (token) {
-				try {
-					const parsedUrl = new URL(getUrl);
-					if (TRUSTED_HOSTS.some(h => parsedUrl.hostname === h || parsedUrl.hostname.endsWith('.' + h))) {
-						headers['Authorization'] = `Bearer ${token}`;
-					}
-				} catch { /* malformed URL — don't send auth */ }
+			// Only send auth to GitHub domains (don't leak token to CDN redirects)
+			if (token && (getUrl.includes('github.com') || getUrl.includes('githubusercontent.com'))) {
+				headers['Authorization'] = `Bearer ${token}`;
 			}
 			const req = https.get(getUrl, { headers, timeout: 60_000 }, (res) => {
 				if (res.statusCode === 302 || res.statusCode === 301) {

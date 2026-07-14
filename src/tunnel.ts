@@ -1,7 +1,6 @@
 import { spawn, execSync, type ChildProcess } from 'node:child_process';
 import { randomBytes } from 'node:crypto';
-import { readFileSync, existsSync, unlinkSync } from 'node:fs';
-import { atomicWriteFileSync } from './config.js';
+import { readFileSync, writeFileSync, existsSync, unlinkSync } from 'node:fs';
 import { join } from 'node:path';
 
 export interface TunnelConfig {
@@ -23,6 +22,9 @@ export class TunnelManager {
 	private configPath: string;
 	private port: number;
 
+	private healthCheckTimer: ReturnType<typeof setInterval> | null = null;
+	private log: ((msg: string) => void) | null = null;
+
 	constructor(dataDir: string, port: number) {
 		this.configPath = join(dataDir, 'tunnel.json');
 		this.port = port;
@@ -39,7 +41,7 @@ export class TunnelManager {
 
 	private saveConfig(config: TunnelConfig): void {
 		this.config = config;
-		atomicWriteFileSync(this.configPath, JSON.stringify(config, null, 2) + '\n');
+		writeFileSync(this.configPath, JSON.stringify(config, null, 2) + '\n');
 	}
 
 	/** Check if devtunnel CLI is available */
@@ -65,7 +67,6 @@ export class TunnelManager {
 
 	/** Check if a named tunnel already exists */
 	private tunnelExists(name: string): boolean {
-		if (!/^[a-zA-Z0-9_-]+$/.test(name)) throw new Error(`Invalid tunnel name: ${name}`);
 		try {
 			execSync(`devtunnel show ${name}`, { stdio: 'ignore' });
 			return true;
@@ -74,7 +75,6 @@ export class TunnelManager {
 
 	/** Create a named tunnel with port forwarding */
 	private createTunnel(name: string, allowAnonymous: boolean): void {
-		if (!/^[a-zA-Z0-9_-]+$/.test(name)) throw new Error(`Invalid tunnel name: ${name}`);
 		const anonFlag = allowAnonymous ? ' --allow-anonymous' : '';
 		execSync(`devtunnel create ${name}${anonFlag}`, { stdio: 'ignore' });
 		execSync(`devtunnel port create ${name} -p ${this.port}`, { stdio: 'ignore' });
@@ -139,9 +139,20 @@ export class TunnelManager {
 		});
 	}
 
-	/** Stop the tunnel */
+	/** Stop the tunnel (user-initiated — clears wasRunning so it won't auto-restart) */
 	stop(): void {
+		this.stopHealthCheck();
 		this.setWasRunning(false);
+		this.killProcess();
+	}
+
+	/** Shutdown the tunnel process (preserves wasRunning for auto-restart on next launch) */
+	shutdown(): void {
+		this.stopHealthCheck();
+		this.killProcess();
+	}
+
+	private killProcess(): void {
 		if (this.process) {
 			const pid = this.process.pid;
 			this.process.kill('SIGINT');
@@ -192,9 +203,7 @@ export class TunnelManager {
 		const config = this.config;
 		if (config) {
 			try {
-				if (/^[a-zA-Z0-9_-]+$/.test(config.name)) {
-					execSync(`devtunnel delete ${config.name} --force`, { stdio: 'ignore' });
-				}
+				execSync(`devtunnel delete ${config.name} --force`, { stdio: 'ignore' });
 			} catch { /* tunnel may not exist */ }
 			try {
 				if (existsSync(this.configPath)) unlinkSync(this.configPath);
@@ -203,5 +212,40 @@ export class TunnelManager {
 			return { deleted: true, name: config.name };
 		}
 		return { deleted: false };
+	}
+
+	/** Start periodic health checks — restarts tunnel if the relay connection goes stale. */
+	startHealthCheck(getToken: () => string, onRestart: (url: string) => void, logFn: (msg: string) => void): void {
+		this.stopHealthCheck();
+		this.log = logFn;
+		this.healthCheckTimer = setInterval(async () => {
+			if (!this.process || !this.url) return;
+			try {
+				const controller = new AbortController();
+				const timeout = setTimeout(() => controller.abort(), 10000);
+				const resp = await fetch(`${this.url}/api/info?token=${getToken()}`, { signal: controller.signal });
+				clearTimeout(timeout);
+				if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+			} catch {
+				this.log?.(`[Tunnel] Health check failed — restarting tunnel`);
+				const config = this.config;
+				if (!config) return;
+				this.stop();
+				try {
+					const newUrl = await this.start(config);
+					this.log?.(`[Tunnel] Restarted: ${newUrl}`);
+					onRestart(newUrl);
+				} catch (e) {
+					this.log?.(`[Tunnel] Restart failed: ${e}`);
+				}
+			}
+		}, 5 * 60 * 1000); // Every 5 minutes
+	}
+
+	stopHealthCheck(): void {
+		if (this.healthCheckTimer) {
+			clearInterval(this.healthCheckTimer);
+			this.healthCheckTimer = null;
+		}
 	}
 }

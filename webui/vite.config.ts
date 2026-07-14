@@ -19,7 +19,6 @@ export default defineConfig({
 	build: {
 		outDir: '../dist/webui',
 		emptyOutDir: true,
-		reportCompressedSize: true,
 	},
 	server: {
 		proxy: {

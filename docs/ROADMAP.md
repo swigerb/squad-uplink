@@ -1,4 +1,4 @@
-# Copilot Portal — Roadmap
+# Squad Uplink — Roadmap
 
 ## Planned Features
 
@@ -32,7 +32,7 @@ Avoids re-coaching the model on domain-specific knowledge each time.
 
 **Use case examples:**
 - "CRM & ADO" — instructions for accessing CRM records, ADO work items, auth patterns
-- "Copilot Portal Dev" — packaging steps, architecture notes, conventions
+- "Squad Uplink Dev" — packaging steps, architecture notes, conventions
 - Start a new session → set context → model is immediately productive
 
 **Implementation approach:**

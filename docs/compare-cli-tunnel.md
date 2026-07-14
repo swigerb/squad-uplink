@@ -1,6 +1,6 @@
-# cli-tunnel vs Copilot Portal
+# cli-tunnel vs Squad Uplink
 
-Comparison of [cli-tunnel](https://github.com/tamirdresher/cli-tunnel) and Copilot Portal — two ways to use Copilot CLI from your phone.
+Comparison of [cli-tunnel](https://github.com/tamirdresher/cli-tunnel) and Squad Uplink — two ways to use Copilot CLI from your phone.
 
 ## What Is cli-tunnel?
 
@@ -13,7 +13,7 @@ npx cli-tunnel copilot --yolo
 
 Think of it as: **your terminal, mirrored to your phone.**
 
-## What Is Copilot Portal?
+## What Is Squad Uplink?
 
 Portal is a **purpose-built web UI** for Copilot CLI. It renders Copilot's responses as formatted markdown, provides an approval flow, manages multiple sessions, and adds features like guides and prompts.
 

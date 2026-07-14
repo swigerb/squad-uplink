@@ -258,9 +258,8 @@ export function SquadPanel({ open, onClose, lastChange }: { open: boolean; onClo
 
 					{/* Team Tab */}
 					{activeTab === 'team' && teamContent && (
-						<div className="px-4 py-4">
+						<div className="px-4 py-4 prose prose-sm max-w-none">
 							<Markdown
-								className="prose prose-sm max-w-none"
 								remarkPlugins={[remarkGfm, remarkBreaks]}
 								components={mdComponents}
 							>
@@ -271,9 +270,8 @@ export function SquadPanel({ open, onClose, lastChange }: { open: boolean; onClo
 
 					{/* Decisions Tab */}
 					{activeTab === 'decisions' && decisionsContent && (
-						<div className="px-4 py-4">
+						<div className="px-4 py-4 prose prose-sm max-w-none">
 							<Markdown
-								className="prose prose-sm max-w-none"
 								remarkPlugins={[remarkGfm, remarkBreaks]}
 								components={mdComponents}
 							>
@@ -327,13 +325,14 @@ export function SquadPanel({ open, onClose, lastChange }: { open: boolean; onClo
 										Loading...
 									</div>
 								) : selectedFileContent ? (
+									<div className="prose prose-sm max-w-none">
 									<Markdown
-										className="prose prose-sm max-w-none"
 										remarkPlugins={[remarkGfm, remarkBreaks]}
 										components={mdComponents}
 									>
 										{selectedFileContent}
 									</Markdown>
+									</div>
 								) : null}
 							</div>
 						</div>

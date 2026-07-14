@@ -1,6 +1,6 @@
 # ACP (Agent Client Protocol)
 
-Reference for the Agent Client Protocol as it relates to Copilot Portal.
+Reference for the Agent Client Protocol as it relates to Squad Uplink.
 
 See also:
 - [Uplink Comparison](compare-uplink.md) — how uplink uses ACP as a raw pipe

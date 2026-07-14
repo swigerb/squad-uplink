@@ -1,6 +1,6 @@
-# Copilot Remote vs Copilot Portal
+# Copilot Remote vs Squad Uplink
 
-Comparison of [Copilot Remote](https://github.com/kubestellar/copilot-remote) and Copilot Portal — both provide web access to Copilot CLI, but through fundamentally different rendering approaches.
+Comparison of [Copilot Remote](https://github.com/kubestellar/copilot-remote) and Squad Uplink — both provide web access to Copilot CLI, but through fundamentally different rendering approaches.
 
 ## What Is Copilot Remote?
 
@@ -8,7 +8,7 @@ Copilot Remote is a **web terminal relay** for Copilot CLI and Claude Code. It s
 
 Think of it as: **your Copilot terminal, mirrored to a browser with multi-agent management.**
 
-## What Is Copilot Portal?
+## What Is Squad Uplink?
 
 Portal is a **purpose-built web UI** that renders Copilot's responses as formatted HTML — markdown, syntax-highlighted code, collapsible tool summaries, structured approval cards. It's not a terminal mirror; it's a different interface for the same agent.
 

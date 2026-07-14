@@ -11,7 +11,8 @@
 		"isolatedModules": true,
 		"noEmit": true,
 		"esModuleInterop": true,
-		"forceConsistentCasingInFileNames": true
+		"forceConsistentCasingInFileNames": true,
+		"types": ["vite/client", "vitest/globals"]
 	},
 	"include": ["src"]
 }

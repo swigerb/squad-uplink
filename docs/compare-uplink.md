@@ -1,6 +1,6 @@
 # Uplink Comparison
 
-Research notes from analyzing [MattKotsenas/uplink](https://github.com/MattKotsenas/uplink) — a project with similar goals to Copilot Portal but built on ACP instead of the SDK.
+Research notes from analyzing [MattKotsenas/uplink](https://github.com/MattKotsenas/uplink) — a project with similar goals to Squad Uplink but built on ACP instead of the SDK.
 
 See also:
 - [ACP Protocol](acp-protocol.md) — detailed protocol reference
@@ -8,7 +8,7 @@ See also:
 
 ## Architecture Comparison
 
-### Copilot Portal (current)
+### Squad Uplink (current)
 ```
 React SPA (browser)
   ↕ WebSocket (custom portal events)

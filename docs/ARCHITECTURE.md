@@ -1,4 +1,4 @@
-# Copilot Portal — Architecture
+# Squad Uplink — Architecture
 
 A mobile-friendly web portal for GitHub Copilot CLI sessions. Connects to running Copilot sessions via the `@github/copilot-sdk` IPC layer and exposes them over WebSocket so any browser (phone, tablet, PC) can participate.
 
@@ -27,7 +27,7 @@ One `PortalServer` process manages multiple Copilot sessions simultaneously via 
 | `src/server.ts` | HTTP + WebSocket server, auth token, session routing, WS message dispatch |
 | `src/session.ts` | `SessionHandle` (wraps one CopilotSession, fans events to N listeners), `SessionPool` (manages pool under one CopilotClient) |
 | `src/rules.ts` | `RulesStore` — per-session always-allow approval rules, persisted to `data/rules/{sessionId}.json` |
-| `webui/src/App.tsx` | React SPA — all UI state, WebSocket management, event rendering |
+| `webui/src/App.tsx` | React SPA — all UI state, WebSocket management, event rendering (see `docs/MESSAGE-RENDERING.md` for the message-area entity glossary) |
 | `esbuild.cjs` | Server build script (bundles `src/` → `dist/server.js`) |
 | `data/` | Runtime data: `session-shields.json`, `rules/{sessionId}.json`, `token.txt` |
 | `debug/` | Auth token, connection info, server logs |
