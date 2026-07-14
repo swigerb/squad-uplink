@@ -11,6 +11,7 @@ button { cursor: pointer; }
 	--text-muted: #858585;
 	--text-bright: #e8e8e8;
 	--primary: #0e639c;
+	--primary-hover: #1177bb;
 	--error: #f48771;
 	--success: #4ec9b0;
 	--tool-call: #dcdcaa;
@@ -34,6 +35,41 @@ button { cursor: pointer; }
 	/* Scrollbar */
 	--scrollbar: rgba(255,255,255,0.15);
 	--scrollbar-code: rgba(255,255,255,0.25);
+	--button-contrast: #111;
+	--primary-contrast: #fff;
+}
+
+[data-theme="light"] {
+	--bg: #f0f0f0;
+	--surface: #ffffff;
+	--border: #d8d8d8;
+	--text: #1f1f1f;
+	--text-muted: #666666;
+	--text-bright: #000000;
+	--primary: #0969da;
+	--primary-hover: #0550ae;
+	--error: #cf222e;
+	--success: #1a7f37;
+	--tool-call: #6e5e08;
+	--purple: #8250df;
+	--accent: #0969da;
+	--warning: #9a6700;
+	--shield: #bf8700;
+	--error-tint: rgba(207,34,46,0.08);
+	--success-tint: rgba(26,127,55,0.08);
+	--tool-call-tint: rgba(110,94,8,0.08);
+	--primary-tint: rgba(9,105,218,0.08);
+	--warning-tint: rgba(154,103,0,0.10);
+	--muted-tint: rgba(128,128,160,0.06);
+	--overlay: rgba(0,0,0,0.3);
+	--subtle-bg: rgba(0,0,0,0.04);
+	--code-inline: #953800;
+	--code-bg: #f6f8fa;
+	--code-fg: #1f2328;
+	--scrollbar: rgba(0,0,0,0.15);
+	--scrollbar-code: rgba(0,0,0,0.20);
+	--button-contrast: #fff;
+	--primary-contrast: #fff;
 }
 
 * {
@@ -56,6 +92,11 @@ body,
 	50% { opacity: 0; }
 }
 
+@keyframes pulse {
+	0%, 100% { opacity: 0.5; }
+	50% { opacity: 0.3; }
+}
+
 @keyframes thinking {
 	0%, 100% { transform: translateY(0); opacity: 0.4; }
 	50% { transform: translateY(-4px); opacity: 1; }
@@ -71,10 +112,13 @@ body,
 /* Headings */
 .prose h1, .prose h2, .prose h3, .prose h4, .prose h5, .prose h6 {
 	color: var(--text-bright);
-	margin-top: 1em;
-	margin-bottom: 0.4em;
-	font-weight: 600;
+	margin-top: 1em !important;
+	margin-bottom: 0.4em !important;
+	font-weight: 600 !important;
 }
+.prose h1 { font-size: 1.5em !important; }
+.prose h2 { font-size: 1.25em !important; }
+.prose h3 { font-size: 1.1em !important; }
 
 /* Paragraphs */
 .prose p {
@@ -86,13 +130,13 @@ body,
 
 /* Lists — explicit bullets/numbers */
 .prose ul {
-	list-style-type: disc;
-	padding-left: 1.5em;
+	list-style-type: disc !important;
+	padding-left: 1.5em !important;
 	margin: 0.5em 0;
 }
 .prose ol {
-	list-style-type: decimal;
-	padding-left: 1.5em;
+	list-style-type: decimal !important;
+	padding-left: 1.5em !important;
 	margin: 0.5em 0;
 }
 .prose li {
@@ -102,8 +146,16 @@ body,
 .prose li::marker {
 	color: var(--text-muted);
 }
-.prose ul ul { list-style-type: circle; }
-.prose ul ul ul { list-style-type: square; }
+.prose ul ul { list-style-type: circle !important; }
+.prose ul ul ul { list-style-type: square !important; }
+
+/* Task lists (checkboxes) */
+.prose ul.contains-task-list {
+	list-style-type: none !important;
+}
+.prose li.task-list-item input[type="checkbox"] {
+	margin-right: 0.4em;
+}
 
 /* Inline code */
 .prose code:not(pre code) {
@@ -157,6 +209,11 @@ body,
 .prose strong { color: var(--text-bright); font-weight: 600; }
 .prose em { color: var(--code-fg); }
 
+/* Code blocks inside assistant bubbles: scroll horizontally, don't overflow */
+.prose pre {
+	overflow-x: auto;
+}
+
 /* Thin scrollbar for main chat area */
 .chat-scroll {
 	scrollbar-width: thin;
@@ -202,46 +259,4 @@ body,
 	padding: 0.4em 0.75em;
 	vertical-align: top;
 	text-align: left;
-}
-
-/* ─── Utility classes — migrated from repeated inline styles ─────────────── */
-
-/* Surface panels (modals, cards, drawers) */
-.surface-panel {
-	background: var(--surface);
-	border: 1px solid var(--border);
-}
-
-/* Overlay backdrop for modals */
-.modal-overlay {
-	background: var(--overlay);
-}
-
-/* Primary action button (filled) */
-.btn-primary {
-	background: var(--primary);
-	color: white;
-}
-
-/* Error/danger action button */
-.btn-error {
-	background: var(--error);
-	color: white;
-}
-
-/* Muted/ghost button */
-.btn-ghost {
-	background: var(--bg);
-	border: 1px solid var(--border);
-}
-
-/* Text colors */
-.text-themed       { color: var(--text); }
-.text-themed-muted { color: var(--text-muted); }
-
-/* Common form field styling */
-.input-field {
-	background: var(--bg);
-	border-color: var(--border);
-	color: var(--text);
 }

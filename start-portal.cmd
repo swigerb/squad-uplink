@@ -75,7 +75,7 @@ if %errorlevel% neq 0 (
 :: ---- Step 4: GitHub authentication ----
 echo.
 echo [4/4] Checking GitHub authentication...
-node -e "try{const c=JSON.parse(require('fs').readFileSync(require('path').join(require('os').homedir(),'.copilot','config.json'),'utf8'));process.exit(c.logged_in_users&&c.logged_in_users.length?0:1)}catch{process.exit(1)}" >nul 2>&1
+node -e "try{const f=require('fs').readFileSync(require('path').join(require('os').homedir(),'.copilot','config.json'),'utf8').replace(/^\s*\/\/.*$/gm,'');const c=JSON.parse(f);const u=c.logged_in_users||c.loggedInUsers;process.exit(u&&u.length?0:1)}catch{process.exit(1)}" >nul 2>&1
 if %errorlevel% equ 0 (
     echo       Already authenticated.
     goto :auth_done

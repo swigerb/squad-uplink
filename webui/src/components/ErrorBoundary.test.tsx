@@ -5,6 +5,7 @@ import { ErrorBoundary } from '../components/ErrorBoundary';
 // A component that throws on render
 function ThrowingComponent({ error }: { error: Error }) {
 	throw error;
+	return null;
 }
 
 // Suppress React error boundary console.error noise in tests

@@ -1,8 +1,8 @@
 {
 	"name": "squad-uplink",
-	"description": "Mobile-friendly web portal for GitHub Copilot CLI — share a session across any device",
-	"version": "0.5.6",
-	"author": "Shannon Fritz",
+	"description": "Squad-aware mobile web portal for GitHub Copilot CLI sessions",
+	"version": "0.8.0",
+	"author": "Shannon Fritz, Brian Swiger",
 	"license": "MIT",
 	"repository": {
 		"type": "git",
@@ -14,13 +14,13 @@
 	},
 	"main": "./dist/server.js",
 	"bin": {
-		"copilot-portal": "./bin/copilot-portal.mjs"
+		"copilot-portal": "./bin/copilot-portal.mjs",
+		"squad-uplink": "./bin/copilot-portal.mjs"
 	},
 	"files": [
 		"dist/",
 		"bin/",
 		"examples/",
-		"patches/",
 		"patch.mjs",
 		"start-portal.cmd",
 		"start-portal.sh",
@@ -44,15 +44,18 @@
 	},
 	"devDependencies": {
 		"@types/node": "^22.0.0",
+		"@types/qrcode": "^1.5.5",
 		"@types/ws": "^8.5.14",
 		"esbuild": "^0.25.0",
 		"typescript": "^5.0.0",
 		"vitest": "^4.1.5"
 	},
 	"dependencies": {
-		"@github/copilot": "^1.0.36",
-		"@github/copilot-sdk": "^0.3.0",
+		"@bradygaster/squad-cli": "0.11.0",
+		"@github/copilot": "1.0.69-3",
+		"@github/copilot-sdk": "1.0.6-preview.1",
+		"qrcode": "1.5.4",
 		"qrcode-terminal": "^0.12.0",
-		"ws": "^8.18.0"
+		"ws": "8.21.0"
 	}
 }

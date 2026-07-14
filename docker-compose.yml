@@ -1,0 +1,78 @@
+# Copilot Portal — container deployment (experimental).
+#
+# Quick start:
+#   1. (Optional) put a GitHub token with Copilot access in a .env file next to
+#      this — or just sign in from the web UI on first run:
+#        echo "GITHUB_TOKEN=ghp_xxx" > .env
+#   2. Pull + run:
+#        docker compose up -d
+#   3. Open http://<host>:3847 and choose "Generate session token" on first run
+#        (copy it — you won't see it again). Or set PORTAL_TOKEN below to pick your
+#        own and skip the prompt. Opening the URL with ?token=<token> logs you in.
+#
+# Forgot the session token? Reset it from the host (file-based token only):
+#        docker compose exec copilot-portal rm -f /app/data/token.txt
+#        docker compose restart copilot-portal
+#   (If PORTAL_TOKEN is set, change it in .env and `docker compose up -d` instead.)
+#
+# See docs/DOCKER.md for the full guide (TrueNAS SCALE, updates, and caveats).
+
+services:
+  copilot-portal:
+    # Pull the published image from GHCR. To build from source instead (for
+    # development), comment out `image:` below and uncomment `build: .`.
+    image: ghcr.io/shannonfritz/copilot-portal:latest
+    # build: .
+    container_name: copilot-portal
+    # Run an init (tini) as PID 1 so signals are forwarded and zombie
+    # subprocesses (e.g. the CLI server) are reaped on shutdown.
+    init: true
+    # The image runs as the non-root user baked in at build time (default
+    # 568:568 — TrueNAS's "apps" user). To run as a different host user without
+    # rebuilding, uncomment and set this (must be able to write the volumes):
+    #   user: "1000:1000"
+    ports:
+      - "3847:3847"
+    environment:
+      # Simplest auth path: a GitHub token with Copilot access.
+      # Leave empty if you instead rely on a mounted, pre-authenticated ~/.copilot.
+      GITHUB_TOKEN: "${GITHUB_TOKEN:-}"
+      # Optional: pin the portal's session token (the key that gates web access).
+      # If unset, the first browser visit offers a one-time "Generate session
+      # token" claim. Set this to a known secret for a predictable Open-WebUI URL
+      # and to reset access by changing it + redeploying.
+      PORTAL_TOKEN: "${PORTAL_TOKEN:-}"
+      # Container-mode flags (also set in the image; repeated here for clarity).
+      COPILOT_CONTAINER: "1"
+      COPILOT_AUTO_UPDATE: "0"
+      # Local timezone for log + workspace-folder (YYMMDD-NN) timestamps.
+      TZ: "${TZ:-UTC}"
+      # Where new sessions auto-create their per-session work/YYMMDD-NN folders.
+      # Points at the persistent /work volume below so workspaces survive updates.
+      PORTAL_WORKSPACE_DIR: "/work"
+      # umask for files the container writes into /work. 002 makes new files
+      # group-writable (664/775) so an SMB read-write group can edit/delete them.
+      # Pair this with a setgid, group-owned /work dataset on the NAS.
+      UMASK: "002"
+    volumes:
+      # The important one: the whole home directory. Holds auth, sessions,
+      # skills, agents, and MCP config (~/.copilot) AND anything the agent
+      # installs (~/.local/bin, venvs, caches). Persisting it survives restarts
+      # AND image updates, and — unlike a /work bind mount — supports `chmod +x`
+      # so agent-installed tools are runnable.
+      - copilot-home:/home/copilot
+      # Portal-side state: access token, tunnel config, debug logs.
+      - portal-data:/app/data
+      # Per-session workspaces (work/<session>/YYMMDD-NN). This is a BIND MOUNT to
+      # a host directory so the files are easy to share on your LAN (e.g. point an
+      # SMB share at the same directory). Override the host path in .env, e.g.:
+      #   PORTAL_WORK_HOST_DIR=/mnt/SSDs/copilot-work
+      # The directory must be writable by the container user (default 568:568) —
+      # see "Sharing /work over SMB" in docs/DOCKER.md. Defaults to ./work next to
+      # this compose file.
+      - "${PORTAL_WORK_HOST_DIR:-./work}:/work"
+    restart: unless-stopped
+
+volumes:
+  copilot-home:
+  portal-data:

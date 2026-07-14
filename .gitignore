@@ -1,49 +1,18 @@
-# Squad: ignore runtime state (logs, inbox, sessions)
-.squad/orchestration-log/
-.squad/log/
-.squad/decisions/inbox/
-.squad/sessions/
-# Squad: Cloned plugin repos (re-fetched on install)
-.squad/plugins/*/
-!.squad/plugins/*.json
-# Squad: SubSquad activation file (local to this machine)
-.squad-workstream
-
-# Node / Build
 node_modules/
 dist/
-dist-ssr
-webui/node_modules/
-webui/dist/
-*.local
 *.vsix
 .vscode-test/
+webui/node_modules/
+webui/dist/
+*.log
 
 # Runtime-generated data — session-specific, never commit
 data/
 debug/
+work/
 
 # Build artifacts
 releases/
 copilot-portal-*.zip
 
-# Logs
-logs
-*.log
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-pnpm-debug.log*
-lerna-debug.log*
-
-# Editor directories and files
-.vs/
-.vscode/*
-!.vscode/extensions.json
-.idea
-.DS_Store
-*.suo
-*.ntvs*
-*.njsproj
-*.sln
-*.sw?
+copilot-portal-container-src.tar.gz

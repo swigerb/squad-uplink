@@ -1,0 +1,28 @@
+# Build artifacts and local installs — force a clean, Linux-native build in the image.
+node_modules
+webui/node_modules
+dist
+releases
+data
+work
+debug
+spike
+*.tar.gz
+*.zip
+
+# Secrets — never copy a local token/secret into a build layer.
+.env
+.env.*
+
+# Local/editor/VCS noise
+.git
+.gitignore
+.vscode
+.idea
+*.log
+npm-debug.log*
+
+# Docs and packaging not needed inside the image
+docs
+*.md
+!CHANGELOG.md

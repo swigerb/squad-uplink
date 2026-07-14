@@ -1,211 +1,239 @@
-<div align="center">
-<img src="docs/logo.png" alt="Squad Uplink" width="400">
+# Squad Uplink
 
-### A portal for GitHub Copilot CLI with Squad intelligence
+Squad Uplink is a Squad-aware web portal for GitHub Copilot CLI sessions, based on Shannon Fritz's [Copilot Portal](https://github.com/shannonfritz/copilot-portal). Start the server on your PC or in a container, then open the URL on any device — same network via QR code, or anywhere via DevTunnels.
 
-![Node.js 22+](https://img.shields.io/badge/Node.js-22%2B-339933) ![React 19](https://img.shields.io/badge/React-19-61DAFB) ![Vite](https://img.shields.io/badge/Vite-6-646CFF) ![Tailwind 4](https://img.shields.io/badge/Tailwind-4-38BDF8) ![License MIT](https://img.shields.io/badge/License-MIT-green)
-</div>
-
----
-
-## What is Squad Uplink?
-
-Squad Uplink is a browser-based portal for GitHub Copilot CLI. Instead of being tied to a single terminal window, you can interact with your Copilot CLI sessions from any browser — phone, tablet, or a second monitor — all in real time over WebSocket.
-
-The project is built on [copilot-portal](https://github.com/shannonfritz/copilot-portal) by Shannon Fritz. Shannon's architecture does the hard work: a Node.js server bridges the `@github/copilot-sdk` IPC layer to a React SPA over WebSocket, handling multi-client fan-out, approval queuing, model switching, and CLI↔Portal sync. Squad Uplink extends that foundation with deep Squad intelligence — auto-injecting team context into Copilot sessions, live `.squad/` file watching over WebSocket, and an auto-generated prompt catalog from agent charters.
-
-The portal ships with 8 retro terminal themes — Pip-Boy, Apple IIe, Commodore 64, Matrix, LCARS, MU-TH-UR, W.O.P.R., and Windows 95. Because command-line tools deserve a little personality.
-
----
-
-## Architecture
-
-<div align="center">
-<img src="docs/architecture.png" alt="Squad Uplink Architecture" width="700">
-</div>
-
-One `PortalServer` manages multiple Copilot sessions simultaneously. Each browser connection attaches as a listener on a `SessionHandle`, which fans events to all connected clients watching that session.
-
-**Server:** Node.js + TypeScript, bundled with esbuild → `dist/server.js`
-
-**Web UI:** React 19 + Vite 6 + Tailwind 4, built to `webui/dist/`
-
-**Squad integration:** `.squad/` file API — reads `team.md`, `decisions.md`, and agent charters at runtime
-
-| Layer | Technology |
-|-------|-----------|
-| Server runtime | Node.js 22+ |
-| Server language | TypeScript 5 |
-| SDK bridge | `@github/copilot-sdk` |
-| WebSocket | `ws` |
-| UI framework | React 19 |
-| UI build | Vite 6 |
-| UI styling | Tailwind CSS 4 |
-
----
-
-## Getting Started
-
-### Prerequisites
-
-- **Node.js 22.5+** — [Download](https://nodejs.org/)
-- **GitHub Copilot CLI** — must be installed and authenticated
-
-### Install
+This project still makes sense in the current Squad ecosystem, but with a narrower job than the original "remote terminal" idea. Brady Gaster's Squad now runs directly through GitHub Copilot CLI:
 
 ```bash
-git clone https://github.com/swigerb/squad-uplink.git
-cd squad-uplink
-npm install
-cd webui && npm install && cd ..
+npm install -g @bradygaster/squad-cli
+squad init
+copilot --agent squad --remote
 ```
 
-### Build
-
-```bash
-# Build everything (server + UI)
-npm run build
-
-# Or build separately
-npm run build:ext   # server only
-npm run build:ui    # web UI only
-```
-
-### Run
-
-```bash
-# Start the portal (launches CLI window + portal server)
-npm start
-```
-
-The server prints a URL and QR code on startup. Open the URL in any browser on your network.
-
-**Dev mode** (server watches for changes, UI served by Vite dev server):
-
-```bash
-# Terminal 1 — watch server
-npm run dev
-
-# Terminal 2 — Vite dev server for UI
-npm run watch:ui
-```
-
----
+`--remote` is the native Copilot CLI remote-access flag, and AKS/ACA deployments can run Squad sessions headlessly. Squad Uplink therefore should not compete with that path. Its value is the browser layer around it: `.squad/` state visibility, Squad-aware prompt injection, agent/charter context, multi-client approvals, mobile UX, and optional stakeholder-friendly status.
 
 ## Features
 
-### Portal Features
+- **Chat with Copilot** — full session management, model switching, tool approvals
+- **Image attachments** — paste, drag & drop, or pick images to include in messages
+- **Context window bar** — visual breakdown of token usage (system, messages, free space)
+- **Rich model picker** — context size, vision/thinking support, and cost multiplier per model
+- **Agent picker** — select custom agents from `~/.copilot/agents/` or `.github/agents/`
+- **Guides & Prompts** — markdown instructions and canned prompts, import from Gists
+- **Working directory** — browse and change per-session CWD with folder picker
+- **Themes** — per-session color themes with randomizer
+- **Mobile-first** — responsive design, PWA support, touch-friendly
+- **Multi-device** — use the same session from PC and phone simultaneously
+- **In-portal updates** — check for and apply CLI/SDK updates without leaving the browser
+- **Remote access** — DevTunnel integration for HTTPS access from anywhere
+- **Run in a container** — optional headless/NAS deployment via a published Docker image (TrueNAS SCALE, Synology, any Docker host)
+- **Squad state panel** — browse `.squad/team.md`, `.squad/decisions.md`, and approved Squad files from the portal
+- **Squad context injection** — automatically prepends compact team/decision context to the first prompt in a session
+- **Squad package source** — includes `@bradygaster/squad-cli` so container/remote deployments can run current Squad workflows
 
-These capabilities come from the core portal architecture and upstream sync with copilot-portal:
+## Current Squad remote guidance
 
-#### Working Directory Support
+Use the native Squad/Copilot path when you only need remote access to a running agent session:
 
-Browse and set the working directory before creating sessions. The folder browser supports breadcrumb navigation and Windows drive letter detection. You can also change the CWD on existing sessions or start sessions in draft mode to configure them before launch.
+```bash
+copilot --agent squad --remote
+```
 
-#### Agent Picker
+Use AKS or Azure Container Apps when you want isolated, headless Squad sessions. In that pattern, each container/job runs Copilot CLI with the Squad agent and `--remote`; Squad Uplink can sit beside it as the human-friendly portal for session management and `.squad/` state, not as the execution substrate.
 
-Select custom agents from the session drawer. Agents are discovered from `~/.copilot/agents/` (user-level) and `.github/agents/` (repository-level), with source labels so you know where each agent comes from. Your agent selection persists across sessions.
+The old Squad PTY/devtunnel remote-control flow is deprecated upstream. Keep Uplink focused on the portal capabilities that GitHub remote, the Copilot app, Aspire, AKS, and ACA do not cover: rendered Squad memory, charters, decisions, prompts, and cross-device approvals.
 
-#### Image Support
+## Prerequisites
 
-Paste images from your clipboard, drag and drop image files, or use the file picker to attach images to your messages. On mobile, the file picker opens the camera so you can snap a photo and send it directly to Copilot. Attached images appear as thumbnails below the input bar, and clicking any image in the conversation opens a full-screen lightbox. Images persist in message history across page reloads.
+- [Node.js](https://nodejs.org/) v22 or later
+- [GitHub Copilot CLI](https://docs.github.com/copilot/how-tos/copilot-cli) — `winget install GitHub.CopilotCLI` (Windows) or `brew install gh-copilot` (macOS)
+- [Squad CLI](https://github.com/bradygaster/squad) — included as an npm dependency for this repo and installable globally with `npm install -g @bradygaster/squad-cli`
 
-#### Context Window Usage Bar
+## Getting Started
 
-The session drawer displays a segmented progress bar showing how much of Copilot's context window is in use. The bar breaks down usage into System tokens, Message tokens, and Free space, with both percentages and token counts. The bar clears automatically when you switch sessions or enter draft mode.
+1. Unzip the release to a folder (e.g. `C:\squad-uplink`).
+2. Run `start-portal.cmd` (Windows) or `sh start-portal.sh` (macOS/Linux).
+3. Press **`l`** to launch the portal in your browser.
 
-#### Notification Improvements
+On first run, the script will:
+- Install **Node.js** and **PowerShell 7** via winget if missing (restart terminal after install)
+- Install npm dependencies
+- Sign you in to **GitHub** (opens a browser for authentication)
+- Start the Copilot CLI server in the background
 
-Duplicate warnings accumulate with a count indicator (e.g., "Connection lost x3") instead of stacking. Warnings persist until your next message, while info notifications auto-dismiss. This keeps the notification area clean during flaky connections or repeated events.
+> **Prerequisite:** You need a GitHub account with Copilot access. Check at [github.com/settings/copilot](https://github.com/settings/copilot).
 
-#### Tool Error Surfacing
+<a href="img/screenshot-sessions.png"><img src="img/screenshot-sessions.png" width="800" alt="Session picker"></a>
 
-When a tool call fails, the error is shown in red with the actual error message — not just a generic "failed" label. Error details persist after the turn ends so you can review what went wrong.
+<p>
+<a href="img/screenshot-tools.png"><img src="img/screenshot-tools.png" width="395" alt="Tool summaries"></a>
+<a href="img/screenshot-approvals.png"><img src="img/screenshot-approvals.png" width="395" alt="Approval flow"></a>
+</p>
 
-#### Copy Improvements
+## Run in a container (headless / NAS)
 
-Every Markdown table gets a per-table copy button. Copied content strips dark theme colors for clean paste into other apps. Uses the Clipboard API with dual-format output (HTML + plain text) and an `execCommand` fallback that forces light styling.
+Prefer an always-on, headless deployment (TrueNAS SCALE, Synology, or any Docker
+host)? A published image bundles the portal **and** the Copilot CLI with a ready
+agent toolset (Python/`uv`, `git`, `gh`, `jq`, PowerShell, …):
 
-#### ask_user Input
+```bash
+docker run -d -p 3847:3847 \
+  -v copilot-home:/home/copilot \
+  -v portal-data:/app/data \
+  -v "$(pwd)/work:/work" \
+  ghcr.io/swigerb/squad-uplink:latest
+# then open http://<host>:3847 and sign in to GitHub from the web UI
+```
 
-When Copilot asks you a question, you get a multi-line textarea with auto-grow — type naturally with Shift+Enter for newlines. The input timeout is 30 minutes, giving you time to think.
+Or use the repo's `docker-compose.yml`. Auth, sessions, and agent-installed tools
+persist in the `copilot-home` volume across image updates. See
+**[docs/DOCKER.md](docs/DOCKER.md)** for the full guide — volumes, authentication,
+the TrueNAS Custom App walkthrough, sharing `/work` over SMB, and updates.
 
-#### SDK Auto-Detection
+## Console Keys
 
-The server auto-detects the tool approval format across Copilot SDK versions. Works with both legacy and current SDK wire formats without configuration.
+While the server is running, press a key in the terminal:
 
-#### Multi-Session Management
+| | Access | | Server |
+|---|---|---|---|
+| **q** | QR code & URL | **c** | CLI console |
+| **l** | Launch browser | **u** | Check updates |
+| **t** | Start/stop tunnel | **r** | Restart |
+| **T** | Security reset | **x** | Exit |
 
-Run multiple Copilot sessions simultaneously. The session drawer lets you create, switch between, and manage sessions. Each session is independent with its own conversation history, model selection, and tool approvals.
+**Tunnel** creates a DevTunnel for remote access (HTTPS from anywhere). Press **t** to start, **t** again to stop. First time, it asks about access settings. The tunnel auto-restarts after a server restart.
 
-#### Multi-Client Fan-Out
+**Security reset** (Shift+T) destroys the tunnel, rotates the access token, and disconnects all clients. Use if a URL was compromised. Press **q** for a new QR code, then **t** for a new tunnel.
 
-Multiple browsers can connect to the same session at once. All clients see the same conversation in real time over WebSocket — great for pairing, demos, or watching from your phone.
+<a href="img/screenshot-console.png"><img src="img/screenshot-console.png" width="800" alt="Console keys"></a>
 
-### Squad Features
+## Guides & Prompts
 
-Squad Uplink integrates deeply with your repo's `.squad/` directory across three levels:
+Guides are markdown files that teach Copilot how to behave for a session. Prompts are canned queries that appear in an overlay above the message box.
 
-#### Level 1 — Session Context Auto-Injection
+- Click the map icon in the header to browse, apply, edit, or create guides and prompts
+- **+ New** — start from scratch, pick from example templates, or import from a GitHub Gist URL
+- Prompts float above the input area without resizing the chat
+- Files live in `data/guides/` and `data/prompts/` — same filename pairs them
+- Prompts stack across multiple sources and persist per session
 
-Every Copilot session automatically receives your team context (roster + recent decisions) as its first message. Your AI conversations are team-aware from the start — no copy-pasting context. Opt out per session with `?squadContext=0`.
+<p>
+<a href="img/screenshot-guides.png"><img src="img/screenshot-guides.png" width="395" alt="Guides panel"></a>
+<a href="img/screenshot-prompts.png"><img src="img/screenshot-prompts.png" width="395" alt="Prompts tray"></a>
+</p>
 
-#### Level 2 — Live File Watching
+### Importing
 
-The server watches `.squad/` for changes in real time via `fs.watch()`. When a team member updates `decisions.md` or a charter, the portal broadcasts a `squad_file_changed` WebSocket event and the Squad panel auto-refreshes — no manual reload.
+Share guides via GitHub Gists using the naming convention:
+```
+my-guide_guide.md       → guide content
+my-guide_prompts.md     → companion prompts
+```
 
-#### Level 3 — Auto-Generated Prompt Catalog
+Import via **+ New → Import from URL** in the portal.
 
-Agent charters are parsed into one-click prompts (e.g., *"What is Woz responsible for?"*). These appear as a virtual "Squad" guide in the guides API alongside any custom guides, and are also available at `/api/squad/prompts`.
+## Squad integration
 
-#### Squad API Endpoints
+Squad Uplink reads a safe allowlist from `.squad/`:
 
-| Endpoint | Description |
-|----------|-------------|
-| `GET /api/squad/files` | List discoverable `.squad/` files |
-| `GET /api/squad/file?path=X` | Read an allowed file's content |
-| `GET /api/squad/team` | Team roster (shortcut) |
-| `GET /api/squad/decisions` | Decision log (shortcut) |
-| `GET /api/squad/guide` | Compiled team context guide |
-| `GET /api/squad/prompts` | Auto-generated prompt catalog |
+- `team.md`, `decisions.md`, `routing.md`, `ceremonies.md`
+- `orchestration-log/*.md`
+- `agents/*/charter.md`
 
-### Security
+The portal exposes these through `/api/squad/*`, broadcasts `squad_file_changed` events over WebSocket, and generates compact prompt context from the roster and latest decisions. Add `?squadContext=0` to the portal URL if you need to disable automatic Squad context injection for a session.
 
-All file access goes through a security allowlist — only approved files are exposed. The folder browser includes path traversal protection, CWD validation, and symlink filtering. Auth endpoints use rate limiting to prevent abuse.
+Package installation is configured through `.npmrc` to use Microsoft's approved npm upstream feed:
+
+```ini
+registry=https://packagefeedproxy.microsoft.io/npm/
+```
+
+Current approved-feed pins are `@github/copilot@1.0.69-3`, `@github/copilot-sdk@1.0.6-preview.1`, `@bradygaster/squad-cli@0.11.0`, and `ws@8.21.0`.
+
+## Mobile & PWA
+
+- Scan the QR code to open on your phone (same network)
+- Use Share → Add to Home Screen for a standalone app experience
+- Press **t** in the terminal for remote access via DevTunnel
+
+<p>
+<a href="img/screenshot-mobile1.png"><img src="img/screenshot-mobile1.png" width="260" alt="Mobile chat"></a>
+<a href="img/screenshot-mobile2.png"><img src="img/screenshot-mobile2.png" width="260" alt="Mobile approvals"></a>
+<a href="img/screenshot-mobile3.png"><img src="img/screenshot-mobile3.png" width="260" alt="Mobile session"></a>
+</p>
+
+## Security
+
+- All API and WebSocket endpoints require a token (generated on first run, saved to `data/token.txt`)
+- Security headers: CSP, HSTS (over tunnel), X-Frame-Options, referrer policy
+- Rate limiting on failed auth attempts
+- Press **T** to rotate the token and revoke all access
+
+## Architecture
+
+The portal connects to a headless Copilot CLI server running in the background. Messages are bidirectional — the CLI console and portal share the same sessions.
+
+```mermaid
+graph TD
+    Browser["📱 Browser / PWA"] -->|"ws:// (LAN)"| Portal["Portal Server :3847"]
+    Phone["📱 Mobile"] -->|"wss:// (tunnel)"| Tunnel["🌐 DevTunnel"]
+    Tunnel -->|HTTPS| Portal
+    Portal -->|SDK JSON-RPC| CLI["Copilot CLI :3848"]
+```
+
+<details>
+<summary>ASCII version</summary>
+
+```
+  📱 Browser / PWA          📱 Mobile
+        │                       │
+    ws:// (LAN)          wss:// (tunnel)
+        │                       │
+        ▼                       ▼
+  Portal Server :3847 ◄── 🌐 DevTunnel
+        │
+   SDK JSON-RPC
+        │
+        ▼
+  Copilot CLI :3848
+```
+</details>
+
+## Configuration
+
+| Flag | Default | Description |
+|---|---|---|
+| `--port N` | 3847 | Portal server port |
+| `--cli-url URL` | auto | Connect to a specific CLI server |
+| `--data DIR` | `data/` | Data directory for token, rules, guides |
+| `--new-token` | — | Generate a new access token on start |
+| `--launch` | — | Open browser on start |
+| `--no-qr` | — | Suppress QR code output |
 
 ---
 
-## Themes 🎨
+## Development
 
-Squad Uplink includes 8 retro terminal themes, switchable from the UI:
+For contributors working from the source repository.
 
-| Theme | Vibe |
-|-------|------|
-| **Pip-Boy** | Fallout Vault-Tec amber on deep black, walking Vault Boy, CRT scanline overlay |
-| **Apple IIe** | Green phosphor on black, 80-column nostalgia |
-| **Commodore 64** | Blue-on-blue PETSCII warmth |
-| **Matrix** | Falling green rain, digital noir |
-| **LCARS** | Star Trek TNG bridge console, rounded panels |
-| **MU-TH-UR** | Alien mainframe, cold clinical interface |
-| **W.O.P.R.** | WarGames missile command aesthetic |
-| **Windows 95** | Beveled gray, start menu energy |
+```bash
+npm install          # install dependencies
+npm run build        # build server + web UI
+npm run package      # create release zip
+```
 
-Themes use CSS custom properties and conditional layout wrappers. The Pip-Boy theme includes a CRT overlay effect; Matrix includes animated rain. Theme selection persists via localStorage.
+### Versioning
 
----
+- **Version** (`v0.8.0`) — semver in `package.json`, bumped for releases
+- **Build** (`260414-01`) — `YYMMDD-NN` in `BUILD`, auto-incremented by `npm run package`
 
-## Credits & Attribution
+### Project Structure
 
-Squad Uplink is built on [copilot-portal](https://github.com/shannonfritz/copilot-portal) by **Shannon Fritz** ([@shannonfritz](https://github.com/shannonfritz)). The core architecture — WebSocket server, session management, approval flow, CLI↔Portal sync, and the React SPA — comes from Shannon's work. This repo extends it with Squad-specific features. Image support, context usage bar, and notification improvements were ported from copilot-portal v0.6.1.
-
----
-
-## Built with Squad
-
-This project is developed by an AI team managed by [Squad](https://github.com/bradygaster/squad) — a Git-native AI agent orchestration framework. The team (Jobs, Woz, Kare, Hertzfeld, Scribe, Ralph) lives in `.squad/` and coordinates through this repo.
-
----
-
-## License
-
-MIT License — same as the upstream [copilot-portal](https://github.com/shannonfritz/copilot-portal). See [LICENSE](LICENSE) for details.
+```
+src/              Server source (TypeScript)
+webui/src/        React UI source
+dist/             Compiled output
+examples/         Shipped guide/prompt templates (read-only)
+data/             User runtime data (gitignored)
+docs/             Design docs and specs
+```
