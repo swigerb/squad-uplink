@@ -1,4 +1,14 @@
-# Squad Uplink
+<div align="center">
+<img src="docs/logo.png" alt="Squad Uplink" width="400">
+
+### A portal for GitHub Copilot CLI with Squad intelligence
+
+![Node.js 22+](https://img.shields.io/badge/Node.js-22%2B-339933) ![React 19](https://img.shields.io/badge/React-19-61DAFB) ![Vite 6](https://img.shields.io/badge/Vite-6-646CFF) ![Tailwind 4](https://img.shields.io/badge/Tailwind-4-38BDF8) ![License MIT](https://img.shields.io/badge/License-MIT-green)
+</div>
+
+---
+
+## What is Squad Uplink?
 
 Squad Uplink is a Squad-aware web portal for GitHub Copilot CLI sessions, based on Shannon Fritz's [Copilot Portal](https://github.com/shannonfritz/copilot-portal). Start the server on your PC or in a container, then open the URL on any device — same network via QR code, or anywhere via DevTunnels.
 
@@ -11,6 +21,12 @@ copilot --agent squad --remote
 ```
 
 `--remote` is the native Copilot CLI remote-access flag, and AKS/ACA deployments can run Squad sessions headlessly. Squad Uplink therefore should not compete with that path. Its value is the browser layer around it: `.squad/` state visibility, Squad-aware prompt injection, agent/charter context, multi-client approvals, mobile UX, and optional stakeholder-friendly status.
+
+## Architecture
+
+<div align="center">
+<img src="docs/architecture.png" alt="Squad Uplink Architecture" width="700">
+</div>
 
 ## Features
 
