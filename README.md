@@ -142,14 +142,6 @@ Squad Uplink reads a safe allowlist from `.squad/`:
 
 The portal exposes these through `/api/squad/*`, broadcasts `squad_file_changed` events over WebSocket, and generates compact prompt context from the roster and latest decisions. Add `?squadContext=0` to the portal URL if you need to disable automatic Squad context injection for a session.
 
-Package installation is configured through `.npmrc` to use Microsoft's approved npm upstream feed:
-
-```ini
-registry=https://packagefeedproxy.microsoft.io/npm/
-```
-
-Current approved-feed pins are `@github/copilot@1.0.69-3`, `@github/copilot-sdk@1.0.6-preview.1`, `@bradygaster/squad-cli@0.11.0`, and `ws@8.21.0`.
-
 ## Mobile & PWA
 
 - Scan the QR code to open on your phone (same network)

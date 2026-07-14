@@ -41,12 +41,11 @@ const TRACKED_PACKAGES = ['@github/copilot-sdk'] as const;
 /**
  * The PUBLIC npm registry — the authoritative source of "latest" for the
  * @github toolchain packages. We query and install from this explicitly rather
- * than npm's configured registry: this machine's npm is routed through a
- * corporate mirror (`packagefeedproxy.microsoft.io`) that can LAG the public
- * registry (it lacked 1.0.70 while npmjs had it) or point its `latest` dist-tag
- * at a prerelease. The contract is simple: whatever npmjs marks `latest` IS the
- * latest release, and we install that exact version from the same registry so
- * the check and the install can never disagree (the ETARGET class of failure).
+ * than npm's configured registry because a local mirror or proxy can lag the
+ * public registry or point its `latest` dist-tag at a prerelease. The contract is
+ * simple: whatever npmjs marks `latest` IS the latest release, and we install
+ * that exact version from the same registry so the check and the install can
+ * never disagree (the ETARGET class of failure).
  */
 const PUBLIC_NPM_REGISTRY = 'https://registry.npmjs.org';
 
