@@ -1,4 +1,4 @@
-# Copilot Portal — Message Rendering Model
+# Squad Uplink — Message Rendering Model
 
 A shared vocabulary for the entities that appear in the chat/message area, and how
 they flow into one another during a turn. This is the reference we use when discussing

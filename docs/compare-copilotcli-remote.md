@@ -1,10 +1,10 @@
-# CLI Remote Access vs Copilot Portal
+# CLI Remote Access vs Squad Uplink
 
-Comparison of GitHub's new `/remote` feature with Copilot Portal's approach to remote CLI access.
+Comparison of GitHub's new `/remote` feature with Squad Uplink's approach to remote CLI access.
 
 ## What Is `/remote`?
 
-GitHub announced a first-party remote access feature for Copilot CLI (public preview, April 2026). It turns GitHub.com (and GitHub Mobile) into a web portal for your running CLI session — conceptually the same thing Copilot Portal does, but hosted on GitHub's infrastructure.
+GitHub announced a first-party remote access feature for Copilot CLI (public preview, April 2026). It turns GitHub.com (and GitHub Mobile) into a web portal for your running CLI session — conceptually the same thing Squad Uplink does, but hosted on GitHub's infrastructure.
 
 **How it works:**
 - Start a session with `copilot --remote` or type `/remote` during a session

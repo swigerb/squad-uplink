@@ -1,6 +1,6 @@
 # Guide Import Design
 
-Import guides and prompts from GitHub Gists into Copilot Portal.
+Import guides and prompts from GitHub Gists into Squad Uplink.
 
 ## File Convention
 
@@ -66,7 +66,7 @@ Import is an option in the +New dropdown, alongside "Start from scratch" and the
   │ Start from scratch       │
   │ Import from URL...       │
   │ ──────────────────────── │
-  │ copilot-portal-dev       │
+  │ squad-uplink-dev       │
   │ guide-builder            │
   │ portal-tour              │
   │ ...                      │

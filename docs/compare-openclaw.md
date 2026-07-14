@@ -1,6 +1,6 @@
-# OpenClaw vs Copilot Portal
+# OpenClaw vs Squad Uplink
 
-Comparison of OpenClaw and Copilot Portal — two different approaches to making AI assistants accessible.
+Comparison of OpenClaw and Squad Uplink — two different approaches to making AI assistants accessible.
 
 ## What Is OpenClaw?
 
@@ -8,15 +8,15 @@ OpenClaw is an open-source **personal AI assistant platform** (357K+ GitHub star
 
 Think of it as: **an always-on AI employee that lives in your chat apps.**
 
-## What Is Copilot Portal?
+## What Is Squad Uplink?
 
-Copilot Portal is a **web UI for GitHub Copilot CLI sessions**. It provides a mobile-friendly browser interface for the same Copilot agent that runs in your terminal — send messages, approve tool actions, manage sessions, apply guides. It's specifically built for software engineering workflows.
+Squad Uplink is a **web UI for GitHub Copilot CLI sessions**. It provides a mobile-friendly browser interface for the same Copilot agent that runs in your terminal — send messages, approve tool actions, manage sessions, apply guides. It's specifically built for software engineering workflows.
 
 Think of it as: **a remote control for your Copilot coding assistant.**
 
 ## They Solve Different Problems
 
-| | OpenClaw | Copilot Portal |
+| | OpenClaw | Squad Uplink |
 |---|---|---|
 | **Primary purpose** | General-purpose AI assistant for daily life | Web UI for Copilot CLI coding sessions |
 | **AI backend** | Any LLM (Claude, GPT, Gemini, etc.) | GitHub Copilot only |
@@ -38,7 +38,7 @@ AI Agent (Claude/GPT/Gemini via API keys)
 Actions (email, calendar, browser, code, cron, webhooks)
 ```
 
-### Copilot Portal
+### Squad Uplink
 ```
 Browser / PWA
   ↕ WebSocket
@@ -110,6 +110,6 @@ Portal's guides could also inform OpenClaw's SOUL.md (personality/instruction fi
 
 ## Summary
 
-OpenClaw and Copilot Portal aren't competitors — they're different categories. OpenClaw is a **general-purpose AI platform** for life automation. Portal is a **developer tool** for Copilot CLI. The overlap is minimal: both run locally, both are open source, both provide mobile access to AI. But their goals, audiences, and architectures are fundamentally different.
+OpenClaw and Squad Uplink aren't competitors — they're different categories. OpenClaw is a **general-purpose AI platform** for life automation. Portal is a **developer tool** for Copilot CLI. The overlap is minimal: both run locally, both are open source, both provide mobile access to AI. But their goals, audiences, and architectures are fundamentally different.
 
 Both projects validate the trend: people want to interact with AI from diverse interfaces — chat apps, web UIs, phones, desktops — not just a terminal on their desk.

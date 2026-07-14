@@ -79,7 +79,7 @@ agent toolset (Python/`uv`, `git`, `gh`, `jq`, PowerShell, …):
 ```bash
 docker run -d -p 3847:3847 \
   -v copilot-home:/home/copilot \
-  -v portal-data:/app/data \
+  -v uplink-data:/app/data \
   -v "$(pwd)/work:/work" \
   ghcr.io/swigerb/squad-uplink:latest
 # then open http://<host>:3847 and sign in to GitHub from the web UI

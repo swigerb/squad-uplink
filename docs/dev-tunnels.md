@@ -1,6 +1,6 @@
 # Dev Tunnels
 
-Guide for using Microsoft Dev Tunnels to access Copilot Portal remotely.
+Guide for using Microsoft Dev Tunnels to access Squad Uplink remotely.
 
 See also:
 - [Uplink Comparison](compare-uplink.md) — how uplink integrates tunnels
@@ -37,8 +37,8 @@ curl -sL https://aka.ms/DevTunnelCliInstall | bash
 devtunnel user login
 
 # Create a persistent tunnel for portal
-devtunnel create copilot-portal
-devtunnel port create copilot-portal -p 3847
+devtunnel create squad-uplink
+devtunnel port create squad-uplink -p 3847
 ```
 
 This creates a named tunnel that forwards to port 3847 (the portal's default port).
@@ -47,7 +47,7 @@ This creates a named tunnel that forwards to port 3847 (the portal's default por
 
 ```bash
 # Start the tunnel (do this each time you start the portal)
-devtunnel host copilot-portal
+devtunnel host squad-uplink
 
 # Output includes:
 #   Connect via browser: https://abc123.devtunnels.ms
@@ -62,13 +62,13 @@ By default, tunnels require the creator's account to access them. You can change
 
 ```bash
 # Anonymous access (anyone with the URL)
-devtunnel access create copilot-portal -p 3847 --anonymous
+devtunnel access create squad-uplink -p 3847 --anonymous
 
 # Organization-scoped (anyone in your GitHub org)
-devtunnel access create copilot-portal -p 3847 --org my-org
+devtunnel access create squad-uplink -p 3847 --org my-org
 
 # Specific users
-devtunnel access create copilot-portal -p 3847 --github-user someone
+devtunnel access create squad-uplink -p 3847 --github-user someone
 ```
 
 For personal use, anonymous is fine since the URL is unguessable. For shared/team use, consider org-scoped or user-specific access.

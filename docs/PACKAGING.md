@@ -25,7 +25,7 @@ stages release files, and creates a versioned zip in `releases/`.
    - `start-portal.cmd` / `start-portal.sh` — single entry point for users
    - `README.md`, `CHANGELOG.md`, `BUILD`
 
-4. **Creates zip** — `releases/copilot-portal-v{version}-build-{build}.zip`
+4. **Creates zip** — `releases/squad-uplink-v{version}-build-{build}.zip`
 
 5. **Cleans up** — Removes the temp staging directory
 
@@ -45,7 +45,7 @@ The zip is in `releases/` — distribute via GitHub Releases or other channels.
 3. **Build & package** — `npm run package` (auto-syncs version to `package.dist.json`)
 4. **Commit & tag** — `git add -A && git commit -m "vX.Y.Z — Summary" && git tag vX.Y.Z`
 5. **Push** — `git push origin master --tags`
-6. **Create GitHub release** — `gh release create vX.Y.Z releases/copilot-portal-vX.Y.Z-build-*.zip --title "vX.Y.Z — Title"`
+6. **Create GitHub release** — `gh release create vX.Y.Z releases/squad-uplink-vX.Y.Z-build-*.zip --title "vX.Y.Z — Title"`
 7. **Commit BUILD file** — `git add BUILD && git commit -m "BUILD YYMMDD-NN"`
 
 > **Tip:** The `release-manager` skill automates these steps. It runs the local steps
@@ -79,7 +79,7 @@ When a recently published release has a critical bug:
 - **Build** (daily counter) — Lives in `BUILD` file, auto-incremented on each `npm run package`.
   Format: `YYMMDD-NN` (e.g. `260323-03` = third build on March 23, 2026).
 
-- **Zip name** — `copilot-portal-v{version}-build-{build}.zip`
+- **Zip name** — `squad-uplink-v{version}-build-{build}.zip`
 
 - **UI display** — Shows `v0.6.1 · 260430-04` in the session drawer.
 
@@ -108,9 +108,9 @@ When a recently published release has a critical bug:
 The dev `package.json` has build tools (esbuild, typescript, vite, etc.) as devDependencies.
 The release `package.dist.json` is a minimal version that becomes `package.json` in the zip:
 
-- Only runtime dependencies (`@github/copilot-sdk`, `ws`, `qrcode`, `patch-package`)
+- Only runtime dependencies (`@bradygaster/squad-cli`, `@github/copilot`, `@github/copilot-sdk`, `ws`, `qrcode`)
 - `scripts.start` points to `dist/launcher.js`
-- `postinstall` runs `patch-package` to apply SDK compatibility patches
+- `postinstall` runs `patch.mjs` to apply SDK compatibility patches
 - No build scripts (release is pre-built)
 
 ⚠️ **Version is auto-synced.** `npm run package` copies the version from `package.json`

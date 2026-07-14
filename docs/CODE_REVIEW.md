@@ -136,7 +136,7 @@ Part of a larger sync architecture change. **Defer to sync refactor.**
 
 ### CR-14: patch.mjs not called in postinstall
 **File:** package.json
-**Problem:** `patch.mjs` applies a fix that `patch-package` may not cover.
+**Problem:** `patch.mjs` applies SDK compatibility fixes that package manager installs do not apply by themselves.
 It's called in `start-portal.cmd` but not in `postinstall`.
 **Fix:** Add `&& node patch.mjs` to postinstall script.
 **Dependencies:** Only affects fresh installs. Quick fix.

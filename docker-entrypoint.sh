@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Copilot Portal container entrypoint.
+# Squad Uplink container entrypoint.
 #
 # Unlike start-portal.sh (which bootstraps a bare-metal machine: detect Node,
 # npm install, interactive login), this only handles *runtime* concerns. All
@@ -69,7 +69,7 @@ if [ "$(id -u)" = "0" ]; then
 fi
 
 # ---- From here on we run as the unprivileged runtime user (${PUID}:${PGID}). ----
-echo "  Copilot Portal — container mode"
+echo "  Squad Uplink — container mode"
 
 # Apply a umask if requested (e.g. UMASK=002 makes files the container writes
 # into /work group-writable, so an SMB read-write group can edit/delete them).
@@ -153,12 +153,12 @@ fi
 # ~/.copilot/copilot-instructions.md.
 INSTR_DIR="${HOME}/.copilot/instructions"
 if mkdir -p "$INSTR_DIR" 2>/dev/null; then
-  cat > "${INSTR_DIR}/copilot-portal-container.instructions.md" <<'EOF'
+  cat > "${INSTR_DIR}/squad-uplink-container.instructions.md" <<'EOF'
 ---
 applyTo: "**"
-description: Copilot Portal container environment
+description: Squad Uplink container environment
 ---
-# Running inside the Copilot Portal container
+# Running inside the Squad Uplink container
 
 You are in a headless Linux container, running as a **non-root** user with **no `sudo`**.
 

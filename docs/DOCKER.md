@@ -1,4 +1,4 @@
-# Running Copilot Portal in a Container
+# Running Squad Uplink in a Container
 
 > **Status: experimental.** This runs the portal web UI together with the GitHub
 > Copilot CLI (as a local subprocess) inside a single Docker container — handy for
@@ -35,7 +35,7 @@ It also:
   runnable by name — and, because `~` is a persistent volume (below), survives
   image updates.
 - **Tells the agent about the container** — on boot the entrypoint writes a
-  Portal-managed `~/.copilot/instructions/copilot-portal-container.instructions.md`
+  Squad Uplink-managed `~/.copilot/instructions/squad-uplink-container.instructions.md`
   so Copilot knows it's non-root with no `sudo`/`apt`, that system Python is
   PEP 668 externally-managed (use `uv`, a venv, or `pip install --user`), where to
   put binaries (`~/.local/bin`), and what persists. It never touches your own
@@ -70,7 +70,7 @@ No token set? The portal shows a sign-in screen with two tabs:
 - **Access Token** — paste a fine-grained PAT with Copilot access instead.
 
 Either way the credential persists (browser sign-in in the `copilot-home` volume;
-a pasted PAT in `portal-data`, re-injected as `COPILOT_GITHUB_TOKEN` each boot), so
+a pasted PAT in `uplink-data`, re-injected as `COPILOT_GITHUB_TOKEN` each boot), so
 you only do it once. The **Log out** button (Sessions panel) clears it.
 
 > The portal also has its **own** session token (the key that gates who can open
@@ -99,8 +99,8 @@ the env var instead.)
 
 ```bash
 # File-based token (no PORTAL_TOKEN set): delete it and restart.
-docker compose exec copilot-portal rm -f /app/data/token.txt
-docker compose restart copilot-portal
+docker compose exec squad-uplink rm -f /app/data/token.txt
+docker compose restart squad-uplink
 # → comes back up tokenless; the next browser visit shows "Generate session token".
 ```
 
@@ -113,7 +113,7 @@ re-pins on every boot) — change `PORTAL_TOKEN` in `.env` and run
 | Volume | Container path | Holds |
 | --- | --- | --- |
 | `copilot-home` | `/home/copilot` | **The whole home dir** — GitHub auth, sessions, skills, agents, MCP config (`~/.copilot`) **and** anything the agent installs (`~/.local/bin`, venvs, caches). The important one. |
-| `portal-data` | `/app/data` | Portal-managed state — your **Guides & Prompts** (created, edited, or imported), Themes, session shields, session-agent assignments, the portal session token, pasted GitHub PAT, tunnel config, and debug logs. (The read-only *example* Guides/Prompts catalog ships in the image, not here.) |
+| `uplink-data` | `/app/data` | Squad Uplink-managed state — your **Guides & Prompts** (created, edited, or imported), Themes, session shields, session-agent assignments, the portal session token, pasted GitHub PAT, tunnel config, and debug logs. (The read-only *example* Guides/Prompts catalog ships in the image, not here.) |
 | `work` *(bind mount)* | `/work` | Per-session workspaces Copilot reads/edits — bind-mounted to a host dir so it's easy to share on your LAN |
 
 > **Why the whole home dir?** A single `copilot-home` volume (rather than just
@@ -127,7 +127,7 @@ space. Example in `docker-compose.yml`:
 ```yaml
     volumes:
       - copilot-home:/home/copilot
-      - portal-data:/app/data
+      - uplink-data:/app/data
       - "${PORTAL_WORK_HOST_DIR:-./work}:/work"   # bind mount for LAN/SMB access
 ```
 
@@ -239,7 +239,7 @@ to the exec'd process's supplementary groups, so a write test there can pass eve
 when the agent fails. Test like the real (gosu-dropped) agent instead:
 
 ```bash
-C=ix-copilot-portal-copilot-portal-1   # your container name
+C=ix-squad-uplink-squad-uplink-1   # your container name
 
 # 1) memberships exist in the image's /etc/group:
 docker exec "$C" getent group copilot          # -> copilot:x:568:copilot
@@ -292,9 +292,9 @@ paste this same YAML straight into a TrueNAS Custom App's **Install via YAML** e
 
 ```yaml
 services:
-  copilot-portal:
-    image: ghcr.io/shannonfritz/copilot-portal:latest
-    container_name: copilot-portal
+  squad-uplink:
+    image: ghcr.io/swigerb/squad-uplink:latest
+    container_name: squad-uplink
     init: true
     ports:
       - "3847:3847"
@@ -309,18 +309,18 @@ services:
                               # also need inheriting ACEs; UMASK is POSIX-only.
     volumes:
       - copilot-home:/home/copilot
-      - portal-data:/app/data
+      - uplink-data:/app/data
       - "${PORTAL_WORK_HOST_DIR:-./work}:/work"   # host dir for the agent's CWD / LAN share
     restart: unless-stopped
 
 volumes:
   copilot-home:
-  portal-data:
+  uplink-data:
 ```
 
 ```bash
 docker compose up -d                       # pulls the image and starts it
-docker compose logs -f copilot-portal      # grab the session-token line
+docker compose logs -f squad-uplink      # grab the session-token line
 # open http://<host>:3847 and sign in to GitHub
 ```
 
@@ -337,9 +337,9 @@ TrueNAS presents them:
 
 | Wizard field | What to set |
 | --- | --- |
-| **Application Name** | App name `copilot-portal` (your choice); leave **Version** as-is — it's the Custom App wrapper's version, not the image's (you pick the image via Image Tag below). |
+| **Application Name** | App name `squad-uplink` (your choice); leave **Version** as-is — it's the Custom App wrapper's version, not the image's (you pick the image via Image Tag below). |
 | **General** | **Notes:** optional free-text description. |
-| **Image Configuration** | **Repository** `ghcr.io/shannonfritz/copilot-portal` (public — no login), **Tag** `latest` (or pin e.g. `0.8.0`), **Pull Policy** `Pull the image if it is not already present on the host` (choose the "always pull" option to force-refresh `latest` on every redeploy). |
+| **Image Configuration** | **Repository** `ghcr.io/swigerb/squad-uplink` (public — no login), **Tag** `latest` (or pin e.g. `0.8.0`), **Pull Policy** `Pull the image if it is not already present on the host` (choose the "always pull" option to force-refresh `latest` on every redeploy). |
 | **Container Configuration** | Leave **Hostname** blank; **Entrypoint** and **Command** empty (the image defines them); set **Timezone** (e.g. `America/Chicago`); **Restart Policy** `Unless Stopped`; leave **Disable Built-in Healthcheck** unchecked (the image ships its own `/healthz`); leave **TTY** and **Stdin** unchecked (runs headless); no **Devices**. |
 | **Container Configuration › Environment Variables** | Click **Add**, then set Name `UMASK` and Value `002` (makes agent-created files group-writable — for POSIX mounts; on a ZFS/NFSv4 dataset use inheriting ACEs instead). For a shared SMB `/work` where humans and the agent edit each other's files, also add Name `WORK_RW_GID` and Value `<your copilot-rw gid>` (see [Sharing /work over SMB](#sharing-work-over-smb)). Optionally add `GITHUB_TOKEN=<token>` (primary auth) and/or `PORTAL_TOKEN=<secret>` (pin the web-access token). `COPILOT_CONTAINER=1` is already baked in. |
 | **Security Context Configuration** | Leave **Privileged** unchecked, **Capabilities** empty, and **Custom User** unchecked — the image already runs as `568:568` (TrueNAS's `apps` user). Only set a custom `uid:gid` if your `/work` dataset is owned by a different account. **Caveat:** setting a Custom User starts the container **non-root**, which skips the entrypoint's root self-heal *and* the `gosu` drop — so the `WORK_RW_GID` membership never gets applied. In that mode supply supplementary groups via Docker/compose `group_add: ["<gid>"]` instead. |
@@ -355,7 +355,7 @@ in-container path), and the one type-specific field:
 | Type | Mount Path | Then set | Holds |
 | --- | --- | --- | --- |
 | `ixVolume` | `/home/copilot` | Dataset Name `copilot-home` | Auth, sessions, skills, agents, and agent-installed tools. |
-| `ixVolume` | `/app/data` | Dataset Name `portal-data` | Portal session token + saved PAT. |
+| `ixVolume` | `/app/data` | Dataset Name `uplink-data` | Portal session token + saved PAT. |
 | `Host Path` | `/work` | Host Path, e.g. `/mnt/SSDs/copilot-work` | The agent's working dir — share it over SMB. Must be writable by `568:568`. |
 
 > **Why ACL/user are left alone:** the image already runs as `568:568` (TrueNAS's
@@ -380,7 +380,7 @@ docker compose up -d           # recreate the container; volumes carry over
 
 On TrueNAS, edit the Custom App and bump the image tag (or re-pull `latest`), then
 redeploy. Your `copilot-home` (auth, sessions, skills, **and agent-installed
-tools**) and `portal-data` (portal token + PAT) persist across the swap.
+tools**) and `uplink-data` (portal token + PAT) persist across the swap.
 
 ## What changes in container mode
 

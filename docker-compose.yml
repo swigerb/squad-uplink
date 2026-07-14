@@ -1,4 +1,4 @@
-# Copilot Portal — container deployment (experimental).
+# Squad Uplink — container deployment (experimental).
 #
 # Quick start:
 #   1. (Optional) put a GitHub token with Copilot access in a .env file next to
@@ -11,19 +11,19 @@
 #        own and skip the prompt. Opening the URL with ?token=<token> logs you in.
 #
 # Forgot the session token? Reset it from the host (file-based token only):
-#        docker compose exec copilot-portal rm -f /app/data/token.txt
-#        docker compose restart copilot-portal
+#        docker compose exec squad-uplink rm -f /app/data/token.txt
+#        docker compose restart squad-uplink
 #   (If PORTAL_TOKEN is set, change it in .env and `docker compose up -d` instead.)
 #
 # See docs/DOCKER.md for the full guide (TrueNAS SCALE, updates, and caveats).
 
 services:
-  copilot-portal:
+  squad-uplink:
     # Pull the published image from GHCR. To build from source instead (for
     # development), comment out `image:` below and uncomment `build: .`.
-    image: ghcr.io/shannonfritz/copilot-portal:latest
+    image: ghcr.io/swigerb/squad-uplink:latest
     # build: .
-    container_name: copilot-portal
+    container_name: squad-uplink
     # Run an init (tini) as PID 1 so signals are forwarded and zombie
     # subprocesses (e.g. the CLI server) are reaped on shutdown.
     init: true
@@ -62,7 +62,7 @@ services:
       # so agent-installed tools are runnable.
       - copilot-home:/home/copilot
       # Portal-side state: access token, tunnel config, debug logs.
-      - portal-data:/app/data
+      - uplink-data:/app/data
       # Per-session workspaces (work/<session>/YYMMDD-NN). This is a BIND MOUNT to
       # a host directory so the files are easy to share on your LAN (e.g. point an
       # SMB share at the same directory). Override the host path in .env, e.g.:
@@ -75,4 +75,4 @@ services:
 
 volumes:
   copilot-home:
-  portal-data:
+  uplink-data:

@@ -1,4 +1,4 @@
-# Copilot Portal — Architecture
+# Squad Uplink — Architecture
 
 A mobile-friendly web portal for GitHub Copilot CLI sessions. Connects to running Copilot sessions via the `@github/copilot-sdk` IPC layer and exposes them over WebSocket so any browser (phone, tablet, PC) can participate.
 

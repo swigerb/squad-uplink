@@ -65,7 +65,7 @@ console.log(`\n  Version: ${pkgVersion}  Build: ${build}\n`);
 execSync('npm run build', { stdio: 'inherit' });
 
 // 4. Stage files
-const stamp = `copilot-portal-v${pkgVersion}-build-${build}`;
+const stamp = `squad-uplink-v${pkgVersion}-build-${build}`;
 const stage = join(process.env.TEMP || '/tmp', stamp);
 if (existsSync(stage)) rmSync(stage, { recursive: true });
 mkdirSync(stage, { recursive: true });

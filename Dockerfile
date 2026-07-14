@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1
 #
-# Copilot Portal — container image (experimental).
+# Squad Uplink — container image (experimental).
 #
 # Runs the portal web UI together with the GitHub Copilot CLI (as a local
 # subprocess) in a single container. Designed for headless hosts such as
@@ -162,12 +162,12 @@ ENV COPILOT_CONTAINER=1 \
 ARG PORTAL_VERSION=unknown
 ARG CLI_VERSION=unknown
 ARG SDK_VERSION=unknown
-LABEL com.copilot-portal.portal-version="${PORTAL_VERSION}" \
-      com.copilot-portal.cli-version="${CLI_VERSION}" \
-      com.copilot-portal.sdk-version="${SDK_VERSION}" \
-      com.copilot-portal.node="24-bookworm-slim" \
-      com.copilot-portal.pwsh="${PWSH_VERSION}" \
-      com.copilot-portal.uv="${UV_VERSION}"
+LABEL com.squad-uplink.portal-version="${PORTAL_VERSION}" \
+      com.squad-uplink.cli-version="${CLI_VERSION}" \
+      com.squad-uplink.sdk-version="${SDK_VERSION}" \
+      com.squad-uplink.node="24-bookworm-slim" \
+      com.squad-uplink.pwsh="${PWSH_VERSION}" \
+      com.squad-uplink.uv="${UV_VERSION}"
 
 EXPOSE 3847
 
