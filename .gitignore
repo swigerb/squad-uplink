@@ -16,3 +16,9 @@ releases/
 copilot-portal-*.zip
 
 copilot-portal-container-src.tar.gz
+.squad/orchestration-log/
+.squad/log/
+.squad/decisions/inbox/
+.squad/sessions/
+.squad/.cache/
+.squad-workstream
