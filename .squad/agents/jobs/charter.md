@@ -35,7 +35,7 @@
 
 ## Model
 
-- **Preferred:** claude-opus-4.6
+- **Preferred:** claude-opus-5.5
 - **Rationale:** Architecture and review decisions benefit from premium reasoning
 - **Fallback:** Standard chain — the coordinator handles fallback automatically
 
