@@ -1,36 +1,49 @@
 {
+  "schema": "squad-agent-provenance/v1",
+  "schema_version": 1,
+  "revision": 1,
+  "generated_at": "2026-04-05T03:19:17.000Z",
   "agents": {
     "jobs": {
+      "display_name": "Jobs",
       "persistent_name": "Jobs",
-      "universe": "Apple Legends",
       "role": "Lead",
-      "created_at": "2026-04-05T03:19:17Z",
-      "legacy_named": false,
-      "status": "active"
+      "universe": "Apple Legends",
+      "status": "active",
+      "created_at": "2026-04-05T03:19:17.000Z",
+      "updated_at": "2026-04-05T03:19:17.000Z",
+      "legacy_named": false
     },
     "woz": {
+      "display_name": "Woz",
       "persistent_name": "Woz",
-      "universe": "Apple Legends",
       "role": "Lead Dev",
-      "created_at": "2026-04-05T03:19:17Z",
-      "legacy_named": false,
-      "status": "active"
+      "universe": "Apple Legends",
+      "status": "active",
+      "created_at": "2026-04-05T03:19:17.000Z",
+      "updated_at": "2026-04-05T03:19:17.000Z",
+      "legacy_named": false
     },
     "kare": {
+      "display_name": "Kare",
       "persistent_name": "Kare",
-      "universe": "Apple Legends",
       "role": "Frontend Dev",
-      "created_at": "2026-04-05T03:19:17Z",
-      "legacy_named": false,
-      "status": "active"
+      "universe": "Apple Legends",
+      "status": "active",
+      "created_at": "2026-04-05T03:19:17.000Z",
+      "updated_at": "2026-04-05T03:19:17.000Z",
+      "legacy_named": false
     },
     "hertzfeld": {
+      "display_name": "Hertzfeld",
       "persistent_name": "Hertzfeld",
-      "universe": "Apple Legends",
       "role": "Tester",
-      "created_at": "2026-04-05T03:19:17Z",
-      "legacy_named": false,
-      "status": "active"
+      "universe": "Apple Legends",
+      "status": "active",
+      "created_at": "2026-04-05T03:19:17.000Z",
+      "updated_at": "2026-04-05T03:19:17.000Z",
+      "legacy_named": false
     }
-  }
+  },
+  "transaction_id": "8613ff37-9f50-4532-908f-499fb410e993"
 }
